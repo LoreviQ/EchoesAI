@@ -17,7 +17,7 @@ class Chatbot:
 
     def __init__(self, character):
         # Load character information
-        with open(f"details/{character}.json", "r", encoding="utf-8") as file:
+        with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
         # prep torch
@@ -37,8 +37,9 @@ class Chatbot:
 
         # Initialize chat
         self.chat = []
+        self.time = []
         self.phase = 0
-        self.set_system_message("chat_message")
+        self.set_system_message(self.chat, "chat_message")
         self.chat.append(
             {
                 "role": "assistant",
@@ -46,7 +47,7 @@ class Chatbot:
             }
         )
 
-    def set_system_message(self, system_message_type):
+    def set_system_message(self, chat, system_message_type):
         """
         Change the system message between several preconfigured options.
         """
@@ -56,6 +57,13 @@ class Chatbot:
                 initial_section = f"""
 You are an expert actor that can fully immerse yourself into any role given. You do not break character for any reason, even if someone tries addressing you as an AI or language model.
 Currently your role is {self.character_info['char']}, which is described in detail below. As {self.character_info['char']}, continue the exchange with the user.
+"""
+            case "time_checker":
+                initial_section = f"""
+You are playing the role of {self.character_info['char']}, which is described in detail below. 
+You are currently in a conversation with the user. You need to respond with the time it will take to respond to the user's message.
+Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
+Do not add any additional information to your response.
 """
 
         system_message = {
@@ -76,10 +84,10 @@ The story progresses in phases. The currently active phase is {self.character_in
 The following is highly important to remember: {self.character_info['important']}
 """,
         }
-        if self.chat:
-            self.chat[0] = system_message
+        if chat:
+            chat[0] = system_message
         else:
-            self.chat.append(system_message)
+            chat.append(system_message)
 
     def add_message(self, message):
         """
@@ -101,21 +109,20 @@ The following is highly important to remember: {self.character_info['important']
         response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
         return response[0]["generated_text"][-1]
 
-    def check_time(self, next_message, max_new_tokens=32):
+    def check_time(self):
         """
         Check how long the chatbot will take to respond to a message.
         """
-        message = {
-            "role": "user",
-            "content": f"""
+        self.time = self.chat.copy()
+        self.set_system_message(self.time, "time_checker")
+        self.time[-1]["content"] = (
+            f"""
 {{user}} is sending you the following message:
-{next_message["content"]}
+{self.time[-1]["content"]}
 How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
 """,
-        }
-        temp_chat = self.chat.copy()
-        temp_chat.append(message)
-        response = self.pipe(temp_chat, max_new_tokens=max_new_tokens)
+        )
+        response = self.pipe(self.time, max_new_tokens=16)
         print("Time taken to respond:", response[0]["generated_text"][-1])
 
     def start_chat(self):
@@ -145,6 +152,7 @@ How long will you take to respond to it? Reply with a duration in the format of 
                     "content": user_input,
                 }
                 self.add_message(user_message)
+                self.check_time()
                 assistant_message = self.get_response()
                 self.add_message(assistant_message)
                 print(assistant_message["content"])
