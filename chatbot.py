@@ -137,7 +137,7 @@ class Chatbot:
             self._continue_check_time(new_message)
         response = self.pipe(self.time, max_new_tokens=16)
         self.time.append(response[0]["generated_text"][-1])
-        print("Time taken to respond:", response[0]["generated_text"][-1])
+        return response[0]["generated_text"][-1]["content"]
 
     def _new_check_time(self):
         if self.chat[-1]["role"] == "assistant":
