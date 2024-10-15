@@ -99,7 +99,7 @@ The following is highly important to remember: {self.character_info['important']
         if self.chat[-1]["role"] == "assistant":
             raise ValueError("Most recent message in chat is from assistant.")
         response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
-        return response[0]["generated_text"]
+        return response[0]["generated_text"][-1]
 
     def check_time(self, next_message, max_new_tokens=32):
         """
@@ -116,7 +116,7 @@ How long will you take to respond to it? Reply with a duration in the format of 
         temp_chat = self.chat.copy()
         temp_chat.append(message)
         response = self.pipe(temp_chat, max_new_tokens=max_new_tokens)
-        print("Time taken to respond:", response[0]["generated_text"][-1]["content"])
+        print("Time taken to respond:", response[0]["generated_text"][-1])
 
     def start_chat(self):
         """
@@ -145,13 +145,9 @@ How long will you take to respond to it? Reply with a duration in the format of 
                     "content": user_input,
                 }
                 self.add_message(user_message)
-                response = self.get_response()
-                assistant_message = {
-                    "role": "assistant",
-                    "content": response,
-                }
+                assistant_message = self.get_response()
                 self.add_message(assistant_message)
-                print(response)
+                print(assistant_message["content"])
                 return True
 
 
