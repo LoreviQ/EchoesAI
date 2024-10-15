@@ -37,5 +37,5 @@ def handle_user_input(chatbot, user_input):
 
 
 if __name__ == "__main__":
-    bot = Chatbot("ophelia")
+    bot = Chatbot("Oliver", "ophelia")
     chat_in_terminal(bot)
