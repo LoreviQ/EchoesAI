@@ -1,2 +1,3 @@
 .AIvenv
 *__pycache__*
+.vscode
