@@ -1,3 +1,8 @@
+"""
+Module experimenting with the Hugging Face pipeline for text generation 
+to create a chatbot.
+"""
+
 import json
 import os
 
@@ -6,6 +11,10 @@ from transformers import pipeline
 
 
 class Chatbot:
+    """
+    Class to manage a chatbot generated though the Hugging Face pipeline.
+    """
+
     def __init__(self, character):
         # Load character information
         with open(f"details/{character}.json", "r", encoding="utf-8") as file:
@@ -13,7 +22,8 @@ class Chatbot:
 
         # prep torch
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
-            "garbage_collection_threshold:0.9,max_split_size_mb:512 python launch.py --precision full --no-half --opt-sub-quad-attention"
+            "garbage_collection_threshold:0.9,max_split_size_mb:512 "
+            "python launch.py --precision full --no-half --opt-sub-quad-attention"
         )
         torch.cuda.empty_cache()
 
@@ -27,8 +37,8 @@ class Chatbot:
 
         # Initialize chat
         self.chat = []
-        self.phase = "INTRODUCTION_PHASE"
-        self.set_system_message("INTRODUCTION_PHASE")
+        self.phase = 0
+        self.set_system_message("chat_message")
         self.chat.append(
             {
                 "role": "assistant",
@@ -37,6 +47,9 @@ class Chatbot:
         )
 
     def set_system_message(self, system_message_type):
+        """
+        Change the system message between several preconfigured options.
+        """
         initial_section = ""
         match system_message_type:
             case "chat_message":
@@ -58,7 +71,7 @@ Hates: {self.character_info['hates']}
 Details: {self.character_info['details']}
 
 The story follows the scenario: {self.character_info['scenario']}
-The story progresses in phases. The currently active phase is {self.phase} described by: {self.character_info['phases'][self.phase]}
+The story progresses in phases. The currently active phase is {self.character_info['phases'][self.phase]['name']} described by: {self.character_info['phases'][self.phase]['description']}
 
 The following is highly important to remember: {self.character_info['important']}
 """,
@@ -68,16 +81,34 @@ The following is highly important to remember: {self.character_info['important']
         else:
             self.chat.append(system_message)
 
-    def get_response(self, next_message, max_new_tokens=512):
-        self.chat.append(next_message)
+    def add_message(self, message):
+        """
+        Add a message to the chat.
+        """
+        message_role = message["role"]
+        if self.chat[-1]["role"] == message_role:
+            raise ValueError(
+                f"Most recent message in chat already from {message_role}."
+            )
+        self.chat.append(message)
+
+    def get_response(self, max_new_tokens=512):
+        """
+        Get a response from the chatbot.
+        """
+        if self.chat[-1]["role"] == "assistant":
+            raise ValueError("Most recent message in chat is from assistant.")
         response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
-        self.chat = response[0]["generated_text"]
+        return response[0]["generated_text"]
 
     def check_time(self, next_message, max_new_tokens=32):
+        """
+        Check how long the chatbot will take to respond to a message.
+        """
         message = {
             "role": "user",
             "content": f"""
-{{user}} is sending you the message:
+{{user}} is sending you the following message:
 {next_message["content"]}
 How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
 """,
@@ -87,22 +118,10 @@ How long will you take to respond to it? Reply with a duration in the format of 
         response = self.pipe(temp_chat, max_new_tokens=max_new_tokens)
         print("Time taken to respond:", response[0]["generated_text"][-1]["content"])
 
-    def handle_input(self, user_input):
-        match user_input.lower():
-            case "exit" | "quit":
-                print("Ending the session. Goodbye!")
-                return False
-            case _:
-                next_message = {
-                    "role": "user",
-                    "content": user_input,
-                }
-                self.check_time(next_message)
-                self.get_response(next_message)
-                print(self.chat[-1]["content"])
-                return True
-
     def start_chat(self):
+        """
+        Starts a conversationin the terminal with the chatbot.
+        """
         print("Bot params:")
         print(self.chat[-2]["content"])
         print("Starting conversation:")
@@ -112,8 +131,31 @@ How long will you take to respond to it? Reply with a duration in the format of 
             if not self.handle_input(user_input):
                 break
 
+    def handle_input(self, user_input):
+        """
+        Propcess the user input when chatting in the terminal.
+        """
+        match user_input.lower():
+            case "exit" | "quit":
+                print("Ending the session. Goodbye!")
+                return False
+            case _:
+                user_message = {
+                    "role": "user",
+                    "content": user_input,
+                }
+                self.add_message(user_message)
+                response = self.get_response()
+                assistant_message = {
+                    "role": "assistant",
+                    "content": response,
+                }
+                self.add_message(assistant_message)
+                print(response)
+                return True
+
 
 if __name__ == "__main__":
-    char_name = "ophelia"
-    chatbot = Chatbot(char_name)
+    CHAR_NAME = "ophelia"
+    chatbot = Chatbot(CHAR_NAME)
     chatbot.start_chat()
