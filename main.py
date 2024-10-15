@@ -109,22 +109,19 @@ The following is highly important to remember: {self.character_info['important']
         response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
         return response[0]["generated_text"][-1]
 
-    def check_time(self):
+    def check_time(self, new_check_chain=False, new_message=None):
         """
         Check how long the chatbot will take to respond to a message.
         """
-        self.time = self.chat.copy()
-        self.set_system_message(self.time, "time_checker")
-        self.time[-1] = {
-            "role": "user",
-            "content": f"""
-{{user}} is sending you the following message:
-{self.time[-1]["content"]}
-How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit 
-(e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
-""",
-        }
+        # Override new_check_chain if time is empty
+        if not self.time:
+            new_check_chain = True
+        if new_check_chain:
+            self._new_check_time()
+        else:
+            self._continue_check_time(new_message)
         response = self.pipe(self.time, max_new_tokens=16)
+        self.time.append(response[0]["generated_text"][-1])
         print("Time taken to respond:", response[0]["generated_text"][-1])
 
     def start_chat(self):
@@ -160,8 +157,50 @@ How long will you take to respond to it? Reply with a duration in the format of 
                 print(assistant_message["content"])
                 return True
 
+    def _new_check_time(self):
+        if self.chat[-1]["role"] == "assistant":
+            raise ValueError("Most recent message in chat is from assistant.")
+        self.time = self.chat.copy()
+        self.set_system_message(self.time, "time_checker")
+        self.time[-1] = {
+            "role": "user",
+            "content": f"""
+{{user}} is sending you the following message:
+{self.time[-1]["content"]}
+How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit 
+(e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
+""",
+        }
+
+    def _continue_check_time(self, new_message):
+        if not new_message:
+            raise ValueError("No new message provided.")
+        self.time.append(
+            {
+                "role": "user",
+                "content": f"""
+{{user}} is sending you another message:
+{new_message["content"]}
+Does this change the time you will take to respond to it? Reply with a duration in the format of number followed by a time unit
+(e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
+""",
+            }
+        )
+
 
 if __name__ == "__main__":
-    CHAR_NAME = "ophelia"
-    chatbot = Chatbot(CHAR_NAME)
-    chatbot.start_chat()
+    chatbot = Chatbot("ophelia")
+    print(chatbot.chat[-1]["content"])
+    first_input = input("")
+    first_message = {
+        "role": "user",
+        "content": first_input,
+    }
+    chatbot.add_message(first_message)
+    chatbot.check_time(new_check_chain=True)
+    second_input = input("")
+    second_message = {
+        "role": "user",
+        "content": second_input,
+    }
+    chatbot.check_time(new_message=second_message)
