@@ -115,13 +115,15 @@ The following is highly important to remember: {self.character_info['important']
         """
         self.time = self.chat.copy()
         self.set_system_message(self.time, "time_checker")
-        self.time[-1]["content"] = (
-            f"""
+        self.time[-1] = {
+            "role": "user",
+            "content": f"""
 {{user}} is sending you the following message:
 {self.time[-1]["content"]}
-How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
+How long will you take to respond to it? Reply with a duration in the format of number followed by a time unit 
+(e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
 """,
-        )
+        }
         response = self.pipe(self.time, max_new_tokens=16)
         print("Time taken to respond:", response[0]["generated_text"][-1])
 
