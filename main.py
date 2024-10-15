@@ -29,6 +29,7 @@ def handle_user_input(chatbot, user_input):
                 "content": user_input,
             }
             chatbot.add_message(user_message)
+            chatbot.check_time(new_check_chain=True)
             assistant_message = chatbot.get_response()
             chatbot.add_message(assistant_message)
             print(assistant_message["content"])

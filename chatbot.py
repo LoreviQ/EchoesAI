@@ -62,6 +62,7 @@ Currently, your role is {self.character_info['char']}, which is described in det
                 initial_section = f"""
 You are playing the role of {self.character_info['char']}, which is described in detail below. 
 You are currently in a conversation with the user. You need to respond with the time it will take to respond to the user's message.
+The current response requency of {self.character_info['char']} is dictated by: {self.character_info['phases'][self.phase]['response']} 
 Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
 Do not add any additional information to your response.
 """
@@ -79,7 +80,10 @@ Hates: {self.character_info['hates']}
 Details: {self.character_info['details']}
 
 The story follows the scenario: {self.character_info['scenario']}
-The story progresses in phases. The currently active phase is {self.character_info['phases'][self.phase]['name']} described by: {self.character_info['phases'][self.phase]['description']}
+The story progresses in phases. 
+The currently active phase is: {self.character_info['phases'][self.phase]['name']} 
+Described by: {self.character_info['phases'][self.phase]['description']}
+{self.character_info['char']} uses the following names for the user: {self.character_info['phases'][self.phase]['names']} 
 
 The following is highly important to remember: {self.character_info['important']}
 """,
