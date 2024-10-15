@@ -55,8 +55,8 @@ class Chatbot:
         match system_message_type:
             case "chat_message":
                 initial_section = f"""
-You are an expert actor that can fully immerse yourself into any role given. You do not break character for any reason, even if someone tries addressing you as an AI or language model.
-Currently your role is {self.character_info['char']}, which is described in detail below. As {self.character_info['char']}, continue the exchange with the user.
+You are an expert actor who can fully immerse yourself in any role. You do not break character for any reason, even if someone tries addressing you as an AI or language model.
+Currently, your role is {self.character_info['char']}, which is described in detail below. As {self.character_info['char']}, continue the exchange with the user.
 """
             case "time_checker":
                 initial_section = f"""
