@@ -7,6 +7,7 @@ import json
 import os
 
 import torch
+from jinja2 import Template
 from transformers import pipeline
 
 
@@ -15,7 +16,8 @@ class Chatbot:
     Class to manage a chatbot generated though the Hugging Face pipeline.
     """
 
-    def __init__(self, character):
+    def __init__(self, username, character):
+        self.username = username
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
@@ -51,42 +53,51 @@ class Chatbot:
         """
         Change the system message between several preconfigured options.
         """
-        initial_section = ""
         match system_message_type:
             case "chat_message":
-                initial_section = f"""
-You are an expert actor who can fully immerse yourself in any role. You do not break character for any reason, even if someone tries addressing you as an AI or language model.
-Currently, your role is {self.character_info['char']}, which is described in detail below. As {self.character_info['char']}, continue the exchange with the user.
-"""
+                template_filename = "main.txt"
             case "time_checker":
-                initial_section = f"""
-You are playing the role of {self.character_info['char']}, which is described in detail below. 
-You are currently in a conversation with the user. You need to respond with the time it will take to respond to the user's message.
-The current response requency of {self.character_info['char']} is dictated by: {self.character_info['phases'][self.phase]['response']} 
-Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
-Do not add any additional information to your response.
-"""
+                template_filename = "time.txt"
+            case _:
+                raise ValueError(f"Invalid system message type: {system_message_type}")
+
+        with open(f"templates/{template_filename}", "r", encoding="utf-8") as file:
+            template_content = file.read()
+
+        # prepare context for rendering
+        context = {
+            "user": self.username,
+            "char": self.character_info["char"],
+            "description": self.character_info["description"],
+            "age": self.character_info["age"],
+            "height": self.character_info["height"],
+            "personality": self.character_info["personality"],
+            "appearance": self.character_info["appearance"],
+            "loves": self.character_info["loves"],
+            "hates": self.character_info["hates"],
+            "details": self.character_info["details"],
+            "scenario": self.character_info["scenario"],
+            "important": self.character_info["important"],
+            "phase_name": self.character_info["phases"][self.phase]["name"],
+            "phase_description": self.character_info["phases"][self.phase][
+                "description"
+            ],
+            "phase_response": self.character_info["phases"][self.phase]["response"],
+            "phase_names": self.character_info["phases"][self.phase]["names"],
+            "phase_advance": self.character_info["phases"][self.phase]["advance"],
+        }
+
+        # Render the template until no more changes are detected
+        previous_content = None
+        current_content = template_content
+        while previous_content != current_content:
+            previous_content = current_content
+            template = Template(current_content)
+            current_content = template.render(context)
 
         system_message = {
             "role": "system",
-            "content": f"""
-{initial_section}
-Description: {self.character_info['description']}
-Age: {self.character_info['age']}
-Personality: {self.character_info['personality']}
-Appearance: {self.character_info['appearance']}
-Loves: {self.character_info['loves']}
-Hates: {self.character_info['hates']}
-Details: {self.character_info['details']}
-
-The story follows the scenario: {self.character_info['scenario']}
-The story progresses in phases. 
-The currently active phase is: {self.character_info['phases'][self.phase]['name']} 
-Described by: {self.character_info['phases'][self.phase]['description']}
-{self.character_info['char']} uses the following names for the user: {self.character_info['phases'][self.phase]['names']} 
-
-The following is highly important to remember: {self.character_info['important']}
-""",
+            "content": current_content,
         }
         if chat:
             chat[0] = system_message
