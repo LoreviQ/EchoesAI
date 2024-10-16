@@ -3,7 +3,10 @@ import re
 from chatbot import Chatbot
 
 
-def test_initialization():
+def test_initialization() -> None:
+    """
+    Test the initialization of the Chatbot class.
+    """
     chatbot = Chatbot(username="test_user", character="test")
     assert chatbot.username == "test_user"
     assert chatbot.character_info["char"] == "Test Character"
@@ -18,7 +21,10 @@ def test_initialization():
     assert chatbot.chat[1]["content"] == "Hello, I am your assistant."
 
 
-def test_set_system_message():
+def test_set_system_message() -> None:
+    """
+    Test the set_system_message method of the Chatbot class.
+    """
     chatbot = Chatbot(username="test_user", character="test")
     chatbot.set_system_message(chatbot.chat, "time_checker")
     assert chatbot.chat[0]["role"] == "system"
@@ -26,21 +32,30 @@ def test_set_system_message():
     assert "Response for phase 1" in chatbot.chat[0]["content"]
 
 
-def test_add_message():
+def test_add_message() -> None:
+    """
+    Test the add_message method of the Chatbot class.
+    """
     chatbot = Chatbot(username="test_user", character="test")
     chatbot.add_message({"role": "user", "content": "Test message"})
     assert chatbot.chat[-1]["role"] == "user"
     assert chatbot.chat[-1]["content"] == "Test message"
 
 
-def test_get_response():
+def test_get_response() -> None:
+    """
+    Test the get_response method of the Chatbot class.
+    """
     chatbot = Chatbot(username="test_user", character="test")
     chatbot.add_message({"role": "user", "content": "Test message"})
     response = chatbot.get_response()
     assert response["role"] == "assistant"
 
 
-def test_check_time():
+def test_check_time() -> None:
+    """
+    Test the check_time method of the Chatbot class.
+    """
     chatbot = Chatbot(username="test_user", character="test")
     chatbot.add_message({"role": "user", "content": "Test message"})
     time = chatbot.check_time(new_check_chain=True)

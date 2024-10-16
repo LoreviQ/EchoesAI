@@ -1,7 +1,9 @@
+from typing import Dict
+
 from chatbot import Chatbot
 
 
-def chat_in_terminal(chatbot):
+def chat_in_terminal(chatbot: Chatbot) -> None:
     """
     Starts a conversationin the terminal with the chatbot.
     """
@@ -15,7 +17,7 @@ def chat_in_terminal(chatbot):
             break
 
 
-def handle_user_input(chatbot, user_input):
+def handle_user_input(chatbot: Chatbot, user_input: str) -> bool:
     """
     Propcess the user input when chatting in the terminal.
     """
@@ -24,7 +26,7 @@ def handle_user_input(chatbot, user_input):
             print("Ending the session. Goodbye!")
             return False
         case _:
-            user_message = {
+            user_message: Dict[str, str] = {
                 "role": "user",
                 "content": user_input,
             }

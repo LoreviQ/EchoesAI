@@ -5,6 +5,7 @@ to create a chatbot.
 
 import json
 import os
+from typing import Dict, List, Optional
 
 import torch
 from jinja2 import Template
@@ -16,7 +17,7 @@ class Chatbot:
     Class to manage a chatbot generated though the Hugging Face pipeline.
     """
 
-    def __init__(self, username, character):
+    def __init__(self, username: str, character: str):
         self.username = username
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
@@ -38,8 +39,8 @@ class Chatbot:
         )
 
         # Initialize chat
-        self.chat = []
-        self.time = []
+        self.chat: List[Dict[str, str]] = []
+        self.time: List[Dict[str, str]] = []
         self.phase = 0
         self.set_system_message(self.chat, "chat_message")
         self.chat.append(
@@ -49,7 +50,9 @@ class Chatbot:
             }
         )
 
-    def set_system_message(self, chat, system_message_type):
+    def set_system_message(
+        self, chat: List[Dict[str, str]], system_message_type: str
+    ) -> None:
         """
         Change the system message between several preconfigured options.
         """
@@ -104,7 +107,7 @@ class Chatbot:
         else:
             chat.append(system_message)
 
-    def add_message(self, message):
+    def add_message(self, message: Dict[str, str]) -> None:
         """
         Add a message to the chat log.
         """
@@ -115,7 +118,7 @@ class Chatbot:
             )
         self.chat.append(message)
 
-    def get_response(self, max_new_tokens=512):
+    def get_response(self, max_new_tokens: int = 512) -> Dict[str, str]:
         """
         Get a response from the chatbot.
         """
@@ -124,7 +127,11 @@ class Chatbot:
         response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
         return response[0]["generated_text"][-1]
 
-    def check_time(self, new_check_chain=False, new_message=None):
+    def check_time(
+        self,
+        new_check_chain: bool = False,
+        new_message: Optional[Dict[str, str]] = None,
+    ) -> str:
         """
         Check how long the chatbot will take to respond to a message.
         """
@@ -139,7 +146,7 @@ class Chatbot:
         self.time.append(response[0]["generated_text"][-1])
         return response[0]["generated_text"][-1]["content"]
 
-    def _new_check_time(self):
+    def _new_check_time(self) -> None:
         if self.chat[-1]["role"] == "assistant":
             raise ValueError("Most recent message in chat is from assistant.")
         self.time = self.chat.copy()
@@ -154,7 +161,7 @@ How long will you take to respond to it? Reply with a duration in the format of 
 """,
         }
 
-    def _continue_check_time(self, new_message):
+    def _continue_check_time(self, new_message: Optional[Dict[str, str]]) -> None:
         if not new_message:
             raise ValueError("No new message provided.")
         self.time.append(
