@@ -1,20 +1,18 @@
 """
-Module experimenting with the Hugging Face pipeline for text generation 
-to create a chatbot.
+Module to manage the chatbot state.
 """
 
 import json
-import os
 from typing import Dict, List, Optional
 
-import torch
 from jinja2 import Template
-from transformers import pipeline
+
+from model import Model
 
 
 class Chatbot:
     """
-    Class to manage a chatbot generated though the Hugging Face pipeline.
+    Class to manage a chatbot state.
     """
 
     def __init__(self, username: str, character: str):
@@ -22,22 +20,8 @@ class Chatbot:
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
-
-        # prep torch
-        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
-            "garbage_collection_threshold:0.9,max_split_size_mb:512 "
-            "python launch.py --precision full --no-half --opt-sub-quad-attention"
-        )
-        torch.cuda.empty_cache()
-
         # Load the model
-        self.pipe = pipeline(
-            "text-generation",
-            model="Sao10K/L3-8B-Stheno-v3.2",
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-        )
-
+        self.model = Model()
         # Initialize chat
         self.chat: List[Dict[str, str]] = []
         self.time: List[Dict[str, str]] = []
@@ -118,14 +102,11 @@ class Chatbot:
             )
         self.chat.append(message)
 
-    def get_response(self, max_new_tokens: int = 512) -> Dict[str, str]:
+    def get_response(self) -> Dict[str, str]:
         """
-        Get a response from the chatbot.
+        Generate a response from the chatbot.
         """
-        if self.chat[-1]["role"] == "assistant":
-            raise ValueError("Most recent message in chat is from assistant.")
-        response = self.pipe(self.chat, max_new_tokens=max_new_tokens)
-        return response[0]["generated_text"][-1]
+        return self.model.generate_response(self.chat, max_new_tokens=512)
 
     def check_time(
         self,
@@ -142,9 +123,8 @@ class Chatbot:
             self._new_check_time()
         else:
             self._continue_check_time(new_message)
-        response = self.pipe(self.time, max_new_tokens=16)
-        self.time.append(response[0]["generated_text"][-1])
-        return response[0]["generated_text"][-1]["content"]
+        response = self.model.generate_response(self.time, max_new_tokens=32)
+        return response["content"]
 
     def _new_check_time(self) -> None:
         if self.chat[-1]["role"] == "assistant":
