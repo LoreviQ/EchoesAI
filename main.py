@@ -1,5 +1,6 @@
 from typing import Dict
 
+from app import App
 from chatbot import Chatbot
 
 

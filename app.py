@@ -5,6 +5,8 @@ Module to hold server logic.
 from flask import Flask, make_response
 from flask_cors import CORS
 
+from chatbot import Chatbot
+
 
 class App:
     """
@@ -26,6 +28,12 @@ class App:
         def ready():
             return make_response("", 200)
 
+    def create_chatbot(self, username, character):
+        """
+        Create a chatbot instance.
+        """
+        return Chatbot(username, character)
+
     def serve(self) -> None:
         """
         Start the Flask app.
@@ -35,4 +43,5 @@ class App:
 
 if __name__ == "__main__":
     app_instance = App()
+    app_instance.create_chatbot("Oliver", "ophelia")
     app_instance.serve()
