@@ -3,7 +3,7 @@ Module for Hugging face pipeline for text generation.
 """
 
 import os
-from typing import Dict
+from typing import Dict, List
 
 import torch
 from transformers import pipeline
@@ -14,7 +14,7 @@ class Model:
     Class to manage the Hugging Face pipeline for text generation.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # prep torch
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
             "garbage_collection_threshold:0.9,max_split_size_mb:128 "
@@ -30,7 +30,9 @@ class Model:
             device_map="auto",
         )
 
-    def generate_response(self, chat, max_new_tokens: int = 512) -> Dict[str, str]:
+    def generate_response(
+        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
+    ) -> Dict[str, str]:
         """
         Generate a new message based on the chat history.
         """

@@ -2,7 +2,7 @@
 Module to hold server logic.
 """
 
-from flask import Flask, make_response
+from flask import Flask, Response, make_response, request
 from flask_cors import CORS
 
 from chatbot import Chatbot
@@ -18,6 +18,7 @@ class App:
         CORS(self.app)
         self.port = port
         self._setup_routes()
+        self.chatbot: Chatbot
 
     def _setup_routes(self) -> None:
         """
@@ -25,14 +26,24 @@ class App:
         """
 
         @self.app.route("/readiness", methods=["GET"])
-        def ready():
+        def ready() -> Response:
             return make_response("", 200)
 
-    def create_chatbot(self, username, character):
+        @self.app.route("/chatbot/new", methods=["POST"])
+        def new_chatbot() -> Response:
+            data = request.json
+            if data is None:
+                return make_response("Invalid JSON", 400)
+            username = data["username"]
+            character = data["character"]
+            self.create_chatbot(username, character)
+            return make_response("", 200)
+
+    def create_chatbot(self, username: str, character: str) -> None:
         """
         Create a chatbot instance.
         """
-        return Chatbot(username, character)
+        self.chatbot = Chatbot(username, character)
 
     def serve(self) -> None:
         """
