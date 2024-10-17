@@ -16,8 +16,8 @@ class DB:
         self.queries: Dict[str, str] = {
             "post_message": "INSERT INTO messages (thread, content) VALUES (?, ?)",
             "get_messages": "SELECT * FROM messages",
-            "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?)  RETURNING id",
-            "get_latest_thread": "SELECT MAX(thread) FROM messages WHERE user = ? AND chatbot = ?",
+            "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
+            "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
         }
         self._create_db()
 
