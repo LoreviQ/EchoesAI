@@ -3,7 +3,7 @@ This module contains the class to manage the database and other database-related
 """
 
 import sqlite3
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 
 
 class DB:
@@ -11,9 +11,12 @@ class DB:
     Class to manage the database.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, db_path: Optional[str] = None) -> None:
         # Connect to the database
-        self.conn = sqlite3.connect("database.db")
+        if db_path:
+            self.conn = sqlite3.connect(db_path)
+        else:
+            self.conn = sqlite3.connect("database.db")
         self.cursor = self.conn.cursor()
 
         # Create the schema if it doesn't exist
@@ -22,7 +25,8 @@ class DB:
         self.cursor.executescript(schema)
         self.conn.commit()
         self.queries: Dict[str, str] = {
-            "post_message": "INSERT INTO messages (user, chatbot, content) VALUES (?, ?, ?)"
+            "post_message": "INSERT INTO messages (user, chatbot, content) VALUES (?, ?, ?)",
+            "get_messages": "SELECT * FROM messages",
         }
 
     def post_message(self, user: str, chatbot: str, content: str) -> None:
@@ -35,6 +39,17 @@ class DB:
         )
         self.conn.commit()
 
+    def get_messages(self) -> List[Tuple[int, str, str, str, str]]:
+        """
+        Get all messages from the database.
+        """
+        self.cursor.execute(self.queries["get_messages"])
+        return self.cursor.fetchall()
+
 
 if __name__ == "__main__":
     db = DB()
+    db.post_message("user", "chatbot", "test message")
+    db.post_message("user2", "chatbot2", "test message2")
+    messages = db.get_messages()
+    print(messages)

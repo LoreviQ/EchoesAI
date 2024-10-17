@@ -20,11 +20,14 @@ class Chatbot:
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
+
         # Load the model
+        self.model: Model | MockedModel
         if mocked:
             self.model = MockedModel()
         else:
             self.model = Model()
+
         # Initialize chat
         self.chat: List[Dict[str, str]] = []
         self.time: List[Dict[str, str]] = []
