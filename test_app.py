@@ -4,7 +4,7 @@ This file contains the tests for the app.py file.
 
 # pylint: disable=redefined-outer-name
 
-import json
+
 import os
 from multiprocessing import Value
 from typing import Generator
