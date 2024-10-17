@@ -4,3 +4,4 @@ __pycache__
 .pytest_cache
 .vscode
 database.db
+real_ophelia.json
