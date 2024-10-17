@@ -34,7 +34,6 @@ def app() -> Generator[App, None, None]:
         port_counter.value += 1
     app = App(db_path=db_path, port=port)
     yield app
-    app.db.conn.close()
     os.remove(db_path)
 
 

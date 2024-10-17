@@ -24,7 +24,6 @@ def db() -> Generator[DB, None, None]:
     db_path = f"test_database_{test_name}.db"
     db = DB(db_path)
     yield db
-    db.conn.close()
     os.remove(db_path)
 
 
@@ -33,7 +32,6 @@ def test_create_database() -> None:
     Test the creation of the database.
     """
     db = DB("test_database.db")
-    db.conn.close()
     assert os.path.exists("test_database.db")
     os.remove("test_database.db")
 

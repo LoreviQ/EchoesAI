@@ -12,7 +12,7 @@ class DB:
     """
 
     def __init__(self, db_path: str = "database.db") -> None:
-        self.conn = sqlite3.connect(db_path)
+        self.db_path = db_path
         self.queries: Dict[str, str] = {
             "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
             "get_messages": "SELECT content, role, timestamp FROM messages",
@@ -28,37 +28,43 @@ class DB:
         """
         Create the database with the schema if it doesn't exist.
         """
+        conn = sqlite3.connect(self.db_path)
         with open("./sql/schema.sql", "r", encoding="utf-8") as file:
             schema = file.read()
-        with self.conn:
-            self.conn.executescript(schema)
-            self.conn.commit()
+        with conn:
+            conn.executescript(schema)
+            conn.commit()
+        conn.close()
 
     def post_thread(self, user: str, chatbot: str) -> int:
         """
         Insert a new thread into the database returning the thread id.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(
             self.queries["post_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()[0]
-        self.conn.commit()
+        conn.commit()
         cursor.close()
+        conn.close()
         return result
 
     def get_thread(self, thread_id: int) -> Tuple[str, str]:
         """
         Get the user and chatbot for a thread.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(
             self.queries["get_thread"],
             (thread_id,),
         )
         result = cursor.fetchone()
         cursor.close()
+        conn.close()
         if result:
             return result
         raise ValueError("Thread not found")
@@ -67,13 +73,15 @@ class DB:
         """
         Get the latest thread for a user and chatbot.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(
             self.queries["get_latest_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()
         cursor.close()
+        conn.close()
         if result[0]:
             return result[0]
         return 0
@@ -82,43 +90,51 @@ class DB:
         """
         Get all threads for a user.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(
             self.queries["get_threads_by_user"],
             (user,),
         )
         result = cursor.fetchall()
         cursor.close()
+        conn.close()
         return result
 
     def post_message(self, thread: int, content: str, role: str) -> None:
         """
         Insert a message into the database.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(
             self.queries["post_message"],
             (thread, content, role),
         )
-        self.conn.commit()
+        conn.commit()
         cursor.close()
+        conn.close()
 
     def get_messages(self) -> List[Tuple[str, str, str]]:
         """
         Get all messages from the database.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(self.queries["get_messages"])
         result = cursor.fetchall()
         cursor.close()
+        conn.close()
         return result
 
     def get_messages_by_thread(self, thread_id: int) -> List[Tuple[str, str, str]]:
         """
         Get all messages from the database.
         """
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         cursor.execute(self.queries["get_messages_by_thread"], (thread_id,))
         result = cursor.fetchall()
         cursor.close()
+        conn.close()
         return result

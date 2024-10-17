@@ -10,6 +10,7 @@ import pytest
 
 from chatbot import Chatbot
 from database import DB
+from model import new_model
 
 
 @pytest.fixture
@@ -26,9 +27,8 @@ def chatbot() -> Generator[Chatbot, None, None]:
     db = DB(db_path)
     thread_id = db.post_thread("test_user", "test")
     chatbot = Chatbot(thread_id=thread_id, database=db)
-    chatbot.new_model(mocked=True)
+    chatbot.model = new_model(mocked=True)
     yield chatbot
-    db.conn.close()
     os.remove(db_path)
 
 
