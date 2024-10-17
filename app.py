@@ -2,6 +2,8 @@
 Module to hold server logic.
 """
 
+import json
+
 from flask import Flask, Response, make_response, request
 from flask_cors import CORS
 
@@ -36,13 +38,27 @@ class App:
             self.chatbot = Chatbot(thread_id, self.db)
             return make_response("", 200)
 
-        @self.app.route("/thread/new", methods=["POST"])
+        @self.app.route("/threads/new", methods=["POST"])
         def new_thread() -> Response:
             data = request.get_json()
             username = data["username"]
             character = data["character"]
             thread_id = self.db.post_thread(username, character)
             return make_response(str(thread_id), 200)
+
+        @self.app.route("/threads/<string:username>", methods=["GET"])
+        def get_threads_by_user(username: str) -> Response:
+            threads = self.db.get_threads_by_user(username)
+            threads_dict = [{"id": t[0], "character": t[1]} for t in threads]
+            return make_response(json.dumps(threads_dict), 200)
+
+        @self.app.route("/thread/<int:thread_id>/messages", methods=["GET"])
+        def get_messages_by_thread(thread_id: int) -> Response:
+            messages = self.db.get_messages_by_thread(thread_id)
+            messages_dict = [
+                {"content": m[0], "role": m[1], "timestamp": m[2]} for m in messages
+            ]
+            return make_response(json.dumps(messages_dict), 200)
 
     def serve(self) -> None:
         """

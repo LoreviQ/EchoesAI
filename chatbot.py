@@ -71,8 +71,8 @@ class Chatbot:
         for message in messages:
             chat_log.append(
                 {
-                    "role": message[4],
-                    "content": message[3],
+                    "role": message[1],
+                    "content": message[0],
                 }
             )
         return chat_log

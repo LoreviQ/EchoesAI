@@ -60,6 +60,25 @@ def test_get_thread(db: DB) -> None:
         db.get_thread(2)
 
 
+def test_get_threads_by_user(db: DB) -> None:
+    """
+    Test the get_threads_by_user method of the DB class.
+    """
+    db.post_thread("user", "chatbot")
+    db.post_thread("user", "chatbot2")
+    db.post_thread("user2", "chatbot")
+    threads = db.get_threads_by_user("user")
+    assert len(threads) == 2
+    assert threads[0][0] == 1
+    assert threads[0][1] == "chatbot"
+    assert threads[1][0] == 2
+    assert threads[1][1] == "chatbot2"
+    threads = db.get_threads_by_user("user2")
+    assert len(threads) == 1
+    assert threads[0][0] == 3
+    assert threads[0][1] == "chatbot"
+
+
 def test_get_latest_thread(db: DB) -> None:
     """
     Test the get_latest_thread method of the DB class.
@@ -90,14 +109,10 @@ def test_get_messages(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages()
     assert len(messages) == 2
-    assert messages[0][0] == 1
-    assert messages[0][2] == thread_id
-    assert messages[0][3] == "test message"
-    assert messages[0][4] == "user"
-    assert messages[1][0] == 2
-    assert messages[1][2] == thread_id2
-    assert messages[1][3] == "test message2"
-    assert messages[1][4] == "assistant"
+    assert messages[0][0] == "test message"
+    assert messages[0][1] == "user"
+    assert messages[1][0] == "test message2"
+    assert messages[1][1] == "assistant"
 
 
 def test_get_messages_by_thread(db: DB) -> None:
@@ -110,11 +125,7 @@ def test_get_messages_by_thread(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
-    assert messages[0][0] == 1
-    assert messages[0][2] == thread_id
-    assert messages[0][3] == "test message"
+    assert messages[0][0] == "test message"
     messages = db.get_messages_by_thread(thread_id2)
     assert len(messages) == 1
-    assert messages[0][0] == 2
-    assert messages[0][2] == thread_id2
-    assert messages[0][3] == "test message2"
+    assert messages[0][0] == "test message2"

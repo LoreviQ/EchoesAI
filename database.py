@@ -15,10 +15,11 @@ class DB:
         self.conn = sqlite3.connect(db_path)
         self.queries: Dict[str, str] = {
             "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
-            "get_messages": "SELECT * FROM messages",
-            "get_messages_by_thread": "SELECT * FROM messages WHERE thread = ?",
+            "get_messages": "SELECT content, role, timestamp FROM messages",
+            "get_messages_by_thread": "SELECT content, role, timestamp FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
             "get_thread": "SELECT user, chatbot FROM threads WHERE id = ?",
+            "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
             "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
         }
         self._create_db()
@@ -77,6 +78,19 @@ class DB:
             return result[0]
         return 0
 
+    def get_threads_by_user(self, user: str) -> List[Tuple[int, str]]:
+        """
+        Get all threads for a user.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            self.queries["get_threads_by_user"],
+            (user,),
+        )
+        result = cursor.fetchall()
+        cursor.close()
+        return result
+
     def post_message(self, thread: int, content: str, role: str) -> None:
         """
         Insert a message into the database.
@@ -89,7 +103,7 @@ class DB:
         self.conn.commit()
         cursor.close()
 
-    def get_messages(self) -> List[Tuple[int, str, str, str, str]]:
+    def get_messages(self) -> List[Tuple[str, str, str]]:
         """
         Get all messages from the database.
         """
@@ -99,9 +113,7 @@ class DB:
         cursor.close()
         return result
 
-    def get_messages_by_thread(
-        self, thread_id: int
-    ) -> List[Tuple[int, str, str, str, str]]:
+    def get_messages_by_thread(self, thread_id: int) -> List[Tuple[str, str, str]]:
         """
         Get all messages from the database.
         """

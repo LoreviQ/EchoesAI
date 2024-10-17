@@ -68,7 +68,7 @@ def test_new_thread(client: FlaskClient) -> None:
     Test the new thread route.
     """
     response = client.post(
-        "/thread/new",
+        "/threads/new",
         json={"username": "user", "character": "test"},
     )
     assert response.status_code == 200
