@@ -43,7 +43,7 @@ class App:
         """
         Create a chatbot instance.
         """
-        self.chatbot = Chatbot(username, character)
+        self.chatbot = Chatbot(username, character, 1)
 
     def serve(self) -> None:
         """

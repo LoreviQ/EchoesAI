@@ -6,7 +6,7 @@ import os
 from typing import Dict, List
 
 import torch
-from transformers import pipeline
+from transformers import Pipeline, pipeline
 
 
 class Model:
@@ -15,15 +15,19 @@ class Model:
     """
 
     def __init__(self) -> None:
+        self.pipe = self._load_model()
+
+    def _load_model(self) -> Pipeline:
+        """
+        Load the model.
+        """
         # prep torch
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
             "garbage_collection_threshold:0.9,max_split_size_mb:128 "
             "python launch.py --precision full --no-half --opt-sub-quad-attention"
         )
         torch.cuda.empty_cache()
-
-        # Load the model
-        self.pipe = pipeline(
+        return pipeline(
             "text-generation",
             model="Sao10K/L3-8B-Stheno-v3.2",
             torch_dtype=torch.bfloat16,

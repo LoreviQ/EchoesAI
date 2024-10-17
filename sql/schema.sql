@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS messages (
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
     thread INTEGER,
     content TEXT,
+    role TEXT,
     FOREIGN KEY(thread) REFERENCES threads(id)
 );
 

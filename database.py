@@ -14,8 +14,9 @@ class DB:
     def __init__(self, db_path: str = "database.db") -> None:
         self.conn = sqlite3.connect(db_path)
         self.queries: Dict[str, str] = {
-            "post_message": "INSERT INTO messages (thread, content) VALUES (?, ?)",
+            "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
             "get_messages": "SELECT * FROM messages",
+            "get_messages_by_thread": "SELECT * FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
             "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
         }
@@ -60,14 +61,14 @@ class DB:
             return result[0]
         return 0
 
-    def post_message(self, thread: int, content: str) -> None:
+    def post_message(self, thread: int, content: str, role: str) -> None:
         """
         Insert a message into the database.
         """
         cursor = self.conn.cursor()
         cursor.execute(
             self.queries["post_message"],
-            (thread, content),
+            (thread, content, role),
         )
         self.conn.commit()
         cursor.close()
@@ -82,11 +83,14 @@ class DB:
         cursor.close()
         return result
 
-
-if __name__ == "__main__":
-    db = DB()
-    thread_id = db.post_thread("user", "chatbot")
-    db.post_message(thread_id, "test message")
-    db.post_message(thread_id, "test message2")
-    messages = db.get_messages()
-    print(messages)
+    def get_messages_by_thread(
+        self, thread_id: int
+    ) -> List[Tuple[int, str, str, str, str]]:
+        """
+        Get all messages from the database.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(self.queries["get_messages_by_thread"], (thread_id,))
+        result = cursor.fetchall()
+        cursor.close()
+        return result
