@@ -18,6 +18,7 @@ class DB:
             "get_messages": "SELECT * FROM messages",
             "get_messages_by_thread": "SELECT * FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
+            "get_thread": "SELECT user, chatbot FROM threads WHERE id = ?",
             "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
         }
         self._create_db()
@@ -45,6 +46,21 @@ class DB:
         self.conn.commit()
         cursor.close()
         return result
+
+    def get_thread(self, thread_id: int) -> Tuple[str, str]:
+        """
+        Get the user and chatbot for a thread.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            self.queries["get_thread"],
+            (thread_id,),
+        )
+        result = cursor.fetchone()
+        cursor.close()
+        if result:
+            return result
+        raise ValueError("Thread not found")
 
     def get_latest_thread(self, user: str, chatbot: str) -> int:
         """

@@ -3,7 +3,7 @@ Module to manage the chatbot state.
 """
 
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from jinja2 import Template
 
@@ -18,11 +18,10 @@ class Chatbot:
 
     def __init__(
         self,
-        username: str,
-        character: str,
         thread_id: int,
-        database: Optional[DB] = None,
+        database: DB,
     ) -> None:
+        username, character = database.get_thread(thread_id)
         self.username = username
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:

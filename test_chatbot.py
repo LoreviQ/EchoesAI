@@ -22,12 +22,14 @@ def chatbot() -> Generator[Chatbot, None, None]:
         test_name = "unknown"
     else:
         test_name = test_name.split(":")[-1].split(" ")[0]
-    db = DB(f"test_database_{test_name}.db")
-    chatbot = Chatbot(username="test_user", character="test", thread_id=1, database=db)
+    db_path = f"test_database_{test_name}.db"
+    db = DB(db_path)
+    thread_id = db.post_thread("test_user", "test")
+    chatbot = Chatbot(thread_id=thread_id, database=db)
     chatbot.new_model(mocked=True)
     yield chatbot
     db.conn.close()
-    os.remove(f"test_database_{test_name}.db")
+    os.remove(db_path)
 
 
 def test_initialization(chatbot: Chatbot) -> None:

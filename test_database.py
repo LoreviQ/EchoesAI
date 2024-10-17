@@ -21,10 +21,11 @@ def db() -> Generator[DB, None, None]:
         test_name = "unknown"
     else:
         test_name = test_name.split(":")[-1].split(" ")[0]
-    db = DB(f"test_database_{test_name}.db")
+    db_path = f"test_database_{test_name}.db"
+    db = DB(db_path)
     yield db
     db.conn.close()
-    os.remove(f"test_database_{test_name}.db")
+    os.remove(db_path)
 
 
 def test_create_database() -> None:
@@ -45,6 +46,18 @@ def test_post_thread(db: DB) -> None:
     assert thread_id == 1
     thread_id = db.post_thread("user2", "chatbot2")
     assert thread_id == 2
+
+
+def test_get_thread(db: DB) -> None:
+    """
+    Test the get_thread method of the DB class.
+    """
+    thread_id = db.post_thread("user", "chatbot")
+    user, chatbot = db.get_thread(thread_id)
+    assert user == "user"
+    assert chatbot == "chatbot"
+    with pytest.raises(ValueError, match="Thread not found"):
+        db.get_thread(2)
 
 
 def test_get_latest_thread(db: DB) -> None:
