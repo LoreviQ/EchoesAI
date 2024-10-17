@@ -2,9 +2,29 @@
 This file contains the tests for the database.py file.
 """
 
+# pylint: disable=redefined-outer-name
 import os
+from typing import Generator
+
+import pytest
 
 from database import DB
+
+
+@pytest.fixture
+def db() -> Generator[DB]:
+    """
+    Create a DB object for testing and teardown after testing.
+    """
+    test_name = os.environ.get("PYTEST_CURRENT_TEST")
+    if test_name is None:
+        test_name = "unknown"
+    else:
+        test_name = test_name.split(":")[-1].split(" ")[0]
+    db = DB(f"test_database_{test_name}.db")
+    yield db
+    db.conn.close()
+    os.remove(f"test_database_{test_name}.db")
 
 
 def test_create_database() -> None:
@@ -17,50 +37,40 @@ def test_create_database() -> None:
     os.remove("test_database.db")
 
 
-def test_post_thread() -> None:
+def test_post_thread(db: DB) -> None:
     """
     Test the post_thread method of the DB class.
     """
-    db = DB("test_database_1.db")
     thread_id = db.post_thread("user", "chatbot")
     assert thread_id == 1
     thread_id = db.post_thread("user2", "chatbot2")
     assert thread_id == 2
-    db.conn.close()
-    os.remove("test_database_1.db")
 
 
-def test_get_latest_thread() -> None:
+def test_get_latest_thread(db: DB) -> None:
     """
     Test the get_latest_thread method of the DB class.
     """
-    db = DB("test_database_2.db")
     db.post_thread("user", "chatbot")
     thread_id = db.post_thread("user", "chatbot")
     latest_thread = db.get_latest_thread("user", "chatbot")
     assert latest_thread == thread_id
     latest_thread = db.get_latest_thread("user2", "chatbot2")
     assert latest_thread == 0
-    db.conn.close()
-    os.remove("test_database_2.db")
 
 
-def test_post_message() -> None:
+def test_post_message(db: DB) -> None:
     """
     Test the post_message method of the DB class.
     """
-    db = DB("test_database_3.db")
     thread_id = db.post_thread("user", "chatbot")
     db.post_message(thread_id, "test message")
-    db.conn.close()
-    os.remove("test_database_3.db")
 
 
-def test_get_messages() -> None:
+def test_get_messages(db: DB) -> None:
     """
     Test the get_messages method of the DB class.
     """
-    db = DB("test_database_4.db")
     thread_id = db.post_thread("user", "chatbot")
     thread_id2 = db.post_thread("user2", "chatbot2")
     db.post_message(thread_id, "test message")
@@ -73,5 +83,3 @@ def test_get_messages() -> None:
     assert messages[1][0] == 2
     assert messages[1][2] == thread_id2
     assert messages[1][3] == "test message2"
-    db.conn.close()
-    os.remove("test_database_4.db")
