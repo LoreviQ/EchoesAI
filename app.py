@@ -2,7 +2,7 @@
 Module to hold server logic.
 """
 
-from flask import Flask, Response, make_response
+from flask import Flask, Response, make_response, request
 from flask_cors import CORS
 
 from chatbot import Chatbot
@@ -35,6 +35,14 @@ class App:
         def create_chatbot(thread_id: int) -> Response:
             self.chatbot = Chatbot(thread_id, self.db)
             return make_response("", 200)
+
+        @self.app.route("/thread/new", methods=["POST"])
+        def new_thread() -> Response:
+            data = request.get_json()
+            username = data["username"]
+            character = data["character"]
+            thread_id = self.db.post_thread(username, character)
+            return make_response(str(thread_id), 200)
 
     def serve(self) -> None:
         """
