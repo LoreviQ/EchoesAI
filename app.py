@@ -7,6 +7,7 @@ from flask_cors import CORS
 
 from chatbot import Chatbot
 from database import DB
+from model import new_model
 
 
 class App:
@@ -20,8 +21,8 @@ class App:
         self.port = port
         self.db = DB(db_path)
         self._setup_routes()
-        self.chatbot: Chatbot
         self.model = None
+        self.chatbot: Chatbot
 
     def _setup_routes(self) -> None:
         """
@@ -34,7 +35,10 @@ class App:
 
         @self.app.route("/chatbot/<int:thread_id>", methods=["POST"])
         def create_chatbot(thread_id: int) -> Response:
+            if self.model is None:
+                return make_response("Model not loaded", 400)
             self.chatbot = Chatbot(thread_id, self.db)
+            self.chatbot.model = self.model
             return make_response("", 200)
 
         @self.app.route("/threads/new", methods=["POST"])
@@ -52,7 +56,7 @@ class App:
 
             return make_response(jsonify(threads_dict), 200)
 
-        @self.app.route("/thread/<int:thread_id>/messages", methods=["GET"])
+        @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
             messages = self.db.get_messages_by_thread(thread_id)
             messages_dict = [
@@ -65,3 +69,11 @@ class App:
         Start the Flask app.
         """
         self.app.run(port=self.port)
+
+    def load_model(self, mocked=False) -> None:
+        """
+        Load the model for the chatbot.
+        Model is loaded once and passed to the chatbot instance.
+        This prevents excessive loading of the model.
+        """
+        self.model = new_model(mocked)

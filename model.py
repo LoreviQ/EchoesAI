@@ -69,5 +69,4 @@ def new_model(mocked: bool = False) -> Model | MockedModel:
     """
     if mocked:
         return MockedModel()
-    else:
-        return Model()
+    return Model()
