@@ -68,15 +68,9 @@ def test_get_threads_by_user(db: DB) -> None:
     db.post_thread("user", "chatbot2")
     db.post_thread("user2", "chatbot")
     threads = db.get_threads_by_user("user")
-    assert len(threads) == 2
-    assert threads[0][0] == 1
-    assert threads[0][1] == "chatbot"
-    assert threads[1][0] == 2
-    assert threads[1][1] == "chatbot2"
+    assert threads == [(1, "chatbot"), (2, "chatbot2")]
     threads = db.get_threads_by_user("user2")
-    assert len(threads) == 1
-    assert threads[0][0] == 3
-    assert threads[0][1] == "chatbot"
+    assert threads == [(3, "chatbot")]
 
 
 def test_get_latest_thread(db: DB) -> None:

@@ -4,6 +4,7 @@ This file contains the tests for the app.py file.
 
 # pylint: disable=redefined-outer-name
 
+import json
 import os
 from multiprocessing import Value
 from typing import Generator
@@ -73,3 +74,36 @@ def test_new_thread(client: FlaskClient) -> None:
     )
     assert response.status_code == 200
     assert response.data == b"1"
+
+
+def test_get_threads_by_user(app: App, client: FlaskClient) -> None:
+    """
+    Test the get threads by user route.
+    """
+    app.db.post_thread("user", "test")
+    app.db.post_thread("user", "test2")
+    response = client.get("/threads/user")
+    assert response.status_code == 200
+    assert response.json == [
+        {"id": 1, "character": "test"},
+        {"id": 2, "character": "test2"},
+    ]
+
+
+def test_get_messages_by_thread(app: App, client: FlaskClient) -> None:
+    """
+    Test the get messages by thread route.
+    """
+    thread_id = app.db.post_thread("user", "test")
+    app.db.post_message(thread_id, "content", "user")
+    app.db.post_message(thread_id, "content2", "assistant")
+    response = client.get(f"/thread/{thread_id}/messages")
+    assert response.json
+    data = [
+        {"content": item["content"], "role": item["role"]} for item in response.json
+    ]
+    assert response.status_code == 200
+    assert data == [
+        {"content": "content", "role": "user"},
+        {"content": "content2", "role": "assistant"},
+    ]
