@@ -1,6 +1,5 @@
 from typing import Dict
 
-from app import App
 from chatbot import Chatbot
 
 
@@ -40,5 +39,5 @@ def handle_user_input(chatbot: Chatbot, user_input: str) -> bool:
 
 
 if __name__ == "__main__":
-    bot = Chatbot("Oliver", "ophelia")
+    bot = Chatbot("Oliver", "ophelia", mocked=True)
     chat_in_terminal(bot)

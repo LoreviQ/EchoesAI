@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from jinja2 import Template
 
-from model import Model
+from model import Mocked_Model, Model
 
 
 class Chatbot:
@@ -15,13 +15,16 @@ class Chatbot:
     Class to manage a chatbot state.
     """
 
-    def __init__(self, username: str, character: str):
+    def __init__(self, username: str, character: str, mocked: bool = False) -> None:
         self.username = username
         # Load character information
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
         # Load the model
-        self.model = Model()
+        if mocked:
+            self.model = Mocked_Model()
+        else:
+            self.model = Model()
         # Initialize chat
         self.chat: List[Dict[str, str]] = []
         self.time: List[Dict[str, str]] = []

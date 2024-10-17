@@ -40,3 +40,17 @@ class Model:
             raise ValueError("Most recent message in chat is from assistant.")
         response = self.pipe(chat, max_new_tokens=max_new_tokens)
         return response[0]["generated_text"][-1]
+
+
+class Mocked_Model(Model):
+    """
+    Mock class for testing
+    """
+
+    def generate_response(
+        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
+    ) -> Dict[str, str]:
+        """
+        Generate a new message based on the chat history.
+        """
+        return {"content": "Mock response", "role": "assistant"}
