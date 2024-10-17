@@ -21,6 +21,7 @@ class App:
         self.db = DB(db_path)
         self._setup_routes()
         self.chatbot: Chatbot
+        self.model = None
 
     def _setup_routes(self) -> None:
         """

@@ -35,38 +35,28 @@ class Chatbot:
         self.primary_system_message = self.get_system_message("chat_message")
         self.primary_chat = self.set_thread(thread_id)
 
-    def new_model(self, mocked: bool = False) -> None:
-        """
-        Create a new model instance.
-        """
-        if mocked:
-            self.model = MockedModel()
-        else:
-            self.model = Model()
-
     def set_thread(self, thread_id: int) -> List[Dict[str, str]]:
         """
         Set the chat thread from the database.
         """
-        if not self.database:
-            print(
-                "No database provided. Starting new chat. WARNING: Chat will not be saved."
-            )
-            return [
+        # if new, start a new chat
+        default_return: List[Dict[str, str]] = []
+        if self.character_info["initial_message"]:
+            default_return.append(
                 {
                     "role": "assistant",
                     "content": self.character_info["initial_message"],
                 }
-            ]
+            )
+        if not self.database:
+            print("No database provided. WARNING: Chat will not be saved.")
+            return default_return
         messages = self.database.get_messages_by_thread(thread_id)
         if len(messages) == 0:
             print("No messages found in the database. Starting new chat.")
-            return [
-                {
-                    "role": "assistant",
-                    "content": self.character_info["initial_message"],
-                }
-            ]
+            return default_return
+
+        # return chat log from database
         chat_log: List[Dict[str, str]] = []
         for message in messages:
             chat_log.append(

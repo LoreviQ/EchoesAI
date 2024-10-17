@@ -61,3 +61,13 @@ class MockedModel(Model):
         Generate a new message based on the chat history.
         """
         return {"content": "Mock response", "role": "assistant"}
+
+
+def new_model(mocked: bool = False) -> Model | MockedModel:
+    """
+    Create a new model instance.
+    """
+    if mocked:
+        return MockedModel()
+    else:
+        return Model()
