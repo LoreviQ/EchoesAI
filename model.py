@@ -42,10 +42,13 @@ class Model:
         return response[0]["generated_text"][-1]
 
 
-class Mocked_Model(Model):
+class MockedModel(Model):
     """
     Mock class for testing
     """
+
+    def __init__(self) -> None:
+        pass
 
     def generate_response(
         self, chat: List[Dict[str, str]], max_new_tokens: int = 512

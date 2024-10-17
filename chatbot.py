@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from jinja2 import Template
 
-from model import Mocked_Model, Model
+from model import MockedModel, Model
 
 
 class Chatbot:
@@ -22,7 +22,7 @@ class Chatbot:
             self.character_info = json.load(file)
         # Load the model
         if mocked:
-            self.model = Mocked_Model()
+            self.model = MockedModel()
         else:
             self.model = Model()
         # Initialize chat
