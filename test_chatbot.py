@@ -39,14 +39,15 @@ def test_initialization(chatbot: Chatbot) -> None:
     assert chatbot.character_info["description"] == "A test character"
     assert chatbot.character_info["age"] == "25"
     assert chatbot.character_info["phases"][0]["name"] == "Phase 1"
-    assert chatbot.primary_system_message["role"] == "system"
+    assert chatbot.primary_system_message[0]["role"] == "system"
     assert (
-        "You are an expert actor who can" in chatbot.primary_system_message["content"]
+        "You are an expert actor who can"
+        in chatbot.primary_system_message[0]["content"]
     )
-    assert "Loves: Coding" in chatbot.primary_system_message["content"]
+    assert "Loves: Coding" in chatbot.primary_system_message[0]["content"]
     assert (
         "The story follows the scenario: Test scenario"
-        in chatbot.primary_system_message["content"]
+        in chatbot.primary_system_message[0]["content"]
     )
     assert chatbot.primary_chat[0]["role"] == "assistant"
     assert chatbot.primary_chat[0]["content"] == "Hello, I am your assistant."
@@ -57,9 +58,9 @@ def test_get_system_message(chatbot: Chatbot) -> None:
     Test the set_system_message method of the Chatbot class.
     """
     system_message = chatbot.get_system_message("time_checker")
-    assert system_message["role"] == "system"
-    assert "response frequency of Test Character" in system_message["content"]
-    assert "Response for phase 1" in system_message["content"]
+    assert system_message[0]["role"] == "system"
+    assert "response frequency of Test Character" in system_message[0]["content"]
+    assert "Response for phase 1" in system_message[0]["content"]
 
 
 def test_add_message(chatbot: Chatbot) -> None:

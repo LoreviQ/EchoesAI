@@ -78,7 +78,7 @@ class Chatbot:
             )
         return chat_log
 
-    def get_system_message(self, system_message_type: str) -> Dict[str, str]:
+    def get_system_message(self, system_message_type: str) -> List[Dict[str, str]]:
         """
         Change the system message between several preconfigured options.
         """
@@ -124,10 +124,12 @@ class Chatbot:
             template = Template(current_content)
             current_content = template.render(context)
 
-        return {
-            "role": "system",
-            "content": current_content,
-        }
+        return [
+            {
+                "role": "system",
+                "content": current_content,
+            }
+        ]
 
     def add_message(self, message: Dict[str, str]) -> None:
         """
@@ -145,5 +147,5 @@ class Chatbot:
         Generate a response from the chatbot.
         """
         return self.model.generate_response(
-            [self.primary_system_message] + self.primary_chat, max_new_tokens=512
+            self.primary_system_message + self.primary_chat, max_new_tokens=512
         )
