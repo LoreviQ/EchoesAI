@@ -3,6 +3,7 @@ Module for Hugging face pipeline for text generation.
 """
 
 import os
+import time
 from typing import Dict, List
 
 import torch
@@ -60,6 +61,7 @@ class MockedModel(Model):
         """
         Generate a new message based on the chat history.
         """
+        time.sleep(1)
         return {"content": "Mock response", "role": "assistant"}
 
 
