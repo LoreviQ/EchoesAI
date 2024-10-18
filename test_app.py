@@ -13,7 +13,6 @@ import pytest
 from flask.testing import FlaskClient
 
 from app import App
-from model import new_model
 
 # Shared counter for port numbers
 port_counter = Value("i", 5000)

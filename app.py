@@ -63,6 +63,7 @@ class App:
             content = data["content"]
             role = data["role"]
             self.db.post_message(thread_id, content, role)
+            self._trigger_response_cycle(thread_id)
             return make_response("", 200)
 
         @self.app.route("/messages/<int:message_id>", methods=["DELETE"])
@@ -88,3 +89,7 @@ class App:
         if not self.model:
             return make_response("Model not loaded", 400)
         return Chatbot(thread_id, self.db, self.model)
+
+    def _trigger_response_cycle(self, thread_id: int) -> None:
+        self.chatbot = self._new_chatbot(thread_id)
+        self.chatbot.response_cycle()
