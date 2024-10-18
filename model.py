@@ -63,7 +63,7 @@ class MockedModel(Model):
         """
         time.sleep(1)
         # time checker behavior
-        if "response frequency of Test Character" in chat[0]["content"]:
+        if "You need to respond with the time" in chat[0]["content"]:
             if self.time_to_respond == "short":
                 return {"content": "30s", "role": "assistant"}
             return {"content": "5m", "role": "assistant"}

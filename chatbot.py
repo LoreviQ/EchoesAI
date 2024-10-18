@@ -116,11 +116,9 @@ class Chatbot:
         chat = self.chatlog
         chat[-1][
             "content"
-        ] = f"""
-        User has sent you the following message:
-        {chat[-1]["content"]}
-        How long will it take you to respond?
-        """
+        ] = f"""User has sent you the following message:
+{chat[-1]["content"]}
+How long will it take you to respond?"""
         response = self.get_response(system_message_time, chat)
         duration = _parse_time(response["content"])
 
