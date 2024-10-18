@@ -101,10 +101,10 @@ def test_get_messages(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages()
     assert len(messages) == 2
-    assert messages[0][0] == "test message"
-    assert messages[0][1] == "user"
-    assert messages[1][0] == "test message2"
-    assert messages[1][1] == "assistant"
+    assert messages[0][1] == "test message"
+    assert messages[0][2] == "user"
+    assert messages[1][1] == "test message2"
+    assert messages[1][2] == "assistant"
 
 
 def test_get_messages_by_thread(db: DB) -> None:
@@ -117,7 +117,7 @@ def test_get_messages_by_thread(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
-    assert messages[0][0] == "test message"
+    assert messages[0][1] == "test message"
     messages = db.get_messages_by_thread(thread_id2)
     assert len(messages) == 1
-    assert messages[0][0] == "test message2"
+    assert messages[0][1] == "test message2"

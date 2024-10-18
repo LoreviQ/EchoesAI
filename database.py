@@ -15,8 +15,8 @@ class DB:
         self.db_path = db_path
         self.queries: Dict[str, str] = {
             "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
-            "get_messages": "SELECT content, role, timestamp FROM messages",
-            "get_messages_by_thread": "SELECT content, role, timestamp FROM messages WHERE thread = ?",
+            "get_messages": "SELECT id, content, role, timestamp FROM messages",
+            "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
             "get_thread": "SELECT user, chatbot FROM threads WHERE id = ?",
             "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
@@ -115,7 +115,7 @@ class DB:
         cursor.close()
         conn.close()
 
-    def get_messages(self) -> List[Tuple[str, str, str]]:
+    def get_messages(self) -> List[Tuple[int, str, str, str]]:
         """
         Get all messages from the database.
         """
@@ -127,7 +127,7 @@ class DB:
         conn.close()
         return result
 
-    def get_messages_by_thread(self, thread_id: int) -> List[Tuple[str, str, str]]:
+    def get_messages_by_thread(self, thread_id: int) -> List[Tuple[int, str, str, str]]:
         """
         Get all messages from the database.
         """

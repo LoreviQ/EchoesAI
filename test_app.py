@@ -13,6 +13,7 @@ import pytest
 from flask.testing import FlaskClient
 
 from app import App
+from model import new_model
 
 # Shared counter for port numbers
 port_counter = Value("i", 5000)
@@ -60,6 +61,9 @@ def test_new_chatbot(app: App, client: FlaskClient) -> None:
     """
     thread_id = app.db.post_thread("user", "test")
     response = client.post(f"/chatbot/{thread_id}")
+    assert response.status_code == 400
+    app.model = new_model(mocked=True)
+    response = client.post(f"/chatbot/{thread_id}")
     assert response.status_code == 200
 
 
@@ -96,7 +100,7 @@ def test_get_messages_by_thread(app: App, client: FlaskClient) -> None:
     thread_id = app.db.post_thread("user", "test")
     app.db.post_message(thread_id, "content", "user")
     app.db.post_message(thread_id, "content2", "assistant")
-    response = client.get(f"/thread/{thread_id}/messages")
+    response = client.get(f"/threads/{thread_id}/messages")
     assert response.json
     data = [
         {"content": item["content"], "role": item["role"]} for item in response.json
