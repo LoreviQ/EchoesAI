@@ -59,9 +59,14 @@ class MockedModel(Model):
         self, chat: List[Dict[str, str]], max_new_tokens: int = 512
     ) -> Dict[str, str]:
         """
-        Generate a new message based on the chat history.
+        Mocked generate_response method.
         """
         time.sleep(1)
+        # time checker behavior
+        if "response frequency of Test Character" in chat[0]["content"]:
+            return {"content": "30s", "role": "assistant"}
+
+        # chat message behavior
         return {"content": "Mock response", "role": "assistant"}
 
 

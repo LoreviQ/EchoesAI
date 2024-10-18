@@ -3,6 +3,8 @@ Module to manage the chatbot state.
 """
 
 import json
+import re
+from datetime import timedelta
 from typing import Dict, List
 
 from jinja2 import Template
@@ -105,12 +107,62 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def response_cycle(self) -> bool:
+    def response_cycle(self):
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
+        # get response time
+        system_message_time = self.get_system_message("time_checker")
+        chat = self.chatlog
+        chat[-1][
+            "content"
+        ] = f"""
+        User has sent you the following message:
+        {chat[-1]["content"]}
+        How long will it take you to respond?
+        """
+        response = self.get_response(system_message_time, chat)
+        duration = _parse_time(response["content"])
+
         # get a response from the model
-        system_message = self.get_system_message("chat_message")
-        response = self.get_response(system_message, self.chatlog)
-        self.database.post_message(self.thread, response["content"], response["role"])
-        return True
+        system_message_chat = self.get_system_message("chat_message")
+        response = self.get_response(system_message_chat, self.chatlog)
+
+        # submit the response
+        if duration < timedelta(minutes=1):
+            self.database.post_message(
+                self.thread, response["content"], response["role"]
+            )
+        else:
+            # TODO - handle delayed response
+            pass
+
+
+def _parse_time(time: str) -> timedelta:
+    """
+    Parse a time string into days, hours, minutes, and seconds.
+    """
+    days = hours = minutes = seconds = 0
+    # regex patterns
+    day_pattern = r"(\d+)d"
+    hour_pattern = r"(\d+)h"
+    minute_pattern = r"(\d+)m"
+    second_pattern = r"(\d+)s"
+
+    # Search for the first occurrence of each time unit
+    day_match = re.search(day_pattern, time)
+    hour_match = re.search(hour_pattern, time)
+    minute_match = re.search(minute_pattern, time)
+    second_match = re.search(second_pattern, time)
+
+    # Extract the time values
+    if day_match:
+        days = int(day_match.group(1))
+    if hour_match:
+        hours = int(hour_match.group(1))
+    if minute_match:
+        minutes = int(minute_match.group(1))
+    if second_match:
+        seconds = int(second_match.group(1))
+
+    return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)

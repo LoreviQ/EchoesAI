@@ -4,11 +4,12 @@ This file contains the tests for the chatbot.py file.
 
 # pylint: disable=redefined-outer-name
 import os
+from datetime import timedelta
 from typing import Generator
 
 import pytest
 
-from chatbot import Chatbot
+from chatbot import Chatbot, _parse_time
 from database import DB
 from model import new_model
 
@@ -82,3 +83,38 @@ def test_response_cycle(chatbot: Chatbot) -> None:
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
     assert messages[-1][2] == "assistant"
     assert "Mock response" in messages[-1][1]
+
+
+def test_parse_time() -> None:
+    """
+    Test the _parse_time function.
+    """
+    # Basic tests
+    time = "1d 2h 3m 4s"
+    assert _parse_time(time) == timedelta(days=1, hours=2, minutes=3, seconds=4)
+    time = "2h 3m 4s"
+    assert _parse_time(time) == timedelta(hours=2, minutes=3, seconds=4)
+    time = "3m 4s"
+    assert _parse_time(time) == timedelta(minutes=3, seconds=4)
+    time = "1d 2h 3m"
+    assert _parse_time(time) == timedelta(days=1, hours=2, minutes=3)
+    time = "2h 3m"
+    assert _parse_time(time) == timedelta(hours=2, minutes=3)
+    time = "3m"
+    assert _parse_time(time) == timedelta(minutes=3)
+    time = "4s"
+    assert _parse_time(time) == timedelta(seconds=4)
+
+    # Messy tests
+    time = "Sure. The time is: 2h30s"
+    assert _parse_time(time) == timedelta(hours=2, seconds=30)
+    time = "I would wait 5m and 16s"
+    assert _parse_time(time) == timedelta(minutes=5, seconds=16)
+    time = "1d3h and I think 22m"
+    assert _parse_time(time) == timedelta(days=1, hours=3, minutes=22)
+    time = "I would wait 55s no wait, 14s"  # Always take first
+    assert _parse_time(time) == timedelta(seconds=55)
+    time = "3m and 50s. What do you think?"
+    assert _parse_time(time) == timedelta(minutes=3, seconds=50)
+    time = "I can't wait!"
+    assert _parse_time(time) == timedelta(seconds=0)
