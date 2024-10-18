@@ -4,6 +4,7 @@ This file contains the tests for the database.py file.
 
 # pylint: disable=redefined-outer-name
 import os
+import time
 from typing import Generator
 
 import pytest
@@ -31,7 +32,7 @@ def test_create_database() -> None:
     """
     Test the creation of the database.
     """
-    db = DB("test_database.db")
+    DB("test_database.db")
     assert os.path.exists("test_database.db")
     os.remove("test_database.db")
 
@@ -121,3 +122,22 @@ def test_get_messages_by_thread(db: DB) -> None:
     messages = db.get_messages_by_thread(thread_id2)
     assert len(messages) == 1
     assert messages[0][1] == "test message2"
+
+
+def test_delete_messages_more_recent(db: DB) -> None:
+    """
+    Test the delete_messages_more_recent method of the DB class.
+    """
+    thread_id = db.post_thread("user", "chatbot")
+    db.post_message(thread_id, "test message", "user")
+    time.sleep(1)  # Ensure the messages have different timestamps
+    db.post_message(thread_id, "test message2", "assistant")
+    time.sleep(1)
+    db.post_message(thread_id, "test message3", "user")
+    db.delete_messages_more_recent(2)
+    messages = db.get_messages_by_thread(thread_id)
+    assert len(messages) == 1
+    assert messages[0][1] == "test message"
+    db.delete_messages_more_recent(1)
+    messages = db.get_messages_by_thread(thread_id)
+    assert len(messages) == 0

@@ -3,7 +3,8 @@ This module contains the class to manage the database and other database-related
 """
 
 import sqlite3
-from typing import Dict, List, Tuple
+from sqlite3 import Connection, Cursor
+from typing import Callable, Dict, List, Tuple
 
 
 class DB:
@@ -36,35 +37,41 @@ class DB:
             conn.commit()
         conn.close()
 
+    def _setup(self) -> Tuple[Connection, Cursor, Callable[[], None]]:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        def close() -> None:
+            cursor.close()
+            conn.close()
+
+        return conn, cursor, close
+
     def post_thread(self, user: str, chatbot: str) -> int:
         """
         Insert a new thread into the database returning the thread id.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        conn, cursor, close = self._setup()
         cursor.execute(
             self.queries["post_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()[0]
         conn.commit()
-        cursor.close()
-        conn.close()
+        close()
         return result
 
     def get_thread(self, thread_id: int) -> Tuple[str, str]:
         """
         Get the user and chatbot for a thread.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        _, cursor, close = self._setup()
         cursor.execute(
             self.queries["get_thread"],
             (thread_id,),
         )
         result = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        close()
         if result:
             return result
         raise ValueError("Thread not found")
@@ -73,15 +80,13 @@ class DB:
         """
         Get the latest thread for a user and chatbot.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        _, cursor, close = self._setup()
         cursor.execute(
             self.queries["get_latest_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        close()
         if result[0]:
             return result[0]
         return 0
@@ -90,51 +95,60 @@ class DB:
         """
         Get all threads for a user.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        _, cursor, close = self._setup()
         cursor.execute(
             self.queries["get_threads_by_user"],
             (user,),
         )
         result = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        close()
         return result
 
     def post_message(self, thread: int, content: str, role: str) -> None:
         """
         Insert a message into the database.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        conn, cursor, close = self._setup()
         cursor.execute(
             self.queries["post_message"],
             (thread, content, role),
         )
         conn.commit()
-        cursor.close()
-        conn.close()
+        close()
 
     def get_messages(self) -> List[Tuple[int, str, str, str]]:
         """
         Get all messages from the database.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        _, cursor, close = self._setup()
         cursor.execute(self.queries["get_messages"])
         result = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        close()
         return result
 
     def get_messages_by_thread(self, thread_id: int) -> List[Tuple[int, str, str, str]]:
         """
         Get all messages from the database.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        _, cursor, close = self._setup()
         cursor.execute(self.queries["get_messages_by_thread"], (thread_id,))
         result = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        close()
         return result
+
+    def delete_messages_more_recent(self, message_id: int) -> None:
+        """
+        Delete selected message and all more recent messages.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            """
+                DELETE FROM messages
+                WHERE id = ?
+                OR (thread = (SELECT thread FROM messages WHERE id = ?)
+                    AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))
+            """,
+            (message_id, message_id, message_id),
+        )
+        conn.commit()
+        close()

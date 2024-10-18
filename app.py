@@ -21,7 +21,7 @@ class App:
         self.port = port
         self.db = DB(db_path)
         self._setup_routes()
-        self.model: Model | MockedModel
+        self.model: Model | MockedModel | None = None
         self.chatbot: Chatbot
 
     def _setup_routes(self) -> None:
@@ -35,7 +35,7 @@ class App:
 
         @self.app.route("/chatbot/<int:thread_id>", methods=["POST"])
         def create_chatbot(thread_id: int) -> Response:
-            if self.model is None:
+            if not self.model:
                 return make_response("Model not loaded", 400)
             self.chatbot = Chatbot(thread_id, self.db)
             self.chatbot.model = self.model
