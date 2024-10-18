@@ -4,8 +4,8 @@ This file contains the tests for the app.py file.
 
 # pylint: disable=redefined-outer-name
 
-
 import os
+import time
 from multiprocessing import Value
 from typing import Generator
 
@@ -110,3 +110,25 @@ def test_get_messages_by_thread(app: App, client: FlaskClient) -> None:
         {"content": "content", "role": "user"},
         {"content": "content2", "role": "assistant"},
     ]
+
+
+def test_delete_messages_more_recent(app: App, client: FlaskClient) -> None:
+    """
+    Test the delete messages more recent route.
+    """
+    # Setup messages
+    thread_id = app.db.post_thread("user", "chatbot")
+    alt_thread = app.db.post_thread("user2", "chatbot2")
+    app.db.post_message(thread_id, "test message", "user")
+    time.sleep(1)  # Ensure the messages have different timestamps
+    app.db.post_message(thread_id, "test message2", "assistant")
+    time.sleep(1)
+    app.db.post_message(thread_id, "test message3", "user")
+    app.db.post_message(alt_thread, "alt message", "user")
+
+    # Check that messages are deleted correctly
+    response = client.delete("/messages/2")
+    assert response.status_code == 200
+    messages = app.db.get_messages_by_thread(thread_id)
+    assert len(messages) == 1
+    assert messages[0][1] == "test message"

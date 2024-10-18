@@ -73,6 +73,11 @@ class App:
             self.db.post_message(thread_id, content, role)
             return make_response("", 200)
 
+        @self.app.route("/messages/<int:message_id>", methods=["DELETE"])
+        def delete_messages_more_recent(message_id: int) -> Response:
+            self.db.delete_messages_more_recent(message_id)
+            return make_response("", 200)
+
     def serve(self) -> None:
         """
         Start the Flask app.
