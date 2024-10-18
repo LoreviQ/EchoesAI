@@ -87,7 +87,7 @@ class App:
 
     def _new_chatbot(self, thread_id: int) -> Chatbot:
         if not self.model:
-            return make_response("Model not loaded", 400)
+            raise ValueError("Model not loaded.")
         return Chatbot(thread_id, self.db, self.model)
 
     def _trigger_response_cycle(self, thread_id: int) -> None:

@@ -113,3 +113,4 @@ class Chatbot:
         system_message = self.get_system_message("chat_message")
         response = self.get_response(system_message, self.chatlog)
         self.database.post_message(self.thread, response["content"], response["role"])
+        return True
