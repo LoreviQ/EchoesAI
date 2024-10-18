@@ -3,6 +3,7 @@ This module contains the class to manage the database and other database-related
 """
 
 import sqlite3
+from datetime import datetime
 from sqlite3 import Connection, Cursor
 from typing import Callable, Dict, List, Tuple
 
@@ -16,6 +17,7 @@ class DB:
         self.db_path = db_path
         self.queries: Dict[str, str] = {
             "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
+            "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
             "get_messages": "SELECT id, content, role, timestamp FROM messages",
             "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
@@ -104,15 +106,24 @@ class DB:
         close()
         return result
 
-    def post_message(self, thread: int, content: str, role: str) -> None:
+    def post_message(
+        self, thread: int, content: str, role: str, timestamp: datetime | None = None
+    ) -> None:
         """
         Insert a message into the database.
         """
         conn, cursor, close = self._setup()
-        cursor.execute(
-            self.queries["post_message"],
-            (thread, content, role),
-        )
+        if timestamp:
+            formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute(
+                self.queries["post_message_with_timestamp"],
+                (thread, content, role, formatted_time),
+            )
+        else:
+            cursor.execute(
+                self.queries["post_message"],
+                (thread, content, role),
+            )
         conn.commit()
         close()
 

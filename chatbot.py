@@ -4,7 +4,7 @@ Module to manage the chatbot state.
 
 import json
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 from jinja2 import Template
@@ -107,7 +107,7 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def response_cycle(self):
+    def response_cycle(self) -> None:
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
@@ -127,15 +127,12 @@ class Chatbot:
         # get a response from the model
         system_message_chat = self.get_system_message("chat_message")
         response = self.get_response(system_message_chat, self.chatlog)
-
-        # submit the response
-        if duration < timedelta(minutes=1):
-            self.database.post_message(
-                self.thread, response["content"], response["role"]
-            )
-        else:
-            # TODO - handle delayed response
-            pass
+        timestamp = None
+        if duration > timedelta(minutes=1):
+            timestamp = datetime.now() + duration
+        self.database.post_message(
+            self.thread, response["content"], response["role"], timestamp
+        )
 
 
 def _parse_time(time: str) -> timedelta:
