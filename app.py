@@ -2,6 +2,8 @@
 Module to hold server logic.
 """
 
+import threading
+
 from flask import Flask, Response, jsonify, make_response, request
 from flask_cors import CORS
 
@@ -63,7 +65,11 @@ class App:
             content = data["content"]
             role = data["role"]
             self.db.post_message(thread_id, content, role)
-            self._trigger_response_cycle(thread_id)
+            # Start the chatbot response cycle in a background thread
+            background_thread = threading.Thread(
+                target=self._trigger_response_cycle, args=(thread_id,)
+            )
+            background_thread.start()
             return make_response("", 200)
 
         @self.app.route("/messages/<int:message_id>", methods=["DELETE"])
