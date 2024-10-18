@@ -4,7 +4,7 @@ This file contains the tests for the chatbot.py file.
 
 # pylint: disable=redefined-outer-name
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Generator
 
 import pytest
@@ -75,14 +75,27 @@ def test_get_response(chatbot: Chatbot) -> None:
     assert "Mock response" in response["content"]
 
 
-def test_response_cycle(chatbot: Chatbot) -> None:
+def test_response_cycle_short(chatbot: Chatbot) -> None:
     """
-    Test the response cycle of the Chatbot class.
+    Test the response cycle of the Chatbot class when responses are short.
     """
     chatbot.response_cycle()
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
     assert messages[-1][2] == "assistant"
     assert "Mock response" in messages[-1][1]
+
+
+def test_response_cycle_long(chatbot: Chatbot) -> None:
+    """
+    Test the response cycle of the Chatbot class when responses are long.
+    """
+    chatbot.model.time_to_respond = "long"
+    chatbot.response_cycle()
+    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    assert messages[-1][2] == "assistant"
+    assert "Mock response" in messages[-1][1]
+    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
+    assert timestamp > datetime.now()
 
 
 def test_parse_time() -> None:

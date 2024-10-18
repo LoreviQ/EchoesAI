@@ -84,6 +84,7 @@ class App:
         This prevents excessive loading of the model.
         """
         self.model = new_model(mocked)
+        self.model.time_to_respond = "long"
 
     def _new_chatbot(self, thread_id: int) -> Chatbot:
         if not self.model:

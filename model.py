@@ -53,7 +53,7 @@ class MockedModel(Model):
     """
 
     def __init__(self) -> None:
-        pass
+        self.time_to_respond = "short"
 
     def generate_response(
         self, chat: List[Dict[str, str]], max_new_tokens: int = 512
@@ -64,7 +64,9 @@ class MockedModel(Model):
         time.sleep(1)
         # time checker behavior
         if "response frequency of Test Character" in chat[0]["content"]:
-            return {"content": "30s", "role": "assistant"}
+            if self.time_to_respond == "short":
+                return {"content": "30s", "role": "assistant"}
+            return {"content": "5m", "role": "assistant"}
 
         # chat message behavior
         return {"content": "Mock response", "role": "assistant"}
