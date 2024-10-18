@@ -72,3 +72,13 @@ def test_get_response(chatbot: Chatbot) -> None:
     response = chatbot.get_response(system_message, chatbot.chatlog)
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
+
+
+def test_response_cycle(chatbot: Chatbot) -> None:
+    """
+    Test the response cycle of the Chatbot class.
+    """
+    chatbot.response_cycle()
+    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    assert messages[-1][2] == "assistant"
+    assert "Mock response" in messages[-1][1]

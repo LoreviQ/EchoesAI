@@ -105,7 +105,7 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def generate_new_message(self) -> bool:
+    def response_cycle(self) -> bool:
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
