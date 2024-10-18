@@ -128,12 +128,17 @@ def test_delete_messages_more_recent(db: DB) -> None:
     """
     Test the delete_messages_more_recent method of the DB class.
     """
+    # Setup messages
     thread_id = db.post_thread("user", "chatbot")
+    alt_thread = db.post_thread("user2", "chatbot2")
     db.post_message(thread_id, "test message", "user")
     time.sleep(1)  # Ensure the messages have different timestamps
     db.post_message(thread_id, "test message2", "assistant")
     time.sleep(1)
     db.post_message(thread_id, "test message3", "user")
+    db.post_message(alt_thread, "alt message", "user")
+
+    # Check that messages are deleted correctly
     db.delete_messages_more_recent(2)
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
@@ -141,3 +146,8 @@ def test_delete_messages_more_recent(db: DB) -> None:
     db.delete_messages_more_recent(1)
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 0
+
+    # Check that messages from other threads are not deleted
+    messages = db.get_messages_by_thread(alt_thread)
+    assert len(messages) == 1
+    assert messages[0][1] == "alt message"
