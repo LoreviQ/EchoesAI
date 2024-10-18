@@ -52,9 +52,10 @@ def test_get_thread(db: DB) -> None:
     Test the get_thread method of the DB class.
     """
     thread_id = db.post_thread("user", "chatbot")
-    user, chatbot = db.get_thread(thread_id)
+    user, chatbot, phase = db.get_thread(thread_id)
     assert user == "user"
     assert chatbot == "chatbot"
+    assert phase == 0
     with pytest.raises(ValueError, match="Thread not found"):
         db.get_thread(2)
 

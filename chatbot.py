@@ -20,52 +20,29 @@ class Chatbot:
         self,
         thread_id: int,
         database: DB,
+        model: Model | MockedModel,
     ) -> None:
-        username, character = database.get_thread(thread_id)
+        self.thread = thread_id
+        self.database = database
+        self.model = model
+
+        username, character, phase = database.get_thread(thread_id)
         self.username = username
-        # Load character information
+        self.phase = phase
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
-        self.model: Model | MockedModel
-        self.database = database
+        self.chatlog = self._initialise_chatlog()
 
-        # Initialize chat
-        self.phase = 0
-        self.primary_system_message = self.get_system_message("chat_message")
-        self.primary_chat = self.set_thread(thread_id)
-
-    def set_thread(self, thread_id: int) -> List[Dict[str, str]]:
+    def _initialise_chatlog(self) -> List[Dict[str, str]]:
         """
-        Set the chat thread from the database.
+        Initialise the chatlog from the database.
         """
-        # if new, start a new chat
-        default_return: List[Dict[str, str]] = []
-        if self.character_info["initial_message"]:
-            default_return.append(
-                {
-                    "role": "assistant",
-                    "content": self.character_info["initial_message"],
-                }
-            )
-        if not self.database:
-            print("No database provided. WARNING: Chat will not be saved.")
-            return default_return
-        messages = self.database.get_messages_by_thread(thread_id)
-        if len(messages) == 0:
-            print("No messages found in the database. Starting new chat.")
-            return default_return
-
-        # return chat log from database
-        chat_log: List[Dict[str, str]] = []
-        for message in messages:
-            chat_log.append(
-                {
-                    "role": message[2],
-                    "content": message[1],
-                }
-            )
-        return chat_log
+        messages = self.database.get_messages_by_thread(self.thread)
+        return [
+            {"role": message[2], "content": message[1], "timestamp": message[3]}
+            for message in messages
+        ]
 
     def get_system_message(self, system_message_type: str) -> List[Dict[str, str]]:
         """
@@ -120,21 +97,19 @@ class Chatbot:
             }
         ]
 
-    def add_message(self, message: Dict[str, str]) -> None:
-        """
-        Add a message to the chat log.
-        """
-        message_role = message["role"]
-        if self.primary_chat[-1]["role"] == message_role:
-            raise ValueError(
-                f"Most recent message in chat already from {message_role}."
-            )
-        self.primary_chat.append(message)
-
-    def get_response(self) -> Dict[str, str]:
+    def get_response(
+        self, system_message: List[Dict[str, str]], chat: List[Dict[str, str]]
+    ) -> Dict[str, str]:
         """
         Generate a response from the chatbot.
         """
-        return self.model.generate_response(
-            self.primary_system_message + self.primary_chat, max_new_tokens=512
-        )
+        return self.model.generate_response(system_message + chat, max_new_tokens=512)
+
+    def generate_new_message(self) -> bool:
+        """
+        Handles the entire response cycle for recieving and generating a new message.
+        """
+        # get a response from the model
+        system_message = self.get_system_message("chat_message")
+        response = self.get_response(system_message, self.chatlog)
+        self.database.post_message(self.thread, response["content"], response["role"])

@@ -33,14 +33,6 @@ class App:
         def ready() -> Response:
             return make_response("", 200)
 
-        @self.app.route("/chatbot/<int:thread_id>", methods=["POST"])
-        def create_chatbot(thread_id: int) -> Response:
-            if not self.model:
-                return make_response("Model not loaded", 400)
-            self.chatbot = Chatbot(thread_id, self.db)
-            self.chatbot.model = self.model
-            return make_response("", 200)
-
         @self.app.route("/threads/new", methods=["POST"])
         def new_thread() -> Response:
             data = request.get_json()
@@ -91,3 +83,8 @@ class App:
         This prevents excessive loading of the model.
         """
         self.model = new_model(mocked)
+
+    def _new_chatbot(self, thread_id: int) -> Chatbot:
+        if not self.model:
+            return make_response("Model not loaded", 400)
+        return Chatbot(thread_id, self.db, self.model)

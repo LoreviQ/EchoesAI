@@ -55,18 +55,6 @@ def test_ready(client: FlaskClient) -> None:
     assert response.status_code == 200
 
 
-def test_new_chatbot(app: App, client: FlaskClient) -> None:
-    """
-    Test the new chatbot route.
-    """
-    thread_id = app.db.post_thread("user", "test")
-    response = client.post(f"/chatbot/{thread_id}")
-    assert response.status_code == 400
-    app.model = new_model(mocked=True)
-    response = client.post(f"/chatbot/{thread_id}")
-    assert response.status_code == 200
-
-
 def test_new_thread(client: FlaskClient) -> None:
     """
     Test the new thread route.

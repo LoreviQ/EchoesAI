@@ -19,7 +19,7 @@ class DB:
             "get_messages": "SELECT id, content, role, timestamp FROM messages",
             "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
             "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
-            "get_thread": "SELECT user, chatbot FROM threads WHERE id = ?",
+            "get_thread": "SELECT user, chatbot, phase FROM threads WHERE id = ?",
             "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
             "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
         }
@@ -61,7 +61,7 @@ class DB:
         close()
         return result
 
-    def get_thread(self, thread_id: int) -> Tuple[str, str]:
+    def get_thread(self, thread_id: int) -> Tuple[str, str, str]:
         """
         Get the user and chatbot for a thread.
         """

@@ -26,8 +26,10 @@ def chatbot() -> Generator[Chatbot, None, None]:
     db_path = f"test_database_{test_name}.db"
     db = DB(db_path)
     thread_id = db.post_thread("test_user", "test")
-    chatbot = Chatbot(thread_id=thread_id, database=db)
-    chatbot.model = new_model(mocked=True)
+    db.post_message(thread_id, "How can I help?", "assistant")
+    db.post_message(thread_id, "This is my test message", "user")
+    model = new_model(mocked=True)
+    chatbot = Chatbot(thread_id=thread_id, database=db, model=model)
     yield chatbot
     os.remove(db_path)
 
@@ -36,49 +38,37 @@ def test_initialization(chatbot: Chatbot) -> None:
     """
     Test the initialization of the Chatbot class.
     """
+    assert chatbot.thread == 1
     assert chatbot.username == "test_user"
+    assert chatbot.phase == 0
     assert chatbot.character_info["char"] == "Test Character"
     assert chatbot.character_info["description"] == "A test character"
     assert chatbot.character_info["age"] == "25"
     assert chatbot.character_info["phases"][0]["name"] == "Phase 1"
-    assert chatbot.primary_system_message[0]["role"] == "system"
-    assert (
-        "You are an expert actor who can"
-        in chatbot.primary_system_message[0]["content"]
-    )
-    assert "Loves: Coding" in chatbot.primary_system_message[0]["content"]
-    assert (
-        "The story follows the scenario: Test scenario"
-        in chatbot.primary_system_message[0]["content"]
-    )
-    assert chatbot.primary_chat[0]["role"] == "assistant"
-    assert chatbot.primary_chat[0]["content"] == "Hello, I am your assistant."
+    assert chatbot.chatlog[0]["role"] == "assistant"
+    assert chatbot.chatlog[0]["content"] == "How can I help?"
+    assert chatbot.chatlog[1]["role"] == "user"
+    assert chatbot.chatlog[1]["content"] == "This is my test message"
 
 
 def test_get_system_message(chatbot: Chatbot) -> None:
     """
     Test the set_system_message method of the Chatbot class.
     """
+    system_message = chatbot.get_system_message("chat_message")
+    assert system_message[0]["role"] == "system"
+    assert "You are an expert actor who" in system_message[0]["content"]
     system_message = chatbot.get_system_message("time_checker")
     assert system_message[0]["role"] == "system"
     assert "response frequency of Test Character" in system_message[0]["content"]
     assert "Response for phase 1" in system_message[0]["content"]
 
 
-def test_add_message(chatbot: Chatbot) -> None:
-    """
-    Test the add_message method of the Chatbot class.
-    """
-    chatbot.add_message({"role": "user", "content": "Test message"})
-    assert chatbot.primary_chat[-1]["role"] == "user"
-    assert chatbot.primary_chat[-1]["content"] == "Test message"
-
-
 def test_get_response(chatbot: Chatbot) -> None:
     """
     Test the get_response method of the Chatbot class.
     """
-    chatbot.add_message({"role": "user", "content": "Test message"})
-    response = chatbot.get_response()
+    system_message = chatbot.get_system_message("chat_message")
+    response = chatbot.get_response(system_message, chatbot.chatlog)
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
