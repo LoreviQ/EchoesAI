@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 from chatbot import Chatbot
 from database import DB
-from model import new_model
+from model import MockedModel, Model, new_model
 
 
 class App:
@@ -21,7 +21,7 @@ class App:
         self.port = port
         self.db = DB(db_path)
         self._setup_routes()
-        self.model = None
+        self.model: Model | MockedModel
         self.chatbot: Chatbot
 
     def _setup_routes(self) -> None:
@@ -79,7 +79,7 @@ class App:
         """
         self.app.run(port=self.port)
 
-    def load_model(self, mocked=False) -> None:
+    def load_model(self, mocked: bool = False) -> None:
         """
         Load the model for the chatbot.
         Model is loaded once and passed to the chatbot instance.
