@@ -5,7 +5,7 @@ This module contains the class to manage the database and other database-related
 import sqlite3
 from datetime import datetime
 from sqlite3 import Connection, Cursor
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, TypedDict
 
 queries: Dict[str, str] = {
     # MESSAGES
@@ -25,6 +25,16 @@ queries: Dict[str, str] = {
     "get_events_by_type_and_chatbot": "SELECT id, timestamp, content FROM events WHERE type = ? AND chatbot = ?",
     "delete_event": "DELETE FROM events WHERE id = ?",
 }
+
+
+class Event(TypedDict):
+    """
+    Event type.
+    """
+
+    id: int
+    timestamp: datetime
+    content: str
 
 
 class DB:
@@ -202,7 +212,7 @@ class DB:
 
     def get_events_by_type_and_chatbot(
         self, event_type: str, chatbot: str
-    ) -> List[Tuple[int, str, str]]:
+    ) -> List[Event]:
         """
         Get all events from the database.
         """
@@ -213,7 +223,16 @@ class DB:
         )
         result = cursor.fetchall()
         close()
-        return result
+        events = []
+        for event in result:
+            events.append(
+                {
+                    "id": event[0],
+                    "timestamp": datetime.strptime(event[1], "%Y-%m-%d %H:%M:%S"),
+                    "content": event[2],
+                }
+            )
+        return events
 
     def delete_event(self, event_id: int) -> None:
         """

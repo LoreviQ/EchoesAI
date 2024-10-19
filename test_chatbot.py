@@ -56,10 +56,10 @@ def test_get_system_message(chatbot: Chatbot) -> None:
     """
     Test the set_system_message method of the Chatbot class.
     """
-    system_message = chatbot.get_system_message("chat_message")
+    system_message = chatbot.get_system_message("chat")
     assert system_message[0]["role"] == "system"
     assert "You are an expert actor who" in system_message[0]["content"]
-    system_message = chatbot.get_system_message("time_checker")
+    system_message = chatbot.get_system_message("time")
     assert system_message[0]["role"] == "system"
     assert "response frequency of Test Character" in system_message[0]["content"]
     assert "Response for phase 1" in system_message[0]["content"]
@@ -69,7 +69,7 @@ def test_generate_text(chatbot: Chatbot) -> None:
     """
     Test the get_response method of the Chatbot class.
     """
-    system_message = chatbot.get_system_message("chat_message")
+    system_message = chatbot.get_system_message("chat")
     response = chatbot._generate_text(system_message, chatbot.chatlog)
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]

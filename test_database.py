@@ -201,11 +201,11 @@ def test_get_events_by_type_and_chatbot(db: DB) -> None:
     db.post_event("chatbot", "thought", "test event3")
     events = db.get_events_by_type_and_chatbot("event", "chatbot")
     assert len(events) == 2
-    assert events[0][2] == "test event"
-    assert events[1][2] == "test event2"
+    assert events[0]["content"] == "test event"
+    assert events[1]["content"] == "test event2"
     events = db.get_events_by_type_and_chatbot("thought", "chatbot")
     assert len(events) == 1
-    assert events[0][2] == "test event3"
+    assert events[0]["content"] == "test event3"
 
 
 def test_delete_event(db: DB) -> None:

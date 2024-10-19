@@ -5,12 +5,21 @@ Module to manage the chatbot state.
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from jinja2 import Template
 
 from database import DB
 from model import Model
+
+messageTemplates = {
+    "time_to_respond": lambda user, message: f"{user} has sent you the following message:\n{message}\nHow long will it take you to respond?",
+    "describe_event_now": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
+    "event_for_events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
+    "thought_for_events": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
+    "message_sent_for_events": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
+    "message_received_for_events": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
+}
 
 
 class Chatbot:
@@ -27,38 +36,34 @@ class Chatbot:
         self.thread = thread_id
         self.database = database
         self.model = model
-
         username, character, phase = database.get_thread(thread_id)
         self.username = username
+        self.character = character
         self.phase = phase
         with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
         self.chatlog = self._initialise_chatlog()
 
-    def _initialise_chatlog(self) -> List[Dict[str, str]]:
+    def _initialise_chatlog(self) -> List[Dict[str, any]]:
         """
         Initialise the chatlog from the database.
         """
         messages = self.database.get_messages_by_thread(self.thread)
         return [
-            {"role": message[2], "content": message[1], "timestamp": message[3]}
+            {
+                "role": message[2],
+                "content": message[1],
+                "timestamp": datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
+            }
             for message in messages
         ]
 
-    def get_system_message(self, system_message_type: str) -> List[Dict[str, str]]:
+    def get_system_message(self, system_type: str) -> List[Dict[str, str]]:
         """
         Change the system message between several preconfigured options.
         """
-        match system_message_type:
-            case "chat_message":
-                template_filename = "main.txt"
-            case "time_checker":
-                template_filename = "time.txt"
-            case _:
-                raise ValueError(f"Invalid system message type: {system_message_type}")
-
-        with open(f"templates/{template_filename}", "r", encoding="utf-8") as file:
+        with open(f"templates/{system_type}.txt", "r", encoding="utf-8") as file:
             template_content = file.read()
 
         # prepare context for rendering
@@ -108,25 +113,13 @@ class Chatbot:
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
     def _get_response_time(self) -> timedelta:
-        system_message_time = self.get_system_message("time_checker")
+        sys_message = self.get_system_message("time")
         chat = self.chatlog
-        chat[-1][
-            "content"
-        ] = f"""User has sent you the following message:
-{chat[-1]["content"]}
-How long will it take you to respond?"""
-        response = self._generate_text(system_message_time, chat)
-        return _parse_time(response["content"])
-
-    def _get_response(self, duration: timedelta) -> None:
-        system_message_chat = self.get_system_message("chat_message")
-        response = self._generate_text(system_message_chat, self.chatlog)
-        timestamp = None
-        if duration > timedelta(minutes=1):
-            timestamp = datetime.now() + duration
-        self.database.post_message(
-            self.thread, response["content"], response["role"], timestamp
+        chat[-1]["content"] = messageTemplates["time_to_respond"](
+            self.username, chat[-1]["content"]
         )
+        response = self._generate_text(sys_message, chat)
+        return _parse_time(response["content"])
 
     def response_cycle(self, duration: timedelta | None = None) -> None:
         """
@@ -135,8 +128,103 @@ How long will it take you to respond?"""
         # get response time
         if duration is None:
             duration = self._get_response_time()
+        timestamp = datetime.now() + duration
         # get a response from the model
-        self._get_response(duration)
+        sys_message = self.get_system_message("chat")
+        response = self._generate_text(sys_message, self.chatlog)
+        self.database.post_message(
+            self.thread, response["content"], response["role"], timestamp
+        )
+
+    def generate_event(self, event_type: str) -> None:
+        """
+        Generate an event message.
+        """
+        sys_message = self.get_system_message(event_type)
+        events = self.database.get_events_by_type_and_chatbot("event", self.character)
+        thoughts = self.database.get_events_by_type_and_chatbot(
+            "thought", self.character
+        )
+        messages = self.chatlog
+        all_events = self._combine_events(
+            ("events", events), ("thoughts", thoughts), ("messages", messages)
+        )
+        custom_chatlog = self._event_chatlog(all_events)
+        response = self._generate_text(sys_message, custom_chatlog)
+        self.database.post_event(self.character, event_type, response["content"])
+
+    def _combine_events(self, *event_lists) -> List[Dict[str, any]]:
+        result = []
+        for event_list in event_lists:
+            for event in event_list:
+                result.append(
+                    {
+                        "type": event_list[0],
+                        "timestamp": event["timestamp"],
+                        "value": event,
+                    }
+                )
+        return sorted(result, key=lambda x: x["timestamp"])
+
+    def _event_chatlog(self, events: List[Dict[str, any]]) -> List[Dict[str, str]]:
+        """
+        Create a custom chatlog of events for the chatbot.
+        """
+        chatlog = []
+        for event in events:
+            match event["type"]:
+                case "events":
+                    chatlog.append(
+                        {
+                            "role": "user",
+                            "content": messageTemplates["event_for_events"](
+                                event["timestamp"], event["value"]["content"]
+                            ),
+                        }
+                    )
+                case "thoughts":
+                    chatlog.append(
+                        {
+                            "role": "user",
+                            "content": messageTemplates["thought_for_events"](
+                                event["timestamp"], event["value"]["content"]
+                            ),
+                        }
+                    )
+                case "messages":
+                    if event["value"]["role"] == "user":
+                        chatlog.append(
+                            {
+                                "role": "user",
+                                "content": messageTemplates[
+                                    "message_received_for_events"
+                                ](
+                                    event["timestamp"],
+                                    event["value"]["content"],
+                                    self.username,
+                                ),
+                            }
+                        )
+                    else:
+                        chatlog.append(
+                            {
+                                "role": "user",
+                                "content": messageTemplates["message_user_for_events"](
+                                    event["timestamp"],
+                                    event["value"]["content"],
+                                    self.username,
+                                ),
+                            }
+                        )
+        chatlog.append(
+            {
+                "role": "user",
+                "content": messageTemplates["describe_event_now"](
+                    datetime.now().strftime("%H:%M:%S")
+                ),
+            }
+        )
+        return chatlog
 
 
 def _parse_time(time: str) -> timedelta:
