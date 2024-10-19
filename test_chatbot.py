@@ -81,8 +81,8 @@ def test_response_cycle_short(chatbot: Chatbot) -> None:
     """
     chatbot.response_cycle()
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
-    assert messages[-1][2] == "assistant"
-    assert "Mock response" in messages[-1][1]
+    assert messages[-1]["role"] == "assistant"
+    assert "Mock response" in messages[-1]["content"]
 
 
 def test_response_cycle_long(chatbot: Chatbot) -> None:
@@ -92,10 +92,9 @@ def test_response_cycle_long(chatbot: Chatbot) -> None:
     chatbot.model = Model(ModelMocked("long"))
     chatbot.response_cycle()
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
-    assert messages[-1][2] == "assistant"
-    assert "Mock response" in messages[-1][1]
-    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
-    assert timestamp > datetime.now()
+    assert messages[-1]["role"] == "assistant"
+    assert "Mock response" in messages[-1]["content"]
+    assert messages[-1]["timestamp"] > datetime.now()
 
 
 def test_parse_time() -> None:

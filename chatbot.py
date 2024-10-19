@@ -43,21 +43,7 @@ class Chatbot:
         with open(f"characters/{self.character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
-        self.chatlog = self._initialise_chatlog()
-
-    def _initialise_chatlog(self) -> List[Dict[str, any]]:
-        """
-        Initialise the chatlog from the database.
-        """
-        messages = self.database.get_messages_by_thread(self.thread)
-        return [
-            {
-                "role": message[2],
-                "content": message[1],
-                "timestamp": datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
-            }
-            for message in messages
-        ]
+        self.chatlog = self.database.get_messages_by_thread(self.thread)
 
     def get_system_message(self, system_type: str) -> List[Dict[str, str]]:
         """

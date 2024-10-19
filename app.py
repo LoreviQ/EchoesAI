@@ -52,11 +52,7 @@ class App:
         @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
             messages = self.db.get_messages_by_thread(thread_id)
-            messages_dict = [
-                {"message_id": m[0], "content": m[1], "role": m[2], "timestamp": m[3]}
-                for m in messages
-            ]
-            return make_response(jsonify(messages_dict), 200)
+            return make_response(jsonify(messages), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
         def post_message(thread_id: int) -> Response:

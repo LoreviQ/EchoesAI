@@ -107,10 +107,10 @@ def test_get_messages(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages()
     assert len(messages) == 2
-    assert messages[0][1] == "test message"
-    assert messages[0][2] == "user"
-    assert messages[1][1] == "test message2"
-    assert messages[1][2] == "assistant"
+    assert messages[0]["content"] == "test message"
+    assert messages[0]["role"] == "user"
+    assert messages[1]["content"] == "test message2"
+    assert messages[1]["role"] == "assistant"
 
 
 def test_get_messages_by_thread(db: DB) -> None:
@@ -123,10 +123,10 @@ def test_get_messages_by_thread(db: DB) -> None:
     db.post_message(thread_id2, "test message2", "assistant")
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
-    assert messages[0][1] == "test message"
+    assert messages[0]["content"] == "test message"
     messages = db.get_messages_by_thread(thread_id2)
     assert len(messages) == 1
-    assert messages[0][1] == "test message2"
+    assert messages[0]["content"] == "test message2"
 
 
 def test_delete_messages_more_recent(db: DB) -> None:
@@ -147,7 +147,7 @@ def test_delete_messages_more_recent(db: DB) -> None:
     db.delete_messages_more_recent(2)
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
-    assert messages[0][1] == "test message"
+    assert messages[0]["content"] == "test message"
     db.delete_messages_more_recent(1)
     messages = db.get_messages_by_thread(thread_id)
     assert len(messages) == 0
@@ -155,7 +155,7 @@ def test_delete_messages_more_recent(db: DB) -> None:
     # Check that messages from other threads are not deleted
     messages = db.get_messages_by_thread(alt_thread)
     assert len(messages) == 1
-    assert messages[0][1] == "alt message"
+    assert messages[0]["content"] == "alt message"
 
 
 def test_apply_scheduled_message(db: DB) -> None:

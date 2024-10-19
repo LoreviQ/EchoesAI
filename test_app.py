@@ -121,7 +121,7 @@ def test_delete_messages_more_recent(app: App, client: FlaskClient) -> None:
     assert response.status_code == 200
     messages = app.db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
-    assert messages[0][1] == "test message"
+    assert messages[0]["content"] == "test message"
 
 
 def test_get_response_now(app: App, client: FlaskClient) -> None:
@@ -140,8 +140,7 @@ def test_get_response_now(app: App, client: FlaskClient) -> None:
     assert response.status_code == 200
     time.sleep(1)
     messages = app.db.get_messages_by_thread(thread_id)
-    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
-    assert timestamp < datetime.now()
+    assert messages[-1]["timestamp"] < datetime.now()
 
     # Check that a new response is generated if there is no scheduled message
     response = client.get(f"/threads/{thread_id}/messages/new")
@@ -149,6 +148,5 @@ def test_get_response_now(app: App, client: FlaskClient) -> None:
     time.sleep(1)
     messages = app.db.get_messages_by_thread(thread_id)
     assert len(messages) == 3
-    assert messages[-1][1] == "Mock response"
-    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
-    assert timestamp < datetime.now()
+    assert messages[-1]["content"] == "Mock response"
+    assert messages[-1]["timestamp"] < datetime.now()

@@ -27,6 +27,17 @@ queries: Dict[str, str] = {
 }
 
 
+class Message(TypedDict):
+    """
+    Message type.
+    """
+
+    id: int
+    content: str
+    role: str
+    timestamp: datetime
+
+
 class Thread(TypedDict):
     """
     Thread type.
@@ -169,7 +180,7 @@ class DB:
         conn.commit()
         close()
 
-    def get_messages(self) -> List[Tuple[int, str, str, str]]:
+    def get_messages(self) -> List[Message]:
         """
         Get all messages from the database.
         """
@@ -177,9 +188,19 @@ class DB:
         cursor.execute(queries["get_messages"])
         result = cursor.fetchall()
         close()
-        return result
+        messages = []
+        for message in result:
+            messages.append(
+                Message(
+                    id=message[0],
+                    content=message[1],
+                    role=message[2],
+                    timestamp=datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
+                )
+            )
+        return messages
 
-    def get_messages_by_thread(self, thread_id: int) -> List[Tuple[int, str, str, str]]:
+    def get_messages_by_thread(self, thread_id: int) -> List[Message]:
         """
         Get all messages from the database.
         """
@@ -187,7 +208,17 @@ class DB:
         cursor.execute(queries["get_messages_by_thread"], (thread_id,))
         result = cursor.fetchall()
         close()
-        return result
+        messages = []
+        for message in result:
+            messages.append(
+                Message(
+                    id=message[0],
+                    content=message[1],
+                    role=message[2],
+                    timestamp=datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
+                )
+            )
+        return messages
 
     def delete_messages_more_recent(self, message_id: int) -> None:
         """
