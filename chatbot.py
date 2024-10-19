@@ -99,7 +99,7 @@ class Chatbot:
             }
         ]
 
-    def get_response(
+    def _generate_text(
         self, system_message: List[Dict[str, str]], chat: List[Dict[str, str]]
     ) -> Dict[str, str]:
         """
@@ -107,11 +107,7 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def response_cycle(self) -> None:
-        """
-        Handles the entire response cycle for recieving and generating a new message.
-        """
-        # get response time
+    def _get_response_time(self) -> timedelta:
         system_message_time = self.get_system_message("time_checker")
         chat = self.chatlog
         chat[-1][
@@ -119,18 +115,28 @@ class Chatbot:
         ] = f"""User has sent you the following message:
 {chat[-1]["content"]}
 How long will it take you to respond?"""
-        response = self.get_response(system_message_time, chat)
-        duration = _parse_time(response["content"])
+        response = self._generate_text(system_message_time, chat)
+        return _parse_time(response["content"])
 
-        # get a response from the model
+    def _get_response(self, duration: timedelta) -> None:
         system_message_chat = self.get_system_message("chat_message")
-        response = self.get_response(system_message_chat, self.chatlog)
+        response = self._generate_text(system_message_chat, self.chatlog)
         timestamp = None
         if duration > timedelta(minutes=1):
             timestamp = datetime.now() + duration
         self.database.post_message(
             self.thread, response["content"], response["role"], timestamp
         )
+
+    def response_cycle(self, duration: timedelta | None = None) -> None:
+        """
+        Handles the entire response cycle for recieving and generating a new message.
+        """
+        # get response time
+        if duration is None:
+            duration = self._get_response_time()
+        # get a response from the model
+        self._get_response(duration)
 
 
 def _parse_time(time: str) -> timedelta:

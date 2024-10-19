@@ -163,3 +163,25 @@ class DB:
         )
         conn.commit()
         close()
+
+    def apply_scheduled_message(self, thread_id: int) -> bool:
+        """
+        Checks the DB for any scheduled messages
+        and applies them (changed datetime to timestamp).
+        If there are no scheduled messages, returns False.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            """
+            UPDATE messages
+            SET timestamp = CURRENT_TIMESTAMP
+            WHERE thread = :thread_id AND timestamp > CURRENT_TIMESTAMP
+            """,
+            (thread_id,),
+        )
+        if cursor.rowcount != 1:
+            close()
+            return False
+        conn.commit()
+        close()
+        return True

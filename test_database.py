@@ -5,6 +5,7 @@ This file contains the tests for the database.py file.
 # pylint: disable=redefined-outer-name
 import os
 import time
+from datetime import datetime, timedelta
 from typing import Generator
 
 import pytest
@@ -152,3 +153,32 @@ def test_delete_messages_more_recent(db: DB) -> None:
     messages = db.get_messages_by_thread(alt_thread)
     assert len(messages) == 1
     assert messages[0][1] == "alt message"
+
+
+def test_apply_scheduled_message(db: DB) -> None:
+    """
+    Test the apply_scheduled_message method of the DB class.
+    """
+    thread_id = db.post_thread("user", "chat")
+    db.post_message(thread_id, "test message", "user")
+    time.sleep(1)
+    # false since there is no scheduled message
+    valid = db.apply_scheduled_message(thread_id)
+    assert not valid
+
+    # true since there is a scheduled message
+    db.post_message(
+        thread_id, "test message2", "assistant", datetime.now() + timedelta(minutes=5)
+    )
+    valid = db.apply_scheduled_message(thread_id)
+    assert valid
+
+    # false since there are multiple scheduled messages
+    db.post_message(
+        thread_id, "test message3", "assistant", datetime.now() + timedelta(minutes=5)
+    )
+    db.post_message(
+        thread_id, "test message4", "assistant", datetime.now() + timedelta(minutes=5)
+    )
+    valid = db.apply_scheduled_message(thread_id)
+    assert not valid

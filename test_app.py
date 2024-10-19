@@ -6,6 +6,7 @@ This file contains the tests for the app.py file.
 
 import os
 import time
+from datetime import datetime, timedelta
 from multiprocessing import Value
 from typing import Generator
 
@@ -33,6 +34,7 @@ def app() -> Generator[App, None, None]:
         port = port_counter.value
         port_counter.value += 1
     app = App(db_path=db_path, port=port)
+    app.load_model(mocked=True)
     yield app
     os.remove(db_path)
 
@@ -119,3 +121,33 @@ def test_delete_messages_more_recent(app: App, client: FlaskClient) -> None:
     messages = app.db.get_messages_by_thread(thread_id)
     assert len(messages) == 1
     assert messages[0][1] == "test message"
+
+
+def test_get_response_now(app: App, client: FlaskClient) -> None:
+    """
+    Test the get response now route.
+    """
+    # Setup messages
+    thread_id = app.db.post_thread("user", "test")
+    app.db.post_message(thread_id, "test message", "user")
+    app.db.post_message(
+        thread_id, "test message2", "assistant", datetime.now() + timedelta(minutes=5)
+    )
+
+    # Check that the response is applied
+    response = client.get(f"/threads/{thread_id}/messages/new")
+    assert response.status_code == 200
+    time.sleep(1)
+    messages = app.db.get_messages_by_thread(thread_id)
+    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
+    assert timestamp < datetime.now()
+
+    # Check that a new response is generated if there is no scheduled message
+    response = client.get(f"/threads/{thread_id}/messages/new")
+    assert response.status_code == 200
+    time.sleep(1)
+    messages = app.db.get_messages_by_thread(thread_id)
+    assert len(messages) == 3
+    assert messages[-1][1] == "Mock response"
+    timestamp = datetime.strptime(messages[-1][3], "%Y-%m-%d %H:%M:%S")
+    assert timestamp < datetime.now()

@@ -2,7 +2,7 @@
 This file contains the tests for the chatbot.py file.
 """
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, protected-access
 import os
 from datetime import datetime, timedelta
 from typing import Generator
@@ -65,12 +65,12 @@ def test_get_system_message(chatbot: Chatbot) -> None:
     assert "Response for phase 1" in system_message[0]["content"]
 
 
-def test_get_response(chatbot: Chatbot) -> None:
+def test_generate_text(chatbot: Chatbot) -> None:
     """
     Test the get_response method of the Chatbot class.
     """
     system_message = chatbot.get_system_message("chat_message")
-    response = chatbot.get_response(system_message, chatbot.chatlog)
+    response = chatbot._generate_text(system_message, chatbot.chatlog)
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
 
