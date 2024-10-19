@@ -52,6 +52,8 @@ class App:
         @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
             messages = self.db.get_messages_by_thread(thread_id)
+            for message in messages:
+                message["timestamp"] = message["timestamp"].isoformat()
             return make_response(jsonify(messages), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
