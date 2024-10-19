@@ -78,8 +78,8 @@ def test_get_threads_by_user(app: App, client: FlaskClient) -> None:
     response = client.get("/threads/user")
     assert response.status_code == 200
     assert response.json == [
-        {"id": 1, "character": "test"},
-        {"id": 2, "character": "test2"},
+        {"id": 1, "user": "user", "chatbot": "test", "phase": 0},
+        {"id": 2, "user": "user", "chatbot": "test2", "phase": 0},
     ]
 
 

@@ -5,7 +5,7 @@ Module to manage the chatbot state.
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from jinja2 import Template
 
@@ -33,14 +33,14 @@ class Chatbot:
         database: DB,
         model: Model,
     ) -> None:
-        self.thread = thread_id
+        thread = database.get_thread(thread_id)
+        self.thread = thread["id"]
         self.database = database
         self.model = model
-        username, character, phase = database.get_thread(thread_id)
-        self.username = username
-        self.character = character
-        self.phase = phase
-        with open(f"characters/{character}.json", "r", encoding="utf-8") as file:
+        self.username = thread["user"]
+        self.character = thread["chatbot"]
+        self.phase = thread["phase"]
+        with open(f"characters/{self.character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
         self.chatlog = self._initialise_chatlog()

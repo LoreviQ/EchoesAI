@@ -17,14 +17,25 @@ queries: Dict[str, str] = {
     "update_message_timestamp": "UPDATE messages SET timestamp = CURRENT_TIMESTAMP WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
     # THREADS
     "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
-    "get_thread": "SELECT user, chatbot, phase FROM threads WHERE id = ?",
-    "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
+    "get_thread": "SELECT id, user, chatbot, phase FROM threads WHERE id = ?",
+    "get_threads_by_user": "SELECT id, user, chatbot, phase FROM threads WHERE user = ?",
     "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
     # EVENTS
     "post_event": "INSERT INTO events (chatbot, type, content) VALUES (?, ?, ?) RETURNING id",
     "get_events_by_type_and_chatbot": "SELECT id, timestamp, content FROM events WHERE type = ? AND chatbot = ?",
     "delete_event": "DELETE FROM events WHERE id = ?",
 }
+
+
+class Thread(TypedDict):
+    """
+    Thread type.
+    """
+
+    id: int
+    user: str
+    chatbot: str
+    phase: str
 
 
 class Event(TypedDict):
@@ -82,7 +93,7 @@ class DB:
         close()
         return result
 
-    def get_thread(self, thread_id: int) -> Tuple[str, str, str]:
+    def get_thread(self, thread_id: int) -> Thread:
         """
         Get the user and chatbot for a thread.
         """
@@ -94,7 +105,9 @@ class DB:
         result = cursor.fetchone()
         close()
         if result:
-            return result
+            return Thread(
+                id=result[0], user=result[1], chatbot=result[2], phase=result[3]
+            )
         raise ValueError("Thread not found")
 
     def get_latest_thread(self, user: str, chatbot: str) -> int:
@@ -112,7 +125,7 @@ class DB:
             return result[0]
         return 0
 
-    def get_threads_by_user(self, user: str) -> List[Tuple[int, str]]:
+    def get_threads_by_user(self, user: str) -> List[Thread]:
         """
         Get all threads for a user.
         """
@@ -123,7 +136,17 @@ class DB:
         )
         result = cursor.fetchall()
         close()
-        return result
+        threads = []
+        for thread in result:
+            threads.append(
+                Thread(
+                    id=thread[0],
+                    user=thread[1],
+                    chatbot=thread[2],
+                    phase=thread[3],
+                )
+            )
+        return threads
 
     def post_message(
         self, thread: int, content: str, role: str, timestamp: datetime | None = None
@@ -226,11 +249,11 @@ class DB:
         events = []
         for event in result:
             events.append(
-                {
-                    "id": event[0],
-                    "timestamp": datetime.strptime(event[1], "%Y-%m-%d %H:%M:%S"),
-                    "content": event[2],
-                }
+                Event(
+                    id=event[0],
+                    timestamp=datetime.strptime(event[1], "%Y-%m-%d %H:%M:%S"),
+                    content=event[2],
+                )
             )
         return events
 

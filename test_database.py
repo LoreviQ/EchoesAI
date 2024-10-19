@@ -53,10 +53,10 @@ def test_get_thread(db: DB) -> None:
     Test the get_thread method of the DB class.
     """
     thread_id = db.post_thread("user", "chatbot")
-    user, chatbot, phase = db.get_thread(thread_id)
-    assert user == "user"
-    assert chatbot == "chatbot"
-    assert phase == 0
+    thread = db.get_thread(thread_id)
+    assert thread["user"] == "user"
+    assert thread["chatbot"] == "chatbot"
+    assert thread["phase"] == 0
     with pytest.raises(ValueError, match="Thread not found"):
         db.get_thread(2)
 
@@ -69,9 +69,12 @@ def test_get_threads_by_user(db: DB) -> None:
     db.post_thread("user", "chatbot2")
     db.post_thread("user2", "chatbot")
     threads = db.get_threads_by_user("user")
-    assert threads == [(1, "chatbot"), (2, "chatbot2")]
+    assert threads == [
+        {"id": 1, "user": "user", "chatbot": "chatbot", "phase": 0},
+        {"id": 2, "user": "user", "chatbot": "chatbot2", "phase": 0},
+    ]
     threads = db.get_threads_by_user("user2")
-    assert threads == [(3, "chatbot")]
+    assert threads == [{"id": 3, "user": "user2", "chatbot": "chatbot", "phase": 0}]
 
 
 def test_get_latest_thread(db: DB) -> None:

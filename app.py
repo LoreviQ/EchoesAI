@@ -47,9 +47,7 @@ class App:
         @self.app.route("/threads/<string:username>", methods=["GET"])
         def get_threads_by_user(username: str) -> Response:
             threads = self.db.get_threads_by_user(username)
-            threads_dict = [{"id": t[0], "character": t[1]} for t in threads]
-
-            return make_response(jsonify(threads_dict), 200)
+            return make_response(jsonify(threads), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
