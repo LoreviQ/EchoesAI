@@ -5,6 +5,7 @@ This is the main file that runs the application.
 import argparse
 
 from app import App
+from model import Model, ModelActual, ModelMocked
 
 
 def main() -> None:
@@ -12,10 +13,11 @@ def main() -> None:
     Entry point for the application.
     """
     parser = argparse.ArgumentParser(description="Run the application.")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("--test", action="store_true", help="Enable test mode")
     args = parser.parse_args()
-    app = App("database.db")
-    app.load_model(args.debug)
+    model = ModelMocked("long") if args.test else ModelActual()
+    manager = Model(model)
+    app = App("database.db", manager)
     app.serve()
 
 

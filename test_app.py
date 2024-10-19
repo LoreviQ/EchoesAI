@@ -14,6 +14,7 @@ import pytest
 from flask.testing import FlaskClient
 
 from app import App
+from model import Model, ModelMocked
 
 # Shared counter for port numbers
 port_counter = Value("i", 5000)
@@ -33,8 +34,8 @@ def app() -> Generator[App, None, None]:
     with port_counter.get_lock():
         port = port_counter.value
         port_counter.value += 1
-    app = App(db_path=db_path, port=port)
-    app.load_model(mocked=True)
+    model = Model(ModelMocked("short"))
+    app = App(db_path=db_path, model=model, port=port)
     yield app
     os.remove(db_path)
 

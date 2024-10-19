@@ -4,13 +4,43 @@ Module for Hugging face pipeline for text generation.
 
 import os
 import time
-from typing import Dict, List
+from typing import Dict, List, Protocol
 
 import torch
 from transformers import Pipeline, pipeline
 
 
+class ModelInterface(Protocol):
+    """
+    Interface for the model class.
+    """
+
+    def generate_response(
+        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
+    ) -> Dict[str, str]:
+        """
+        Generate a new message based on the chat history.
+        """
+
+
 class Model:
+    """
+    Class to manage the model instance.
+    """
+
+    def __init__(self, model: ModelInterface) -> None:
+        self.model = model
+
+    def generate_response(
+        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
+    ) -> Dict[str, str]:
+        """
+        Generate a new message based on the chat history.
+        """
+        return self.model.generate_response(chat, max_new_tokens)
+
+
+class ModelActual(ModelInterface):
     """
     Class to manage the Hugging Face pipeline for text generation.
     """
@@ -47,13 +77,13 @@ class Model:
         return response[0]["generated_text"][-1]
 
 
-class MockedModel(Model):
+class ModelMocked(ModelInterface):
     """
     Mock class for testing
     """
 
-    def __init__(self) -> None:
-        self.time_to_respond = "short"
+    def __init__(self, time_to_respond: str) -> None:
+        self.time_to_respond = time_to_respond
 
     def generate_response(
         self, chat: List[Dict[str, str]], max_new_tokens: int = 512
@@ -70,12 +100,3 @@ class MockedModel(Model):
 
         # chat message behavior
         return {"content": "Mock response", "role": "assistant"}
-
-
-def new_model(mocked: bool = False) -> Model | MockedModel:
-    """
-    Create a new model instance.
-    """
-    if mocked:
-        return MockedModel()
-    return Model()

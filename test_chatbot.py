@@ -11,7 +11,7 @@ import pytest
 
 from chatbot import Chatbot, _parse_time
 from database import DB
-from model import new_model
+from model import Model, ModelMocked
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def chatbot() -> Generator[Chatbot, None, None]:
     thread_id = db.post_thread("test_user", "test")
     db.post_message(thread_id, "How can I help?", "assistant")
     db.post_message(thread_id, "This is my test message", "user")
-    model = new_model(mocked=True)
+    model = Model(ModelMocked("short"))
     chatbot = Chatbot(thread_id=thread_id, database=db, model=model)
     yield chatbot
     os.remove(db_path)

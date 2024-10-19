@@ -10,7 +10,7 @@ from typing import Dict, List
 from jinja2 import Template
 
 from database import DB
-from model import MockedModel, Model
+from model import Model
 
 
 class Chatbot:
@@ -22,7 +22,7 @@ class Chatbot:
         self,
         thread_id: int,
         database: DB,
-        model: Model | MockedModel,
+        model: Model,
     ) -> None:
         self.thread = thread_id
         self.database = database

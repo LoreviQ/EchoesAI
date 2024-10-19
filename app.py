@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 from chatbot import Chatbot
 from database import DB
-from model import MockedModel, Model, new_model
+from model import Model
 
 
 class App:
@@ -18,13 +18,13 @@ class App:
     Class to manage the Flask app.
     """
 
-    def __init__(self, db_path: str, port: int = 5000):
+    def __init__(self, db_path: str, model: Model, port: int = 5000):
         self.app = Flask(__name__)
         CORS(self.app)
         self.port = port
         self.db = DB(db_path)
         self._setup_routes()
-        self.model: Model | MockedModel | None = None
+        self.model = model
         self.chatbot: Chatbot
 
     def _setup_routes(self) -> None:
@@ -94,22 +94,8 @@ class App:
         """
         self.app.run(port=self.port)
 
-    def load_model(self, mocked: bool = False) -> None:
-        """
-        Load the model for the chatbot.
-        Model is loaded once and passed to the chatbot instance.
-        This prevents excessive loading of the model.
-        """
-        self.model = new_model(mocked)
-        self.model.time_to_respond = "long"
-
-    def _new_chatbot(self, thread_id: int) -> Chatbot:
-        if not self.model:
-            raise ValueError("Model not loaded.")
-        return Chatbot(thread_id, self.db, self.model)
-
     def _trigger_response_cycle(
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
-        self.chatbot = self._new_chatbot(thread_id)
+        self.chatbot = Chatbot(thread_id, self.db, self.model)
         self.chatbot.response_cycle(duration)
