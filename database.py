@@ -7,6 +7,25 @@ from datetime import datetime
 from sqlite3 import Connection, Cursor
 from typing import Callable, Dict, List, Tuple
 
+queries: Dict[str, str] = {
+    # MESSAGES
+    "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
+    "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
+    "get_messages": "SELECT id, content, role, timestamp FROM messages",
+    "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
+    "delete_messages_more_recent": "DELETE FROM messages WHERE id = ? OR (thread = (SELECT thread FROM messages WHERE id = ?) AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))",
+    "update_message_timestamp": "UPDATE messages SET timestamp = CURRENT_TIMESTAMP WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
+    # THREADS
+    "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
+    "get_thread": "SELECT user, chatbot, phase FROM threads WHERE id = ?",
+    "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
+    "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
+    # EVENTS
+    "post_event": "INSERT INTO events (chatbot, type, content) VALUES (?, ?, ?)",
+    "get_events_by_type_and_chatbot": "SELECT id, timestamp, content FROM events WHERE type = ? AND chatbot = ?",
+    "delete_event": "DELETE FROM events WHERE id = ?",
+}
+
 
 class DB:
     """
@@ -15,16 +34,6 @@ class DB:
 
     def __init__(self, db_path: str = "database.db") -> None:
         self.db_path = db_path
-        self.queries: Dict[str, str] = {
-            "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
-            "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
-            "get_messages": "SELECT id, content, role, timestamp FROM messages",
-            "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
-            "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
-            "get_thread": "SELECT user, chatbot, phase FROM threads WHERE id = ?",
-            "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
-            "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
-        }
         self._create_db()
 
     def _create_db(self) -> None:
@@ -55,7 +64,7 @@ class DB:
         """
         conn, cursor, close = self._setup()
         cursor.execute(
-            self.queries["post_thread"],
+            queries["post_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()[0]
@@ -69,7 +78,7 @@ class DB:
         """
         _, cursor, close = self._setup()
         cursor.execute(
-            self.queries["get_thread"],
+            queries["get_thread"],
             (thread_id,),
         )
         result = cursor.fetchone()
@@ -84,7 +93,7 @@ class DB:
         """
         _, cursor, close = self._setup()
         cursor.execute(
-            self.queries["get_latest_thread"],
+            queries["get_latest_thread"],
             (user, chatbot),
         )
         result = cursor.fetchone()
@@ -99,7 +108,7 @@ class DB:
         """
         _, cursor, close = self._setup()
         cursor.execute(
-            self.queries["get_threads_by_user"],
+            queries["get_threads_by_user"],
             (user,),
         )
         result = cursor.fetchall()
@@ -116,12 +125,12 @@ class DB:
         if timestamp:
             formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute(
-                self.queries["post_message_with_timestamp"],
+                queries["post_message_with_timestamp"],
                 (thread, content, role, formatted_time),
             )
         else:
             cursor.execute(
-                self.queries["post_message"],
+                queries["post_message"],
                 (thread, content, role),
             )
         conn.commit()
@@ -132,7 +141,7 @@ class DB:
         Get all messages from the database.
         """
         _, cursor, close = self._setup()
-        cursor.execute(self.queries["get_messages"])
+        cursor.execute(queries["get_messages"])
         result = cursor.fetchall()
         close()
         return result
@@ -142,7 +151,7 @@ class DB:
         Get all messages from the database.
         """
         _, cursor, close = self._setup()
-        cursor.execute(self.queries["get_messages_by_thread"], (thread_id,))
+        cursor.execute(queries["get_messages_by_thread"], (thread_id,))
         result = cursor.fetchall()
         close()
         return result
@@ -153,12 +162,7 @@ class DB:
         """
         conn, cursor, close = self._setup()
         cursor.execute(
-            """
-                DELETE FROM messages
-                WHERE id = ?
-                OR (thread = (SELECT thread FROM messages WHERE id = ?)
-                    AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))
-            """,
+            queries["delete_messages_more_recent"],
             (message_id, message_id, message_id),
         )
         conn.commit()
@@ -172,11 +176,7 @@ class DB:
         """
         conn, cursor, close = self._setup()
         cursor.execute(
-            """
-            UPDATE messages
-            SET timestamp = CURRENT_TIMESTAMP
-            WHERE thread = :thread_id AND timestamp > CURRENT_TIMESTAMP
-            """,
+            queries["update_message_timestamp"],
             (thread_id,),
         )
         if cursor.rowcount != 1:
