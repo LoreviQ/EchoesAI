@@ -89,7 +89,7 @@ def test_response_cycle_long(chatbot: Chatbot) -> None:
     """
     Test the response cycle of the Chatbot class when responses are long.
     """
-    chatbot.model.time_to_respond = "long"
+    chatbot.model = Model(ModelMocked("long"))
     chatbot.response_cycle()
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
     assert messages[-1][2] == "assistant"
