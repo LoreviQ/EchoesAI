@@ -182,3 +182,39 @@ def test_apply_scheduled_message(db: DB) -> None:
     )
     valid = db.apply_scheduled_message(thread_id)
     assert not valid
+
+
+def test_post_event(db: DB) -> None:
+    """
+    Test
+    """
+    event_id = db.post_event("chatbot", "event", "test event")
+    assert event_id == 1
+
+
+def test_get_events_by_type_and_chatbot(db: DB) -> None:
+    """
+    Test
+    """
+    db.post_event("chatbot", "event", "test event")
+    db.post_event("chatbot", "event", "test event2")
+    db.post_event("chatbot", "thought", "test event3")
+    events = db.get_events_by_type_and_chatbot("event", "chatbot")
+    assert len(events) == 2
+    assert events[0][2] == "test event"
+    assert events[1][2] == "test event2"
+    events = db.get_events_by_type_and_chatbot("thought", "chatbot")
+    assert len(events) == 1
+    assert events[0][2] == "test event3"
+
+
+def test_delete_event(db: DB) -> None:
+    """
+    Test
+    """
+    event_id = db.post_event("chatbot", "event", "test event")
+    db.delete_event(event_id)
+    events = db.get_events_by_type_and_chatbot("event", "chatbot")
+    assert len(events) == 0
+    with pytest.raises(ValueError, match="Event not found"):
+        db.delete_event(2)

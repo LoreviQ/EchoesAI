@@ -21,7 +21,7 @@ queries: Dict[str, str] = {
     "get_threads_by_user": "SELECT id, chatbot FROM threads WHERE user = ?",
     "get_latest_thread": "SELECT MAX(id) FROM threads WHERE user = ? AND chatbot = ?",
     # EVENTS
-    "post_event": "INSERT INTO events (chatbot, type, content) VALUES (?, ?, ?)",
+    "post_event": "INSERT INTO events (chatbot, type, content) VALUES (?, ?, ?) RETURNING id",
     "get_events_by_type_and_chatbot": "SELECT id, timestamp, content FROM events WHERE type = ? AND chatbot = ?",
     "delete_event": "DELETE FROM events WHERE id = ?",
 }
@@ -185,3 +185,47 @@ class DB:
         conn.commit()
         close()
         return True
+
+    def post_event(self, chatbot: str, event_type: str, content: str) -> int:
+        """
+        Insert an event into the database.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            queries["post_event"],
+            (chatbot, event_type, content),
+        )
+        result = cursor.fetchone()[0]
+        conn.commit()
+        close()
+        return result
+
+    def get_events_by_type_and_chatbot(
+        self, event_type: str, chatbot: str
+    ) -> List[Tuple[int, str, str]]:
+        """
+        Get all events from the database.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(
+            queries["get_events_by_type_and_chatbot"],
+            (event_type, chatbot),
+        )
+        result = cursor.fetchall()
+        close()
+        return result
+
+    def delete_event(self, event_id: int) -> None:
+        """
+        Delete an event from the database.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            queries["delete_event"],
+            (event_id,),
+        )
+        if cursor.rowcount != 1:
+            close()
+            raise ValueError("Event not found")
+        conn.commit()
+        close()
