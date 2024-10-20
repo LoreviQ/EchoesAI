@@ -10,8 +10,9 @@ from typing import Callable, Dict, List, Tuple, TypedDict
 queries: Dict[str, str] = {
     # MESSAGES
     "get_scheduled_message": "SELECT id FROM messages WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
-    "get_messages": "SELECT id, content, role, timestamp FROM messages",
-    "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
+    "get_messages": "SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot FROM messages as m JOIN threads as t ON m.thread = t.id",
+    "get_messages_by_thread": "SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot FROM messages as m JOIN threads as t ON m.thread = t.id WHERE thread = ?",
+    "get_messages_by_character": "SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot FROM messages as m JOIN threads as t ON m.thread = t.id WHERE t.chatbot = ?",
     "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
     "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
     "update_message": "UPDATE messages SET timestamp = ?, content = COALESCE(?, content) WHERE id = ?",
@@ -38,6 +39,8 @@ class Message(TypedDict):
     content: str
     role: str
     timestamp: datetime
+    user: str
+    chatbot: str
 
 
 class Thread(TypedDict):
@@ -197,6 +200,8 @@ class DB:
                     content=message[1],
                     role=message[2],
                     timestamp=convert_ts_dt(message[3]),
+                    user=message[4],
+                    chatbot=message[5],
                 )
             )
         return messages
@@ -217,6 +222,30 @@ class DB:
                     content=message[1],
                     role=message[2],
                     timestamp=convert_ts_dt(message[3]),
+                    user=message[4],
+                    chatbot=message[5],
+                )
+            )
+        return messages
+
+    def get_messages_by_character(self, chatbot: str) -> List[Message]:
+        """
+        Get all messages from the database.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(queries["get_messages_by_character"], (chatbot,))
+        result = cursor.fetchall()
+        close()
+        messages = []
+        for message in result:
+            messages.append(
+                Message(
+                    id=message[0],
+                    content=message[1],
+                    role=message[2],
+                    timestamp=convert_ts_dt(message[3]),
+                    user=message[4],
+                    chatbot=message[5],
                 )
             )
         return messages

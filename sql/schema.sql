@@ -23,3 +23,4 @@ CREATE TABLE IF NOT EXISTS events (
     type TEXT NOT NULL,
     content TEXT NOT NULL
 );
+

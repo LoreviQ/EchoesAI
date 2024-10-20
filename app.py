@@ -6,6 +6,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, Response, jsonify, make_response, request
 from flask_cors import CORS
 
@@ -27,6 +28,15 @@ class App:
         self._setup_routes()
         self.model = model
         self.chatbot: Chatbot
+
+        # temporary solution rework later
+        """
+        self.chatbot = Chatbot("ophelia", self.db, self.model)
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.add_job(
+            func=self.chatbot.generate_event, trigger="interval", minutes=30
+        )
+        """
 
     def _setup_routes(self) -> None:
         """
@@ -90,6 +100,7 @@ class App:
             if message_id:
                 self.db.update_message(message_id, datetime.now(timezone.utc))
                 return make_response("", 200)
+
             # if no scheduled message, trigger response cycle with no timedelta
             self._trigger_response_cycle(thread_id, timedelta())
             return make_response("", 200)
@@ -103,5 +114,6 @@ class App:
     def _trigger_response_cycle(
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
-        self.chatbot = Chatbot(thread_id, self.db, self.model)
-        self.chatbot.response_cycle(duration)
+        thread = self.db.get_thread(thread_id)
+        self.chatbot = Chatbot(thread["chatbot"], self.db, self.model)
+        self.chatbot.response_cycle(thread_id, duration)

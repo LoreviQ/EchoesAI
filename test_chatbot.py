@@ -30,7 +30,7 @@ def chatbot() -> Generator[Chatbot, None, None]:
     db.post_message(thread_id, "How can I help?", "assistant")
     db.post_message(thread_id, "This is my test message", "user")
     model = Model(ModelMocked("short"))
-    chatbot = Chatbot(thread_id=thread_id, database=db, model=model)
+    chatbot = Chatbot(character="test", database=db, model=model)
     yield chatbot
     os.remove(db_path)
 
@@ -39,9 +39,6 @@ def test_initialization(chatbot: Chatbot) -> None:
     """
     Test the initialization of the Chatbot class.
     """
-    assert chatbot.thread == 1
-    assert chatbot.username == "test_user"
-    assert chatbot.phase == 0
     assert chatbot.character_info["char"] == "Test Character"
     assert chatbot.character_info["description"] == "A test character"
     assert chatbot.character_info["age"] == "25"
@@ -52,10 +49,11 @@ def test_get_system_message(chatbot: Chatbot) -> None:
     """
     Test the set_system_message method of the Chatbot class.
     """
-    system_message = chatbot.get_system_message("chat")
+    thread = chatbot.database.get_thread(1)
+    system_message = chatbot.get_system_message("chat", thread)
     assert system_message[0]["role"] == "system"
     assert "You are an expert actor who" in system_message[0]["content"]
-    system_message = chatbot.get_system_message("time")
+    system_message = chatbot.get_system_message("time", thread)
     assert system_message[0]["role"] == "system"
     assert "response frequency of Test Character" in system_message[0]["content"]
     assert "Response for phase 1" in system_message[0]["content"]
@@ -66,7 +64,7 @@ def test_generate_text(chatbot: Chatbot) -> None:
     Test the get_response method of the Chatbot class.
     """
     system_message = chatbot.get_system_message("chat")
-    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    messages = chatbot.database.get_messages_by_thread(1)
     chatlog = chatbot._convert_messages_to_chatlog(messages)
     response = chatbot._generate_text(system_message, chatlog)
 
@@ -78,8 +76,8 @@ def test_response_cycle_short(chatbot: Chatbot) -> None:
     """
     Test the response cycle of the Chatbot class when responses are short.
     """
-    chatbot.response_cycle()
-    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    chatbot.response_cycle(1)
+    messages = chatbot.database.get_messages_by_thread(1)
     assert messages[-1]["role"] == "assistant"
     assert "Mock response" in messages[-1]["content"]
 
@@ -89,8 +87,8 @@ def test_response_cycle_long(chatbot: Chatbot) -> None:
     Test the response cycle of the Chatbot class when responses are long.
     """
     chatbot.model = Model(ModelMocked("long"))
-    chatbot.response_cycle()
-    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    chatbot.response_cycle(1)
+    messages = chatbot.database.get_messages_by_thread(1)
     assert messages[-1]["role"] == "assistant"
     assert "Mock response" in messages[-1]["content"]
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
@@ -100,9 +98,9 @@ def test_response_cycle_single(chatbot: Chatbot) -> None:
     """
     Tests that a single response is scheduled at one time.
     """
-    chatbot.response_cycle()
-    chatbot.response_cycle()
-    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    chatbot.response_cycle(1)
+    chatbot.response_cycle(1)
+    messages = chatbot.database.get_messages_by_thread(1)
     assert len(messages) == 3
     assert messages[-1]["role"] == "assistant"
 
@@ -146,7 +144,7 @@ def test_generate_event(chatbot: Chatbot) -> None:
     """
     Test the generate_event method of the Chatbot class.
     """
-    chatbot.database.post_message(chatbot.thread, "test message", "user")
+    chatbot.database.post_message(1, "test message", "user")
     chatbot.database.post_event("test", "event", "test was drinking tea")
     chatbot.database.post_event("test", "thought", "test thought about the sky")
     chatbot.generate_event("event")

@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 
 from jinja2 import Template
 
-from database import DB, Event, Message, convert_dt_ts
+from database import DB, Event, Message, Thread, convert_dt_ts
 from model import Model
 
 messageTemplates: Dict[str, Any] = {
@@ -30,21 +30,19 @@ class Chatbot:
 
     def __init__(
         self,
-        thread_id: int,
+        character: str,
         database: DB,
         model: Model,
     ) -> None:
-        thread = database.get_thread(thread_id)
-        self.thread = thread["id"]
         self.database = database
         self.model = model
-        self.username = thread["user"]
-        self.character = thread["chatbot"]
-        self.phase = thread["phase"]
+        self.character = character
         with open(f"characters/{self.character}.json", "r", encoding="utf-8") as file:
             self.character_info = json.load(file)
 
-    def get_system_message(self, system_type: str) -> List[Dict[str, str]]:
+    def get_system_message(
+        self, system_type: str, thread: Thread | None = None
+    ) -> List[Dict[str, str]]:
         """
         Change the system message between several preconfigured options.
         """
@@ -53,7 +51,6 @@ class Chatbot:
 
         # prepare context for rendering
         context = {
-            "user": self.username,
             "char": self.character_info["char"],
             "description": self.character_info["description"],
             "age": self.character_info["age"],
@@ -65,14 +62,17 @@ class Chatbot:
             "details": self.character_info["details"],
             "scenario": self.character_info["scenario"],
             "important": self.character_info["important"],
-            "phase_name": self.character_info["phases"][self.phase]["name"],
-            "phase_description": self.character_info["phases"][self.phase][
-                "description"
-            ],
-            "phase_response": self.character_info["phases"][self.phase]["response"],
-            "phase_names": self.character_info["phases"][self.phase]["names"],
-            "phase_advance": self.character_info["phases"][self.phase]["advance"],
         }
+        if thread:
+            phase = thread["phase"]
+            context["user"] = thread["user"]
+            context["phase_name"] = self.character_info["phases"][phase]["name"]
+            context["phase_description"] = self.character_info["phases"][phase][
+                "description"
+            ]
+            context["phase_response"] = self.character_info["phases"][phase]["response"]
+            context["phase_names"] = self.character_info["phases"][phase]["names"]
+            context["phase_advance"] = self.character_info["phases"][phase]["advance"]
 
         # Render the template until no more changes are detected
         previous_content = None
@@ -97,52 +97,53 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def _get_response_time(self) -> timedelta:
-        sys_message = self.get_system_message("time")
-        messages = self.database.get_messages_by_thread(self.thread)
+    def _get_response_time(self, thread: Thread) -> timedelta:
+        sys_message = self.get_system_message("time", thread)
+        messages = self.database.get_messages_by_thread(thread["id"])
         chatlog = self._convert_messages_to_chatlog(messages)
         chatlog.append(
             {
                 "role": "user",
                 "content": messageTemplates["tt_next_message"](
                     convert_dt_ts(datetime.now(timezone.utc)),
-                    self.username,
+                    thread["user"],
                 ),
             }
         )
         response = self._generate_text(sys_message, chatlog)
         return _parse_time(response["content"])
 
-    def _get_response_and_submit(self, timestamp: datetime) -> None:
-        sys_message = self.get_system_message("chat")
-        messages = self.database.get_messages_by_thread(self.thread)
+    def _get_response_and_submit(self, thread: Thread, timestamp: datetime) -> None:
+        sys_message = self.get_system_message("chat", thread)
+        messages = self.database.get_messages_by_thread(thread["id"])
         chatlog = self._convert_messages_to_chatlog(messages)
         chatlog.append(
             {
                 "role": "user",
                 "content": messageTemplates["get_message"](
                     convert_dt_ts(datetime.now(timezone.utc)),
-                    self.username,
+                    thread["user"],
                 ),
             }
         )
         response = self._generate_text(sys_message, chatlog)
         self.database.post_message(
-            self.thread, response["content"], response["role"], timestamp
+            thread["id"], response["content"], response["role"], timestamp
         )
 
-    def response_cycle(self, duration: timedelta | None = None) -> None:
+    def response_cycle(self, thread_id: int, duration: timedelta | None = None) -> None:
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
         # delete previous scheduled messages
-        self.database.delete_scheduled_messages_from_thread(self.thread)
+        thread = self.database.get_thread(thread_id)
+        self.database.delete_scheduled_messages_from_thread(thread_id)
         # get response time
         if duration is None:
-            duration = self._get_response_time()
+            duration = self._get_response_time(thread)
         timestamp = datetime.now(timezone.utc) + duration
         # get a response from the model
-        self._get_response_and_submit(timestamp)
+        self._get_response_and_submit(thread, timestamp)
 
     def generate_event(self, event_type: str) -> None:
         """
@@ -153,7 +154,7 @@ class Chatbot:
         thoughts = self.database.get_events_by_type_and_chatbot(
             "thought", self.character
         )
-        messages = self.database.get_messages_by_thread(self.thread)
+        messages = self.database.get_messages_by_character(self.character)
         all_events = self._combine_events(
             ("events", events), ("thoughts", thoughts), ("messages", messages)
         )
@@ -212,7 +213,7 @@ class Chatbot:
                                 "content": messageTemplates["message_received"](
                                     event["timestamp"],
                                     event["value"]["content"],
-                                    self.username,
+                                    event["value"]["user"],
                                 ),
                             }
                         )
@@ -223,7 +224,7 @@ class Chatbot:
                                 "content": messageTemplates["message_sent"](
                                     event["timestamp"],
                                     event["value"]["content"],
-                                    self.username,
+                                    event["value"]["user"],
                                 ),
                             }
                         )
@@ -253,7 +254,7 @@ class Chatbot:
                     "content": formatter(
                         convert_dt_ts(message["timestamp"]),
                         message["content"],
-                        self.username,
+                        message["user"],
                     ),
                 }
             )
