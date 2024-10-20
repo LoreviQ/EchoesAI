@@ -3,18 +3,19 @@ This module contains the class to manage the database and other database-related
 """
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlite3 import Connection, Cursor
 from typing import Callable, Dict, List, Tuple, TypedDict
 
 queries: Dict[str, str] = {
     # MESSAGES
-    "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
-    "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
+    "get_scheduled_message": "SELECT id FROM messages WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
     "get_messages": "SELECT id, content, role, timestamp FROM messages",
     "get_messages_by_thread": "SELECT id, content, role, timestamp FROM messages WHERE thread = ?",
+    "post_message": "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)",
+    "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
+    "update_message": "UPDATE messages SET timestamp = ?, content = COALESCE(?, content) WHERE id = ?",
     "delete_messages_more_recent": "DELETE FROM messages WHERE id = ? OR (thread = (SELECT thread FROM messages WHERE id = ?) AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))",
-    "update_message_timestamp": "UPDATE messages SET timestamp = CURRENT_TIMESTAMP WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
     # THREADS
     "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
     "get_thread": "SELECT id, user, chatbot, phase FROM threads WHERE id = ?",
@@ -167,10 +168,9 @@ class DB:
         """
         conn, cursor, close = self._setup()
         if timestamp:
-            formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute(
                 queries["post_message_with_timestamp"],
-                (thread, content, role, formatted_time),
+                (thread, content, role, convert_dt_ts(timestamp)),
             )
         else:
             cursor.execute(
@@ -195,7 +195,7 @@ class DB:
                     id=message[0],
                     content=message[1],
                     role=message[2],
-                    timestamp=datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
+                    timestamp=convert_ts_dt(message[3]),
                 )
             )
         return messages
@@ -215,7 +215,7 @@ class DB:
                     id=message[0],
                     content=message[1],
                     role=message[2],
-                    timestamp=datetime.strptime(message[3], "%Y-%m-%d %H:%M:%S"),
+                    timestamp=convert_ts_dt(message[3]),
                 )
             )
         return messages
@@ -232,23 +232,32 @@ class DB:
         conn.commit()
         close()
 
-    def apply_scheduled_message(self, thread_id: int) -> bool:
+    def get_scheduled_message(self, thread_id: int) -> int:
         """
-        Checks the DB for any scheduled messages
-        and applies them (changed datetime to timestamp).
-        If there are no scheduled messages, returns False.
+        Checks the DB for any scheduled messages returning the message id.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(
+            queries["get_scheduled_message"],
+            (thread_id,),
+        )
+        result = cursor.fetchone()
+        close()
+        return result[0] if result else 0
+
+    def update_message(
+        self, message_id: int, timestamp: datetime, content: str | None = None
+    ) -> None:
+        """
+        Updates message timestamp and content
         """
         conn, cursor, close = self._setup()
         cursor.execute(
-            queries["update_message_timestamp"],
-            (thread_id,),
+            queries["update_message"],
+            (convert_dt_ts(timestamp), content, message_id),
         )
-        if cursor.rowcount != 1:
-            close()
-            return False
         conn.commit()
         close()
-        return True
 
     def post_event(self, chatbot: str, event_type: str, content: str) -> int:
         """
@@ -282,7 +291,7 @@ class DB:
             events.append(
                 Event(
                     id=event[0],
-                    timestamp=datetime.strptime(event[1], "%Y-%m-%d %H:%M:%S"),
+                    timestamp=convert_ts_dt(event[1]),
                     content=event[2],
                 )
             )
@@ -302,3 +311,18 @@ class DB:
             raise ValueError("Event not found")
         conn.commit()
         close()
+
+
+def convert_ts_dt(timestamp: str) -> datetime:
+    """
+    Convert a timestamp string to a datetime object.
+    """
+    dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    return dt.replace(tzinfo=timezone.utc)
+
+
+def convert_dt_ts(dt: datetime) -> str:
+    """
+    Convert a datetime object to a timestamp string.
+    """
+    return dt.strftime("%Y-%m-%d %H:%M:%S")

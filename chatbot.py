@@ -4,12 +4,12 @@ Module to manage the chatbot state.
 
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from jinja2 import Template
 
-from database import DB
+from database import DB, convert_dt_ts
 from model import Model
 
 messageTemplates = {
@@ -114,7 +114,7 @@ class Chatbot:
         # get response time
         if duration is None:
             duration = self._get_response_time()
-        timestamp = datetime.now() + duration
+        timestamp = datetime.now(timezone.utc) + duration
         # get a response from the model
         sys_message = self.get_system_message("chat")
         response = self._generate_text(sys_message, self.chatlog)
@@ -206,7 +206,7 @@ class Chatbot:
             {
                 "role": "user",
                 "content": messageTemplates["describe_event_now"](
-                    datetime.now().strftime("%H:%M:%S")
+                    convert_dt_ts(datetime.now(timezone.utc))
                 ),
             }
         )

@@ -6,7 +6,7 @@ This file contains the tests for the app.py file.
 
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from multiprocessing import Value
 from typing import Generator
 
@@ -132,7 +132,10 @@ def test_get_response_now(app: App, client: FlaskClient) -> None:
     thread_id = app.db.post_thread("user", "test")
     app.db.post_message(thread_id, "test message", "user")
     app.db.post_message(
-        thread_id, "test message2", "assistant", datetime.now() + timedelta(minutes=5)
+        thread_id,
+        "test message2",
+        "assistant",
+        datetime.now(timezone.utc) + timedelta(minutes=5),
     )
 
     # Check that the response is applied
@@ -140,13 +143,23 @@ def test_get_response_now(app: App, client: FlaskClient) -> None:
     assert response.status_code == 200
     time.sleep(1)
     messages = app.db.get_messages_by_thread(thread_id)
-    assert messages[-1]["timestamp"] < datetime.now()
+    assert messages[-1]["timestamp"] < datetime.now(timezone.utc)
+
+
+def test_get_response_now_new(app: App, client: FlaskClient) -> None:
+    """
+    Test the get response now route.
+    """
+    # Setup messages
+    thread_id = app.db.post_thread("user", "test")
+    app.db.post_message(thread_id, "test message", "user", datetime.now(timezone.utc))
+    time.sleep(2)
 
     # Check that a new response is generated if there is no scheduled message
     response = client.get(f"/threads/{thread_id}/messages/new")
     assert response.status_code == 200
-    time.sleep(1)
+    time.sleep(2)
     messages = app.db.get_messages_by_thread(thread_id)
-    assert len(messages) == 3
+    assert len(messages) == 2
     assert messages[-1]["content"] == "Mock response"
-    assert messages[-1]["timestamp"] < datetime.now()
+    assert messages[-1]["timestamp"] < datetime.now(timezone.utc)

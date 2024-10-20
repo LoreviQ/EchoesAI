@@ -3,13 +3,13 @@ Module to hold server logic.
 """
 
 import threading
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, Response, jsonify, make_response, request
 from flask_cors import CORS
 
 from chatbot import Chatbot
-from database import DB
+from database import DB, convert_dt_ts
 from model import Model
 
 
@@ -53,7 +53,7 @@ class App:
         def get_messages_by_thread(thread_id: int) -> Response:
             messages = self.db.get_messages_by_thread(thread_id)
             for message in messages:
-                message["timestamp"] = message["timestamp"].isoformat()
+                message["timestamp"] = convert_dt_ts(message["timestamp"])
             return make_response(jsonify(messages), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
@@ -77,8 +77,9 @@ class App:
         @self.app.route("/threads/<int:thread_id>/messages/new", methods=["GET"])
         def get_response_now(thread_id: int) -> Response:
             # first attempt to apply scheduled message
-            success = self.db.apply_scheduled_message(thread_id)
-            if success:
+            message_id = self.db.get_scheduled_message(thread_id)
+            if message_id:
+                self.db.update_message(message_id, datetime.now(timezone.utc))
                 return make_response("", 200)
             # if no scheduled message, trigger response cycle with no timedelta
             self._trigger_response_cycle(thread_id, timedelta())

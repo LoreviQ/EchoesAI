@@ -5,7 +5,7 @@ This file contains the tests for the database.py file.
 # pylint: disable=redefined-outer-name
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Generator
 
 import pytest
@@ -158,33 +158,40 @@ def test_delete_messages_more_recent(db: DB) -> None:
     assert messages[0]["content"] == "alt message"
 
 
-def test_apply_scheduled_message(db: DB) -> None:
+def get_scheduled_message(db: DB) -> None:
     """
-    Test the apply_scheduled_message method of the DB class.
+    Test the get_scheduled_message method of the DB class.
     """
-    thread_id = db.post_thread("user", "chat")
+    thread_id = db.post_thread("user", "chatbot")
     db.post_message(thread_id, "test message", "user")
-    time.sleep(1)
-    # false since there is no scheduled message
-    valid = db.apply_scheduled_message(thread_id)
-    assert not valid
+    db.post_message(
+        thread_id,
+        "test message2",
+        "assistant",
+        datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    message_id = db.get_scheduled_message(thread_id)
+    assert message_id == 2
 
-    # true since there is a scheduled message
-    db.post_message(
-        thread_id, "test message2", "assistant", datetime.now() + timedelta(minutes=5)
-    )
-    valid = db.apply_scheduled_message(thread_id)
-    assert valid
 
-    # false since there are multiple scheduled messages
+def test_update_message(db: DB) -> None:
+    """
+    Test the update_message method of the DB class.
+    """
+    thread_id = db.post_thread("user", "chatbot")
+    db.post_message(thread_id, "test message", "user")
     db.post_message(
-        thread_id, "test message3", "assistant", datetime.now() + timedelta(minutes=5)
+        thread_id,
+        "test message2",
+        "assistant",
+        datetime.now(timezone.utc) + timedelta(days=1),
     )
-    db.post_message(
-        thread_id, "test message4", "assistant", datetime.now() + timedelta(minutes=5)
+    db.update_message(
+        2, datetime.now(timezone.utc) - timedelta(days=1), "test message3"
     )
-    valid = db.apply_scheduled_message(thread_id)
-    assert not valid
+    messages = db.get_messages_by_thread(thread_id)
+    assert messages[1]["content"] == "test message3"
+    assert messages[1]["timestamp"] < datetime.now(timezone.utc)
 
 
 def test_post_event(db: DB) -> None:
