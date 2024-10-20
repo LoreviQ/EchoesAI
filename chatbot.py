@@ -135,6 +135,8 @@ class Chatbot:
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
+        # delete previous scheduled messages
+        self.database.delete_scheduled_messages_from_thread(self.thread)
         # get response time
         if duration is None:
             duration = self._get_response_time()

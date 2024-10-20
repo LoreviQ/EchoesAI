@@ -96,6 +96,17 @@ def test_response_cycle_long(chatbot: Chatbot) -> None:
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
 
 
+def test_response_cycle_single(chatbot: Chatbot) -> None:
+    """
+    Tests that a single response is scheduled at one time.
+    """
+    chatbot.response_cycle()
+    chatbot.response_cycle()
+    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    assert len(messages) == 3
+    assert messages[-1]["role"] == "assistant"
+
+
 def test_parse_time() -> None:
     """
     Test the _parse_time function.
