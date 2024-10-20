@@ -16,10 +16,10 @@ messageTemplates: Dict[str, Any] = {
     "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
     "get_message": lambda timestamp, user: f"The time is currently {timestamp}, and you have decided to send {user} another message. Please write your message to {user}. Do not include the time in your response.",
     "describe_event_now": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
-    "event_for_events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
-    "thought_for_events": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
-    "message_sent_for_events": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
-    "message_received_for_events": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
+    "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
+    "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
+    "message_sent": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
+    "message_received": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
 }
 
 
@@ -157,13 +157,16 @@ class Chatbot:
         all_events = self._combine_events(
             ("events", events), ("thoughts", thoughts), ("messages", messages)
         )
-        custom_chatlog = self._event_chatlog(all_events)
-        response = self._generate_text(sys_message, custom_chatlog)
+        chatlog = self._event_chatlog(all_events)
+        response = self._generate_text(sys_message, chatlog)
         self.database.post_event(self.character, event_type, response["content"])
 
     def _combine_events(
         self, *event_lists: Tuple[str, Union[List[Event], List[Message]]]
     ) -> List[Dict[str, Any]]:
+        """
+        Creates a compiled event list from multiple sources
+        """
         result = []
         for event_list in event_lists:
             for event in event_list[1]:
@@ -187,7 +190,7 @@ class Chatbot:
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["event_for_events"](
+                            "content": messageTemplates["events"](
                                 event["timestamp"], event["value"]["content"]
                             ),
                         }
@@ -196,7 +199,7 @@ class Chatbot:
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["thought_for_events"](
+                            "content": messageTemplates["thoughts"](
                                 event["timestamp"], event["value"]["content"]
                             ),
                         }
@@ -206,9 +209,7 @@ class Chatbot:
                         chatlog.append(
                             {
                                 "role": "user",
-                                "content": messageTemplates[
-                                    "message_received_for_events"
-                                ](
+                                "content": messageTemplates["message_received"](
                                     event["timestamp"],
                                     event["value"]["content"],
                                     self.username,
@@ -219,7 +220,7 @@ class Chatbot:
                         chatlog.append(
                             {
                                 "role": "user",
-                                "content": messageTemplates["message_user_for_events"](
+                                "content": messageTemplates["message_sent"](
                                     event["timestamp"],
                                     event["value"]["content"],
                                     self.username,
@@ -243,9 +244,9 @@ class Chatbot:
         for message in messages:
             formatter: Callable
             if message["role"] == "user":
-                formatter = messageTemplates["message_received_for_events"]
+                formatter = messageTemplates["message_received"]
             else:
-                formatter = messageTemplates["message_sent_for_events"]
+                formatter = messageTemplates["message_sent"]
             chatlog.append(
                 {
                     "role": message["role"],

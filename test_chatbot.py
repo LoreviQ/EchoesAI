@@ -140,3 +140,22 @@ def test_parse_time() -> None:
     assert _parse_time(time) == timedelta(minutes=3, seconds=50)
     time = "I can't wait!"
     assert _parse_time(time) == timedelta(seconds=0)
+
+
+def test_generate_event(chatbot: Chatbot) -> None:
+    """
+    Test the generate_event method of the Chatbot class.
+    """
+    chatbot.database.post_message(chatbot.thread, "test message", "user")
+    chatbot.database.post_event("test", "event", "test was drinking tea")
+    chatbot.database.post_event("test", "thought", "test thought about the sky")
+    chatbot.generate_event("event")
+    events = chatbot.database.get_events_by_type_and_chatbot("event", "test")
+    assert len(events) == 2
+    assert events[0]["content"] == "test was drinking tea"
+    assert events[1]["content"] == "Mock event"
+    thoughts = chatbot.database.get_events_by_type_and_chatbot("thought", "test")
+    assert len(thoughts) == 1
+    assert thoughts[0]["content"] == "test thought about the sky"
+    events = chatbot.database.get_events_by_type_and_chatbot("event", "not test")
+    assert len(events) == 0
