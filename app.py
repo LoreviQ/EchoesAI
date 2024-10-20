@@ -2,6 +2,7 @@
 Module to hold server logic.
 """
 
+import atexit
 import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
@@ -25,18 +26,9 @@ class App:
         CORS(self.app)
         self.port = port
         self.db = DB(db_path)
-        self._setup_routes()
         self.model = model
-        self.chatbot: Chatbot
-
-        # temporary solution rework later
-        """
-        self.chatbot = Chatbot("ophelia", self.db, self.model)
-        self.scheduler = BackgroundScheduler()
-        self.scheduler.add_job(
-            func=self.chatbot.generate_event, trigger="interval", minutes=30
-        )
-        """
+        self._setup_routes()
+        self._schedule_events()
 
     def _setup_routes(self) -> None:
         """
@@ -105,6 +97,28 @@ class App:
             self._trigger_response_cycle(thread_id, timedelta())
             return make_response("", 200)
 
+    def _schedule_events(self) -> None:
+        # TODO: extend to other chatbots and event types
+        scheduler = BackgroundScheduler()
+        chatbot = Chatbot("ophelia", self.db, self.model)
+        first_event_time = datetime.now()
+        interval = timedelta(minutes=30)
+        try:
+            event = self.db.get_most_recent_event(chatbot.character, "event")
+            if first_event_time - event["timestamp"] < interval:
+                first_event_time = interval + event["timestamp"]
+        except ValueError:
+            pass
+        scheduler.add_job(
+            func=chatbot.generate_event,
+            trigger="interval",
+            minutes=30,
+            args=("event",),
+            next_run_time=first_event_time,
+        )
+        scheduler.start()
+        atexit.register(scheduler.shutdown)
+
     def serve(self) -> None:
         """
         Start the Flask app.
@@ -115,5 +129,5 @@ class App:
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
         thread = self.db.get_thread(thread_id)
-        self.chatbot = Chatbot(thread["chatbot"], self.db, self.model)
-        self.chatbot.response_cycle(thread_id, duration)
+        chatbot = Chatbot(thread["chatbot"], self.db, self.model)
+        chatbot.response_cycle(thread_id, duration)

@@ -26,6 +26,7 @@ queries: Dict[str, str] = {
     # EVENTS
     "post_event": "INSERT INTO events (chatbot, type, content) VALUES (?, ?, ?) RETURNING id",
     "get_events_by_type_and_chatbot": "SELECT id, timestamp, content FROM events WHERE type = ? AND chatbot = ?",
+    "get_most_recent_event": "SELECT id, timestamp, content FROM events WHERE chatbot = ? AND type = ? ORDER BY timestamp DESC LIMIT 1",
     "delete_event": "DELETE FROM events WHERE id = ?",
 }
 
@@ -338,6 +339,25 @@ class DB:
                 )
             )
         return events
+
+    def get_most_recent_event(self, chatbot: str, event_type: str) -> Event:
+        """
+        Get the most recent event from the database.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(
+            queries["get_most_recent_event"],
+            (chatbot, event_type),
+        )
+        result = cursor.fetchone()
+        close()
+        if result:
+            return Event(
+                id=result[0],
+                timestamp=convert_ts_dt(result[1]),
+                content=result[2],
+            )
+        raise ValueError("Event not found")
 
     def delete_event(self, event_id: int) -> None:
         """
