@@ -5,7 +5,7 @@ Module to manage the chatbot state.
 import json
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from jinja2 import Template
 
@@ -13,7 +13,7 @@ from database import DB, Event, Message, convert_dt_ts
 from model import Model
 
 messageTemplates: Dict[str, Any] = {
-    "time_to_respond": lambda user, message: f"{user} has sent you the following message:\n{message}\nHow long will it take you to respond?",
+    "time_to_respond": lambda timestamp: f"The time is currently {timestamp}. How long until you next send a message?",
     "describe_event_now": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
     "event_for_events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
     "thought_for_events": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
@@ -99,29 +99,54 @@ class Chatbot:
     def _get_response_time(self) -> timedelta:
         sys_message = self.get_system_message("time")
         messages = self.database.get_messages_by_thread(self.thread)
-        chatlog = self._convert_messages_to_chatlog(messages)
-        chatlog[-1]["content"] = messageTemplates["time_to_respond"](
-            self.username, chatlog[-1]["content"]
+        chatlog: List[Dict[str, str]] = []
+        for message in messages:
+            formatter: Callable
+            if message["role"] == "user":
+                formatter = messageTemplates["message_received_for_events"]
+            else:
+                formatter = messageTemplates["message_sent_for_events"]
+            chatlog.append(
+                {
+                    "role": message["role"],
+                    "content": formatter(
+                        convert_dt_ts(message["timestamp"]),
+                        message["content"],
+                        self.username,
+                    ),
+                }
+            )
+        chatlog.append(
+            {
+                "role": "user",
+                "content": messageTemplates["time_to_respond"](
+                    convert_dt_ts(datetime.now(timezone.utc))
+                ),
+            }
         )
         response = self._generate_text(sys_message, chatlog)
         return _parse_time(response["content"])
+
+    def _get_response_and_submit(self, timestamp: datetime) -> None:
+        sys_message = self.get_system_message("chat")
+        messages = self.database.get_messages_by_thread(self.thread)
+        chatlog = _convert_messages_to_chatlog(messages)
+        response = self._generate_text(sys_message, chatlog)
+        self.database.post_message(
+            self.thread, response["content"], response["role"], timestamp
+        )
 
     def response_cycle(self, duration: timedelta | None = None) -> None:
         """
         Handles the entire response cycle for recieving and generating a new message.
         """
+        # TODO: Check if there's an existing schedulded response and use that to determine the response time
         # get response time
         if duration is None:
             duration = self._get_response_time()
         timestamp = datetime.now(timezone.utc) + duration
         # get a response from the model
-        sys_message = self.get_system_message("chat")
-        messages = self.database.get_messages_by_thread(self.thread)
-        chatlog = self._convert_messages_to_chatlog(messages)
-        response = self._generate_text(sys_message, chatlog)
-        self.database.post_message(
-            self.thread, response["content"], response["role"], timestamp
-        )
+        self._get_response_and_submit(timestamp)
 
     def generate_event(self, event_type: str) -> None:
         """
@@ -215,18 +240,17 @@ class Chatbot:
         )
         return chatlog
 
-    def _convert_messages_to_chatlog(
-        self, messages: List[Message]
-    ) -> List[Dict[str, str]]:
-        chat: List[Dict[str, str]] = []
-        for message in messages:
-            chat.append(
-                {
-                    "role": message["role"],
-                    "content": message["content"],
-                }
-            )
-        return chat
+
+def _convert_messages_to_chatlog(messages: List[Message]) -> List[Dict[str, str]]:
+    chat: List[Dict[str, str]] = []
+    for message in messages:
+        chat.append(
+            {
+                "role": message["role"],
+                "content": message["content"],
+            }
+        )
+    return chat
 
 
 def _parse_time(time: str) -> timedelta:

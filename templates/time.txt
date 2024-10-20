@@ -1,5 +1,5 @@
 You are playing the role of {{char}}, which is described in detail below. 
-You are currently in a conversation with {{user}}. You need to respond with the time it will take to respond to the {{user}}'s message.
+You are currently in a conversation with {{user}}. You need to respond with the time it will take to write a new message to {{user}}.
 The current response frequency of {{char}} is dictated by: {{phase_response}}
 Reply with a duration in the format of number followed by a time unit (e.g., 12h for 12 hours, 15s for 15 seconds, or 2h 20m for 2 hours and 20 minutes).
 Do not add any additional information to your response.
