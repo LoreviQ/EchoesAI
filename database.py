@@ -16,6 +16,7 @@ queries: Dict[str, str] = {
     "post_message_with_timestamp": "INSERT INTO messages (thread, content, role, timestamp) VALUES (?, ?, ?, ?)",
     "update_message": "UPDATE messages SET timestamp = ?, content = COALESCE(?, content) WHERE id = ?",
     "delete_messages_more_recent": "DELETE FROM messages WHERE id = ? OR (thread = (SELECT thread FROM messages WHERE id = ?) AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))",
+    "delete_scheduled_messages_from_thread": "DELETE FROM messages WHERE thread = ? AND timestamp > CURRENT_TIMESTAMP",
     # THREADS
     "post_thread": "INSERT INTO threads (user, chatbot) VALUES (?, ?) RETURNING id",
     "get_thread": "SELECT id, user, chatbot, phase FROM threads WHERE id = ?",
@@ -228,6 +229,18 @@ class DB:
         cursor.execute(
             queries["delete_messages_more_recent"],
             (message_id, message_id, message_id),
+        )
+        conn.commit()
+        close()
+
+    def delete_scheduled_messages_from_thread(self, thread_id: int) -> None:
+        """
+        Delete all scheduled messages from a thread.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            queries["delete_scheduled_messages_from_thread"],
+            (thread_id,),
         )
         conn.commit()
         close()

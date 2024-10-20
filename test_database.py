@@ -158,6 +158,23 @@ def test_delete_messages_more_recent(db: DB) -> None:
     assert messages[0]["content"] == "alt message"
 
 
+def test_delete_scheduled_messages_from_thread(db: DB) -> None:
+    """
+    Test the delete_scheduled_messages_from_thread method of the DB class.
+    """
+    thread_id = db.post_thread("user", "chatbot")
+    db.post_message(thread_id, "test message", "user")
+    db.post_message(
+        thread_id,
+        "test message2",
+        "assistant",
+        datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    db.delete_scheduled_messages_from_thread(thread_id)
+    messages = db.get_messages_by_thread(thread_id)
+    assert len(messages) == 1
+
+
 def get_scheduled_message(db: DB) -> None:
     """
     Test the get_scheduled_message method of the DB class.
