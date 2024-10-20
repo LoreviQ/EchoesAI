@@ -9,7 +9,7 @@ from typing import Generator
 
 import pytest
 
-from chatbot import Chatbot, _convert_messages_to_chatlog, _parse_time
+from chatbot import Chatbot, _parse_time
 from database import DB
 from model import Model, ModelMocked
 
@@ -67,7 +67,7 @@ def test_generate_text(chatbot: Chatbot) -> None:
     """
     system_message = chatbot.get_system_message("chat")
     messages = chatbot.database.get_messages_by_thread(chatbot.thread)
-    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog = chatbot._convert_messages_to_chatlog(messages)
     response = chatbot._generate_text(system_message, chatlog)
 
     assert response["role"] == "assistant"
