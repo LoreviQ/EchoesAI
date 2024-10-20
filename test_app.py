@@ -163,3 +163,18 @@ def test_get_response_now_new(app: App, client: FlaskClient) -> None:
     assert len(messages) == 2
     assert messages[-1]["content"] == "Mock response"
     assert messages[-1]["timestamp"] < datetime.now(timezone.utc)
+
+
+def test_get_events_by_character(app: App, client: FlaskClient) -> None:
+    """
+    Test the get events by character route.
+    """
+    app.db.post_event("test", "event", "test")
+    app.db.post_event("test", "event", "test2")
+    app.db.post_event("test", "thought", "test")
+    response = client.get("/events/test")
+    assert response.status_code == 200
+    assert response.json[0]["id"] == 1
+    assert response.json[0]["content"] == "test"
+    assert response.json[1]["id"] == 2
+    assert response.json[1]["content"] == "test2"

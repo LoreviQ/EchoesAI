@@ -97,11 +97,16 @@ class App:
             self._trigger_response_cycle(thread_id, timedelta())
             return make_response("", 200)
 
+        @self.app.route("/events/<string:character>", methods=["GET"])
+        def get_events_by_character(character: str) -> Response:
+            events = self.db.get_events_by_type_and_chatbot("event", character)
+            return make_response(jsonify(events), 200)
+
     def _schedule_events(self) -> None:
         # TODO: extend to other chatbots and event types
         scheduler = BackgroundScheduler()
         chatbot = Chatbot("ophelia", self.db, self.model)
-        first_event_time = datetime.now()
+        first_event_time = datetime.now(timezone.utc)
         interval = timedelta(minutes=30)
         try:
             event = self.db.get_most_recent_event(chatbot.character, "event")
