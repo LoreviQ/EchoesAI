@@ -46,10 +46,6 @@ def test_initialization(chatbot: Chatbot) -> None:
     assert chatbot.character_info["description"] == "A test character"
     assert chatbot.character_info["age"] == "25"
     assert chatbot.character_info["phases"][0]["name"] == "Phase 1"
-    assert chatbot.chatlog[0]["role"] == "assistant"
-    assert chatbot.chatlog[0]["content"] == "How can I help?"
-    assert chatbot.chatlog[1]["role"] == "user"
-    assert chatbot.chatlog[1]["content"] == "This is my test message"
 
 
 def test_get_system_message(chatbot: Chatbot) -> None:
@@ -70,7 +66,10 @@ def test_generate_text(chatbot: Chatbot) -> None:
     Test the get_response method of the Chatbot class.
     """
     system_message = chatbot.get_system_message("chat")
-    response = chatbot._generate_text(system_message, chatbot.chatlog)
+    messages = chatbot.database.get_messages_by_thread(chatbot.thread)
+    chatlog = chatbot._convert_messages_to_chatlog(messages)
+    response = chatbot._generate_text(system_message, chatlog)
+
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
 

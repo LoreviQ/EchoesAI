@@ -4,6 +4,7 @@ Module to hold server logic.
 
 import threading
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
 
 from flask import Flask, Response, jsonify, make_response, request
 from flask_cors import CORS
@@ -52,9 +53,17 @@ class App:
         @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
             messages = self.db.get_messages_by_thread(thread_id)
+            response: List[Dict[str, Any]] = []
             for message in messages:
-                message["timestamp"] = convert_dt_ts(message["timestamp"])
-            return make_response(jsonify(messages), 200)
+                response.append(
+                    {
+                        "id": message["id"],
+                        "content": message["content"],
+                        "role": message["role"],
+                        "timestamp": convert_dt_ts(message["timestamp"]),
+                    },
+                )
+            return make_response(jsonify(response), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
         def post_message(thread_id: int) -> Response:
