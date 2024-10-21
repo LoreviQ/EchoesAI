@@ -219,20 +219,21 @@ def test_post_event(db: DB) -> None:
     assert event_id == 1
 
 
-def test_get_events_by_type_and_chatbot(db: DB) -> None:
+def test_get_events_by_chatbot(db: DB) -> None:
     """
     Test
     """
     db.post_event("chatbot", "event", "test event")
     db.post_event("chatbot", "event", "test event2")
     db.post_event("chatbot", "thought", "test event3")
-    events = db.get_events_by_type_and_chatbot("event", "chatbot")
-    assert len(events) == 2
+    events = db.get_events_by_chatbot("chatbot")
+    assert len(events) == 3
     assert events[0]["content"] == "test event"
+    assert events[0]["type"] == "event"
     assert events[1]["content"] == "test event2"
-    events = db.get_events_by_type_and_chatbot("thought", "chatbot")
-    assert len(events) == 1
-    assert events[0]["content"] == "test event3"
+    assert events[1]["type"] == "event"
+    assert events[2]["content"] == "test event3"
+    assert events[2]["type"] == "thought"
 
 
 def test_delete_event(db: DB) -> None:
@@ -241,7 +242,7 @@ def test_delete_event(db: DB) -> None:
     """
     event_id = db.post_event("chatbot", "event", "test event")
     db.delete_event(event_id)
-    events = db.get_events_by_type_and_chatbot("event", "chatbot")
+    events = db.get_events_by_chatbot("chatbot")
     assert len(events) == 0
     with pytest.raises(ValueError, match="Event not found"):
         db.delete_event(2)

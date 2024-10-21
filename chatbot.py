@@ -150,14 +150,9 @@ class Chatbot:
         Generate an event message.
         """
         sys_message = self.get_system_message(event_type)
-        events = self.database.get_events_by_type_and_chatbot("event", self.character)
-        thoughts = self.database.get_events_by_type_and_chatbot(
-            "thought", self.character
-        )
+        events = self.database.get_events_by_chatbot(self.character)
         messages = self.database.get_messages_by_character(self.character)
-        all_events = self._combine_events(
-            ("events", events), ("thoughts", thoughts), ("messages", messages)
-        )
+        all_events = self._combine_events(("events", events), ("messages", messages))
         chatlog = self._event_chatlog(all_events)
         response = self._generate_text(sys_message, chatlog)
         self.database.post_event(self.character, event_type, response["content"])
@@ -171,9 +166,15 @@ class Chatbot:
         result = []
         for event_list in event_lists:
             for event in event_list[1]:
+                event_type: str
+                match event_list[0]:
+                    case "events":
+                        event_type = event["type"]
+                    case "messages":
+                        event_type = "messages"
                 result.append(
                     {
-                        "type": event_list[0],
+                        "type": event_type,
                         "timestamp": event["timestamp"],
                         "value": event,
                     }

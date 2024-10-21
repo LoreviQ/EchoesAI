@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, Response, jsonify, make_response, request
 from flask_cors import CORS
 
@@ -99,27 +100,32 @@ class App:
 
         @self.app.route("/events/<string:character>", methods=["GET"])
         def get_events_by_character(character: str) -> Response:
-            events = self.db.get_events_by_type_and_chatbot("event", character)
-            return make_response(jsonify(events), 200)
+            events = self.db.get_events_by_chatbot(character)
+            response: List[Dict[str, Any]] = []
+            for event in events:
+                response.append(
+                    {
+                        "id": event["id"],
+                        "type": event["type"],
+                        "content": event["content"],
+                        "timestamp": convert_dt_ts(event["timestamp"]),
+                    },
+                )
+            return make_response(jsonify(response), 200)
 
     def _schedule_events(self) -> None:
         # TODO: extend to other chatbots and event types
         scheduler = BackgroundScheduler()
         chatbot = Chatbot("ophelia", self.db, self.model)
-        first_event_time = datetime.now(timezone.utc)
-        interval = timedelta(minutes=30)
-        try:
-            event = self.db.get_most_recent_event(chatbot.character, "event")
-            if first_event_time - event["timestamp"] < interval:
-                first_event_time = interval + event["timestamp"]
-        except ValueError:
-            pass
         scheduler.add_job(
             func=chatbot.generate_event,
-            trigger="interval",
-            minutes=30,
+            trigger=CronTrigger(minute="0,30"),
             args=("event",),
-            next_run_time=first_event_time,
+        )
+        scheduler.add_job(
+            func=chatbot.generate_event,
+            trigger=CronTrigger(minute="15,45"),
+            args=("thought",),
         )
         scheduler.start()
         atexit.register(scheduler.shutdown)

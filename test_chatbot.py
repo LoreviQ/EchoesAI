@@ -148,12 +148,13 @@ def test_generate_event(chatbot: Chatbot) -> None:
     chatbot.database.post_event("test", "event", "test was drinking tea")
     chatbot.database.post_event("test", "thought", "test thought about the sky")
     chatbot.generate_event("event")
-    events = chatbot.database.get_events_by_type_and_chatbot("event", "test")
-    assert len(events) == 2
+    events = chatbot.database.get_events_by_chatbot("test")
+    assert len(events) == 3
     assert events[0]["content"] == "test was drinking tea"
-    assert events[1]["content"] == "Mock event"
-    thoughts = chatbot.database.get_events_by_type_and_chatbot("thought", "test")
-    assert len(thoughts) == 1
-    assert thoughts[0]["content"] == "test thought about the sky"
-    events = chatbot.database.get_events_by_type_and_chatbot("event", "not test")
+    assert events[0]["type"] == "event"
+    assert events[1]["content"] == "test thought about the sky"
+    assert events[1]["type"] == "thought"
+    assert events[2]["content"] == "Mock event"
+    assert events[2]["type"] == "event"
+    events = chatbot.database.get_events_by_chatbot("not test")
     assert len(events) == 0
