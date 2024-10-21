@@ -178,3 +178,27 @@ def test_get_events_by_character(app: App, client: FlaskClient) -> None:
     assert response.json[0]["content"] == "test"
     assert response.json[1]["id"] == 2
     assert response.json[1]["content"] == "test2"
+
+
+def test_get_posts_by_character(app: App, client: FlaskClient) -> None:
+    """
+    Test the get posts by character route.
+    """
+    app.db.post_social_media_post(
+        "chatbot", "test post", "test,prompt,", "test caption"
+    )
+    app.db.post_social_media_post(
+        "chatbot", "test post2", "test,prompt,", "test caption2"
+    )
+    app.db.post_social_media_post(
+        "chatbot", "test post3", "test,prompt,", "test caption3"
+    )
+    app.db.post_social_media_post(
+        "chatbot2", "test post", "test,prompt,", "test caption"
+    )
+    response = client.get("/posts/chatbot")
+    assert response.status_code == 200
+    assert len(response.json) == 3
+    assert response.json[0]["description"] == "test post"
+    assert response.json[1]["description"] == "test post2"
+    assert response.json[2]["description"] == "test post3"
