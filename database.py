@@ -406,21 +406,6 @@ class DB:
         close()
         return result
 
-    def get_civitai_token(self, post_id: int) -> str:
-        """
-        Get a Civitai token from a post.
-        """
-        _, cursor, close = self._setup()
-        cursor.execute(
-            "SELECT civitai_token FROM posts WHERE id = ?",
-            (post_id,),
-        )
-        result = cursor.fetchone()
-        close()
-        if result:
-            return result[0]
-        raise ValueError("Invalid ID")
-
     def add_image_path_to_post(self, post_id: int, image_path: str) -> None:
         """
         Add an image path to a post.

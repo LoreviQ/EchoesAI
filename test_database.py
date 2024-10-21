@@ -246,3 +246,25 @@ def test_delete_event(db: DB) -> None:
     assert len(events) == 0
     with pytest.raises(ValueError, match="Event not found"):
         db.delete_event(2)
+
+
+def test_post_social_media_post(db: DB) -> None:
+    """
+    Test
+    """
+    db.post_social_media_post("chatbot", "test post", "test,prompt,", "test caption")
+
+
+def test_get_posts_by_character(db: DB) -> None:
+    """
+    Test
+    """
+    db.post_social_media_post("chatbot", "test post", "test,prompt,", "test caption")
+    db.post_social_media_post("chatbot", "test post2", "test,prompt,", "test caption2")
+    db.post_social_media_post("chatbot", "test post3", "test,prompt,", "test caption3")
+    db.post_social_media_post("chatbot2", "test post", "test,prompt,", "test caption")
+    posts = db.get_posts_by_character("chatbot")
+    assert len(posts) == 3
+    assert posts[0]["description"] == "test post"
+    assert posts[1]["description"] == "test post2"
+    assert posts[2]["description"] == "test post3"
