@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Tuple, Union
 
+import civitai
 from jinja2 import Template
 
 from database import DB, Event, Message, Thread, convert_dt_ts
@@ -22,6 +23,10 @@ messageTemplates: Dict[str, Any] = {
     "get_event": {
         "event": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
         "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
+    },
+    "get_post": {
+        "photo": lambda timestamp: f"The time is currently {timestamp}. Please describe the photo you are about to post.",
+        "caption": lambda timestamp, p_desc: f"The time is currently {timestamp}. The photo description is {p_desc}. Please write a caption for the photo.",
     },
 }
 
@@ -44,7 +49,10 @@ class Chatbot:
             self.character_info = json.load(file)
 
     def get_system_message(
-        self, system_type: str, thread: Thread | None = None
+        self,
+        system_type: str,
+        thread: Thread | None = None,
+        photo_description: str = "",
     ) -> List[Dict[str, str]]:
         """
         Change the system message between several preconfigured options.
@@ -65,6 +73,7 @@ class Chatbot:
             "details": self.character_info["details"],
             "scenario": self.character_info["scenario"],
             "important": self.character_info["important"],
+            "photo_description": photo_description,
         }
         if thread:
             phase = thread["phase"]
@@ -100,6 +109,20 @@ class Chatbot:
         """
         return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
+    def response_cycle(self, thread_id: int, duration: timedelta | None = None) -> None:
+        """
+        Handles the entire response cycle for recieving and generating a new message.
+        """
+        # delete previous scheduled messages
+        thread = self.database.get_thread(thread_id)
+        self.database.delete_scheduled_messages_from_thread(thread_id)
+        # get response time
+        if duration is None:
+            duration = self._get_response_time(thread)
+        timestamp = datetime.now(timezone.utc) + duration
+        # get a response from the model
+        self._get_response_and_submit(thread, timestamp)
+
     def _get_response_time(self, thread: Thread) -> timedelta:
         sys_message = self.get_system_message("time", thread)
         messages = self.database.get_messages_by_thread(thread["id"])
@@ -134,29 +157,12 @@ class Chatbot:
             thread["id"], response["content"], response["role"], timestamp
         )
 
-    def response_cycle(self, thread_id: int, duration: timedelta | None = None) -> None:
-        """
-        Handles the entire response cycle for recieving and generating a new message.
-        """
-        # delete previous scheduled messages
-        thread = self.database.get_thread(thread_id)
-        self.database.delete_scheduled_messages_from_thread(thread_id)
-        # get response time
-        if duration is None:
-            duration = self._get_response_time(thread)
-        timestamp = datetime.now(timezone.utc) + duration
-        # get a response from the model
-        self._get_response_and_submit(thread, timestamp)
-
     def generate_event(self, event_type: str) -> None:
         """
         Generate an event message.
         """
         sys_message = self.get_system_message(event_type)
-        events = self.database.get_events_by_chatbot(self.character)
-        messages = self.database.get_messages_by_character(self.character)
-        all_events = self._combine_events(("events", events), ("messages", messages))
-        chatlog = self._event_chatlog(all_events)
+        chatlog = self._event_chatlog()
         chatlog.append(
             {
                 "role": "user",
@@ -168,36 +174,15 @@ class Chatbot:
         response = self._generate_text(sys_message, chatlog)
         self.database.post_event(self.character, event_type, response["content"])
 
-    def _combine_events(
-        self, *event_lists: Tuple[str, Union[List[Event], List[Message]]]
-    ) -> List[Dict[str, Any]]:
-        """
-        Creates a compiled event list from multiple sources
-        """
-        result = []
-        for event_list in event_lists:
-            for event in event_list[1]:
-                event_type: str
-                match event_list[0]:
-                    case "events":
-                        event_type = event["type"]
-                    case "messages":
-                        event_type = "messages"
-                result.append(
-                    {
-                        "type": event_type,
-                        "timestamp": event["timestamp"],
-                        "value": event,
-                    }
-                )
-        return sorted(result, key=lambda x: x["timestamp"])
-
-    def _event_chatlog(self, events: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    def _event_chatlog(self) -> List[Dict[str, str]]:
         """
         Create a custom chatlog of events for the chatbot.
         """
+        events = self.database.get_events_by_chatbot(self.character)
+        messages = self.database.get_messages_by_character(self.character)
+        all_events = _combine_events(("events", events), ("messages", messages))
         chatlog = []
-        for event in events:
+        for event in all_events:
             match event["type"]:
                 case "events":
                     chatlog.append(
@@ -242,6 +227,43 @@ class Chatbot:
                         )
         return chatlog
 
+    def generate_social_media_post(self) -> None:
+        """
+        Generate a social media post.
+        """
+        # generate image description
+        sys_message = self.get_system_message("photo")
+        chatlog = self._event_chatlog()
+        chatlog.append(
+            {
+                "role": "user",
+                "content": messageTemplates["get_post"]["photo"](
+                    convert_dt_ts(datetime.now(timezone.utc))
+                ),
+            }
+        )
+        description = self._generate_text(sys_message, chatlog)
+
+        # generate stable diffusion prompt
+        sys_message = self.get_system_message("sd-prompt")
+        prompt = [
+            {
+                "role": "user",
+                "content": description["content"],
+            }
+        ]
+        prompt = self._generate_text(sys_message, prompt)
+
+        # use prompt to generate image
+        self.civitai_generate_image(prompt["content"])
+
+        # generate caption
+        sys_message = self.get_system_message("caption")
+        chatlog[-1]["content"] = messageTemplates["get_post"]["caption"](
+            convert_dt_ts(datetime.now(timezone.utc)), description["content"]
+        )
+        caption = self._generate_text(sys_message, chatlog)
+
     def _convert_messages_to_chatlog(
         self, messages: List[Message]
     ) -> List[Dict[str, str]]:
@@ -263,6 +285,31 @@ class Chatbot:
                 }
             )
         return chatlog
+
+    def civitai_generate_image(self, prompt) -> None:
+        """
+        Generate an image using the Civitai API.
+        """
+        civitai_input = {
+            "model": self.character_info["model"],
+            "params": {
+                "prompt": self.character_info["img_gen"]["global_positive"]
+                + self.character_info["appearance"]
+                + prompt,
+                "negativePrompt": self.character_info["img_gen"]["global_negative"],
+                "scheduler": "EulerA",
+                "steps": 29,
+                "cfgScale": 5,
+                "width": 1024,
+                "height": 1024,
+                "clipSkip": 1,
+            },
+            "additionalNetworks": {
+                self.character_info["img_gen"]["additional_networks"]
+            },
+        }
+        response = civitai.image.create(civitai_input)
+        # TODO: save image to database
 
 
 def _parse_time(time: str) -> timedelta:
@@ -293,3 +340,28 @@ def _parse_time(time: str) -> timedelta:
         seconds = int(second_match.group(1))
 
     return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+
+
+def _combine_events(
+    *event_lists: Tuple[str, Union[List[Event], List[Message]]]
+) -> List[Dict[str, Any]]:
+    """
+    Creates a compiled event list from multiple sources
+    """
+    result = []
+    for event_list in event_lists:
+        for event in event_list[1]:
+            event_type: str
+            match event_list[0]:
+                case "events":
+                    event_type = event["type"]
+                case "messages":
+                    event_type = "messages"
+            result.append(
+                {
+                    "type": event_type,
+                    "timestamp": event["timestamp"],
+                    "value": event,
+                }
+            )
+    return sorted(result, key=lambda x: x["timestamp"])

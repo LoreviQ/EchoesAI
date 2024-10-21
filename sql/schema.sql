@@ -24,3 +24,12 @@ CREATE TABLE IF NOT EXISTS events (
     content TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    chatbot TEXT NOT NULL,
+    description TEXT,
+    prompt TEXT,
+    caption TEXT,
+    image_path TEXT
+);

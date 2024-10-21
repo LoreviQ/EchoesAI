@@ -1,0 +1,7 @@
+Generate a stable diffusion text2image prompt for the provided image description. 
+Keep each tag short, between 1-4 words. Make sure to include tags for:
+Composition: number of subjects, gender of subjects, shot distance, camera angle, lighting, etc
+Pose: body position, arm position, where they're looking, etc
+Clothing: outfit, shoes, jewelry, makeup, hairstyle any other accessories, etc
+The physical characteristics (eye-colour, hair colour) is not necessary since it will be handled separately.
+Do not write anything else except for the prompt.

@@ -4,6 +4,8 @@ This is the main file that runs the application.
 
 import argparse
 
+from dotenv import load_dotenv
+
 from app import App
 from model import Model, ModelActual, ModelMocked
 
@@ -12,6 +14,7 @@ def main() -> None:
     """
     Entry point for the application.
     """
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Run the application.")
     parser.add_argument("--test", action="store_true", help="Enable test mode")
     args = parser.parse_args()
