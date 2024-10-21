@@ -2,12 +2,16 @@
 Module to manage the chatbot state.
 """
 
+import atexit
 import json
 import re
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import civitai
+import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from database import DB, Event, Message, Thread, convert_dt_ts
@@ -29,6 +33,10 @@ messageTemplates: Dict[str, Any] = {
         "caption": lambda timestamp, p_desc: f"The time is currently {timestamp}. The photo description is {p_desc}. Please write a caption for the photo.",
     },
 }
+
+
+class ImageGenerationFailedException(Exception):
+    """Exception raised when image generation fails on Civitai's side."""
 
 
 class Chatbot:
@@ -254,15 +262,21 @@ class Chatbot:
         ]
         prompt = self._generate_text(sys_message, prompt)
 
-        # use prompt to generate image
-        self.civitai_generate_image(prompt["content"])
-
         # generate caption
         sys_message = self.get_system_message("caption")
         chatlog[-1]["content"] = messageTemplates["get_post"]["caption"](
             convert_dt_ts(datetime.now(timezone.utc)), description["content"]
         )
         caption = self._generate_text(sys_message, chatlog)
+        post_id = self.database.post_social_media_post(
+            self.character,
+            description["content"],
+            prompt["content"],
+            caption["content"],
+        )
+
+        # use prompt to generate image
+        self.civitai_generate_image(prompt["content"], post_id)
 
     def _convert_messages_to_chatlog(
         self, messages: List[Message]
@@ -286,30 +300,63 @@ class Chatbot:
             )
         return chatlog
 
-    def civitai_generate_image(self, prompt) -> None:
+    def civitai_generate_image(self, prompt, post_id) -> None:
         """
         Generate an image using the Civitai API.
         """
         civitai_input = {
-            "model": self.character_info["model"],
+            "model": self.character_info["img_gen"]["model"],
             "params": {
                 "prompt": self.character_info["img_gen"]["global_positive"]
                 + self.character_info["appearance"]
                 + prompt,
                 "negativePrompt": self.character_info["img_gen"]["global_negative"],
                 "scheduler": "EulerA",
-                "steps": 29,
+                "steps": 15,
                 "cfgScale": 5,
                 "width": 1024,
                 "height": 1024,
-                "clipSkip": 1,
             },
-            "additionalNetworks": {
-                self.character_info["img_gen"]["additional_networks"]
-            },
+            "additionalNetworks": self.character_info["img_gen"]["additional_networks"],
         }
         response = civitai.image.create(civitai_input)
-        # TODO: save image to database
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            func=get_generated_image,
+            args=(response["token"], post_id, self.character, scheduler.shutdown),
+            trigger="interval",
+            minutes=1,
+        )
+        scheduler.start()
+        atexit.register(scheduler.shutdown)
+
+
+def get_generated_image(
+    token: str, post_id: int, character: str, stop: Callable
+) -> None:
+    """
+    Get the generated image from the Civitai API.
+    """
+    response = civitai.jobs.get(token=token)
+    if response["jobs"][0]["result"]["available"]:
+        stop()
+        url = response["jobs"][0]["result"]["blobUrl"]
+        try:
+            response = requests.get(url, stream=True, timeout=5)
+            response.raise_for_status()  # Raise an HTTPError for bad responses
+            with open(
+                f"static/images/{character}/posts/{post_id}.jpg", "wb"
+            ) as out_file:
+                response.raw.decode_content = True
+                shutil.copyfileobj(response.raw, out_file)
+        except requests.exceptions.RequestException as e:
+            print(url)
+            raise IOError("Failed to download image from provided URL.") from e
+        except IOError as e:
+            raise IOError("Failed to save the downloaded image.") from e
+    elif not response["jobs"][0]["scheduled"]:
+        stop()
+        raise ImageGenerationFailedException("Image generation failed.")
 
 
 def _parse_time(time: str) -> timedelta:

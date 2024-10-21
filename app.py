@@ -113,6 +113,13 @@ class App:
                 )
             return make_response(jsonify(response), 200)
 
+        # TODO Schedule this later, it's only a route for testing
+        @self.app.route("/img_gen_start")
+        def img_gen_start() -> Response:
+            chatbot = Chatbot("ophelia", self.db, self.model)
+            chatbot.generate_social_media_post()
+            return make_response("", 200)
+
     def _schedule_events(self) -> None:
         # TODO: extend to other chatbots and event types
         scheduler = BackgroundScheduler()

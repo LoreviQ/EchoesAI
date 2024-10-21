@@ -28,6 +28,8 @@ queries: Dict[str, str] = {
     "get_events_by_chatbot": "SELECT id, timestamp, type, content FROM events WHERE chatbot = ?",
     "get_most_recent_event": "SELECT id, timestamp, type, content FROM events WHERE chatbot = ? ORDER BY timestamp DESC LIMIT 1",
     "delete_event": "DELETE FROM events WHERE id = ?",
+    # POSTS
+    "post_post": "INSERT INTO posts (chatbot, description, prompt, caption) VALUES (?, ?, ?, ?) RETURNING id",
 }
 
 
@@ -372,6 +374,49 @@ class DB:
         if cursor.rowcount != 1:
             close()
             raise ValueError("Event not found")
+        conn.commit()
+        close()
+
+    def post_social_media_post(
+        self, chatbot: str, description: str, prompt: str, caption: str
+    ) -> int:
+        """
+        Insert a post into the database.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            queries["post_post"],
+            (chatbot, description, prompt, caption),
+        )
+        result = cursor.fetchone()[0]
+        conn.commit()
+        close()
+        return result
+
+    def get_civitai_token(self, post_id: int) -> str:
+        """
+        Get a Civitai token from a post.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(
+            "SELECT civitai_token FROM posts WHERE id = ?",
+            (post_id,),
+        )
+        result = cursor.fetchone()
+        close()
+        if result:
+            return result[0]
+        raise ValueError("Invalid ID")
+
+    def add_image_path_to_post(self, post_id: int, image_path: str) -> None:
+        """
+        Add an image path to a post.
+        """
+        conn, cursor, close = self._setup()
+        cursor.execute(
+            "UPDATE posts SET image_path = ? WHERE id = ?",
+            (image_path, post_id),
+        )
         conn.commit()
         close()
 
