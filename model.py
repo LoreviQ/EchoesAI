@@ -118,5 +118,9 @@ class ModelMocked(ModelInterface):
         if "short description of what you're currently doing" in chat[0]["content"]:
             return {"content": "Mock event", "role": "assistant"}
 
+        # thought behavior
+        if "what you're currently thinking" in chat[0]["content"]:
+            return {"content": "Mock thought", "role": "assistant"}
+
         # chat message behavior
         return {"content": "Mock response", "role": "assistant"}

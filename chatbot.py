@@ -15,11 +15,14 @@ from model import Model
 messageTemplates: Dict[str, Any] = {
     "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
     "get_message": lambda timestamp, user: f"The time is currently {timestamp}, and you have decided to send {user} another message. Please write your message to {user}. Do not include the time in your response.",
-    "describe_event_now": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
-    "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
-    "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
     "message_sent": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
     "message_received": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
+    "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
+    "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
+    "get_event": {
+        "event": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
+        "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
+    },
 }
 
 
@@ -154,6 +157,14 @@ class Chatbot:
         messages = self.database.get_messages_by_character(self.character)
         all_events = self._combine_events(("events", events), ("messages", messages))
         chatlog = self._event_chatlog(all_events)
+        chatlog.append(
+            {
+                "role": "user",
+                "content": messageTemplates["get_event"][event_type](
+                    convert_dt_ts(datetime.now(timezone.utc))
+                ),
+            }
+        )
         response = self._generate_text(sys_message, chatlog)
         self.database.post_event(self.character, event_type, response["content"])
 
@@ -229,14 +240,6 @@ class Chatbot:
                                 ),
                             }
                         )
-        chatlog.append(
-            {
-                "role": "user",
-                "content": messageTemplates["describe_event_now"](
-                    convert_dt_ts(datetime.now(timezone.utc))
-                ),
-            }
-        )
         return chatlog
 
     def _convert_messages_to_chatlog(
