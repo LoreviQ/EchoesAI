@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask, Response, jsonify, make_response, request
+from flask import Flask, Response, jsonify, make_response, request, send_from_directory
 from flask_cors import CORS
 
 from chatbot import Chatbot
@@ -39,6 +39,10 @@ class App:
         @self.app.route("/readiness", methods=["GET"])
         def ready() -> Response:
             return make_response("", 200)
+
+        @self.app.route("/images/<path:filename>", methods=["GET"])
+        def get_image(filename: str) -> Response:
+            return send_from_directory("static/images", filename)
 
         @self.app.route("/threads/new", methods=["POST"])
         def new_thread() -> Response:
@@ -109,6 +113,23 @@ class App:
                         "type": event["type"],
                         "content": event["content"],
                         "timestamp": convert_dt_ts(event["timestamp"]),
+                    },
+                )
+            return make_response(jsonify(response), 200)
+
+        @self.app.route("/posts/<string:character>", methods=["GET"])
+        def get_posts_by_character(character: str) -> Response:
+            posts = self.db.get_posts_by_character(character)
+            response: List[Dict[str, Any]] = []
+            for post in posts:
+                response.append(
+                    {
+                        "id": post["id"],
+                        "timestamp": convert_dt_ts(post["timestamp"]),
+                        "description": post["description"],
+                        "prompt": post["prompt"],
+                        "caption": post["caption"],
+                        "image_path": post["image_path"],
                     },
                 )
             return make_response(jsonify(response), 200)
