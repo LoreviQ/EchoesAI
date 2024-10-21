@@ -68,6 +68,19 @@ class Event(TypedDict):
     content: str
 
 
+class Post(TypedDict):
+    """
+    Post type.
+    """
+
+    id: int
+    timestamp: datetime
+    description: str
+    prompt: str
+    caption: str
+    image_path: str
+
+
 class DB:
     """
     Class to manage the database.
@@ -419,6 +432,31 @@ class DB:
         )
         conn.commit()
         close()
+
+    def get_posts_by_character(self, chatbot: str) -> List[Post]:
+        """
+        Get all posts from the database.
+        """
+        _, cursor, close = self._setup()
+        cursor.execute(
+            "SELECT id, timestamp, description, prompt, caption, image_path FROM posts WHERE chatbot = ?",
+            (chatbot,),
+        )
+        result = cursor.fetchall()
+        close()
+        posts: List[Post] = []
+        for post in result:
+            posts.append(
+                Post(
+                    id=post[0],
+                    timestamp=convert_ts_dt(post[1]),
+                    description=post[2],
+                    prompt=post[3],
+                    caption=post[4],
+                    image_path=post[5],
+                )
+            )
+        return posts
 
 
 def convert_ts_dt(timestamp: str) -> datetime:

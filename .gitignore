@@ -5,3 +5,4 @@ __pycache__
 .vscode
 database.db
 real_ophelia.json
+static/images

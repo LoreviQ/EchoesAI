@@ -2,7 +2,7 @@
 Module to manage the chatbot state.
 """
 
-import atexit
+
 import json
 import re
 import shutil
@@ -11,7 +11,6 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 
 import civitai
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from database import DB, Event, Message, Thread, convert_dt_ts
@@ -320,43 +319,30 @@ class Chatbot:
             "additionalNetworks": self.character_info["img_gen"]["additional_networks"],
         }
         response = civitai.image.create(civitai_input)
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(
-            func=get_generated_image,
-            args=(response["token"], post_id, self.character, scheduler.shutdown),
-            trigger="interval",
-            minutes=1,
-        )
-        scheduler.start()
-        atexit.register(scheduler.shutdown)
-
-
-def get_generated_image(
-    token: str, post_id: int, character: str, stop: Callable
-) -> None:
-    """
-    Get the generated image from the Civitai API.
-    """
-    response = civitai.jobs.get(token=token)
-    if response["jobs"][0]["result"]["available"]:
-        stop()
-        url = response["jobs"][0]["result"]["blobUrl"]
         try:
-            response = requests.get(url, stream=True, timeout=5)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
-            with open(
-                f"static/images/{character}/posts/{post_id}.jpg", "wb"
-            ) as out_file:
-                response.raw.decode_content = True
-                shutil.copyfileobj(response.raw, out_file)
+            while True:
+                response = civitai.jobs.get(token=response["token"])
+                if response["jobs"][0]["result"]["available"]:
+                    url = response["jobs"][0]["result"]["blobUrl"]
+                    image_r = requests.get(url, stream=True, timeout=5)
+                    image_r.raise_for_status()  # Raise an HTTPError for bad resposne
+                    with open(
+                        f"static/images/{self.character}/posts/{post_id}.jpg", "wb"
+                    ) as out_file:
+                        image_r.raw.decode_content = True
+                        shutil.copyfileobj(image_r.raw, out_file)
+                    break
+                if not response["jobs"][0]["scheduled"]:
+                    raise ImageGenerationFailedException(
+                        "Image generation failed on Civitai's side."
+                    )
         except requests.exceptions.RequestException as e:
             print(url)
             raise IOError("Failed to download image from provided URL.") from e
         except IOError as e:
             raise IOError("Failed to save the downloaded image.") from e
-    elif not response["jobs"][0]["scheduled"]:
-        stop()
-        raise ImageGenerationFailedException("Image generation failed.")
+        except ImageGenerationFailedException as e:
+            self.civitai_generate_image(prompt, post_id)
 
 
 def _parse_time(time: str) -> timedelta:
