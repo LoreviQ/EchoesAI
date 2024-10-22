@@ -40,7 +40,7 @@ def insert_event(event: Event) -> int:
     )
 
 
-def select_events_by_chatbot(character: int) -> List[Event]:
+def select_events_by_character(character: int) -> List[Event]:
     """
     Select events by character from the database.
     """
