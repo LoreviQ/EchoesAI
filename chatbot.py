@@ -190,7 +190,7 @@ class Chatbot:
         chatlog = []
         for event in all_events:
             match event["type"]:
-                case "events":
+                case "event":
                     chatlog.append(
                         {
                             "role": "user",
@@ -199,7 +199,7 @@ class Chatbot:
                             ),
                         }
                     )
-                case "thoughts":
+                case "thought":
                     chatlog.append(
                         {
                             "role": "user",
@@ -208,7 +208,7 @@ class Chatbot:
                             ),
                         }
                     )
-                case "messages":
+                case "message":
                     if event["value"]["role"] == "user":
                         chatlog.append(
                             {
@@ -391,7 +391,7 @@ def _combine_events(
                 case "events":
                     event_type = event["type"]
                 case "messages":
-                    event_type = "messages"
+                    event_type = "message"
             result.append(
                 {
                     "type": event_type,
