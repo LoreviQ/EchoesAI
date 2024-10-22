@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import List, TypedDict
+from typing import List
 
 from .main import (
     connect_to_db,
@@ -7,18 +6,7 @@ from .main import (
     general_commit_returning_none,
     general_insert_returning_id,
 )
-
-
-class Event(TypedDict):
-    """
-    Event type.
-    """
-
-    id: int
-    timestamp: datetime
-    character: int
-    type: str
-    content: str
+from .types import Event
 
 
 def insert_event(event: Event) -> int:

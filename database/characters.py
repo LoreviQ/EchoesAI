@@ -1,29 +1,7 @@
-from typing import List, TypedDict
+from typing import List
 
 from .main import connect_to_db, general_insert_returning_id
-
-
-class Character(TypedDict):
-    """
-    Character type.
-    """
-
-    id: int
-    name: str
-    description: str
-    age: int
-    height: str
-    personality: str
-    appearance: str
-    loves: str
-    hates: str
-    details: str
-    scenario: str
-    important: str
-    initial_message: str
-    favorite_colour: str
-    phases: bool
-    img_gen: bool
+from .types import Character
 
 
 def insert_character(character: Character) -> int:

@@ -2,7 +2,6 @@
 Module to manage the chatbot state.
 """
 
-import json
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -12,7 +11,7 @@ import civitai
 import requests
 from jinja2 import Template
 
-from database import DB, Event, Message, Thread, convert_dt_ts
+import database as db
 from model import Model
 
 messageTemplates: Dict[str, Any] = {
@@ -37,314 +36,277 @@ class ImageGenerationFailedException(Exception):
     """Exception raised when image generation fails on Civitai's side."""
 
 
-class Chatbot:
+def _generate_text(
+    model: Model,
+    system_message: List[Dict[str, str]],
+    chat: List[Dict[str, str]],
+) -> Dict[str, str]:
     """
-    Class to manage a chatbot state.
+    Generate a response from the chatbot.
     """
+    return model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def __init__(
-        self,
-        character: str,
-        database: DB,
-        model: Model,
-    ) -> None:
-        self.database = database
-        self.model = model
-        self.character = character
-        with open(f"characters/{self.character}.json", "r", encoding="utf-8") as file:
-            self.character_info = json.load(file)
 
-    def get_system_message(
-        self,
-        system_type: str,
-        thread: Thread | None = None,
-        photo_description: str = "",
-    ) -> List[Dict[str, str]]:
-        """
-        Change the system message between several preconfigured options.
-        """
-        with open(f"templates/{system_type}.txt", "r", encoding="utf-8") as file:
-            template_content = file.read()
+def response_cycle(
+    model: Model, thread_id: int, duration: timedelta | None = None
+) -> None:
+    """
+    Handles the entire response cycle for recieving and generating a new message.
+    """
+    # delete previous scheduled messages
+    thread = db.select_thread(thread_id)
+    db.delete_scheduled_messages_from_thread(thread_id)
+    # get response time
+    if duration is None:
+        duration = _get_response_time(model, thread)
+    timestamp = datetime.now(timezone.utc) + duration
+    # get a response from the model
+    _get_response_and_submit(model, thread, timestamp)
 
-        # prepare context for rendering
-        context = {
-            "char": self.character_info["char"],
-            "description": self.character_info["description"],
-            "age": self.character_info["age"],
-            "height": self.character_info["height"],
-            "personality": self.character_info["personality"],
-            "appearance": self.character_info["appearance"],
-            "loves": self.character_info["loves"],
-            "hates": self.character_info["hates"],
-            "details": self.character_info["details"],
-            "scenario": self.character_info["scenario"],
-            "important": self.character_info["important"],
-            "photo_description": photo_description,
+
+def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
+    sys_message = _get_system_message("time", thread)
+    messages = db.select_messages_by_thread(thread["id"])
+    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog.append(
+        {
+            "role": "user",
+            "content": messageTemplates["tt_next_message"](
+                db.convert_dt_ts(datetime.now(timezone.utc)),
+                thread["user"],
+            ),
         }
-        if thread:
-            phase = thread["phase"]
-            context["user"] = thread["user"]
-            context["phase_name"] = self.character_info["phases"][phase]["name"]
-            context["phase_description"] = self.character_info["phases"][phase][
-                "description"
-            ]
-            context["phase_response"] = self.character_info["phases"][phase]["response"]
-            context["phase_names"] = self.character_info["phases"][phase]["names"]
-            context["phase_advance"] = self.character_info["phases"][phase]["advance"]
+    )
+    response = _generate_text(model, sys_message, chatlog)
+    return _parse_time(response["content"])
 
-        # Render the template until no more changes are detected
-        previous_content = None
-        current_content = template_content
-        while previous_content != current_content:
-            previous_content = current_content
-            template = Template(current_content)
-            current_content = template.render(context)
 
-        return [
-            {
-                "role": "system",
-                "content": current_content,
-            }
-        ]
+def _get_response_and_submit(
+    model: Model,
+    thread: db.Thread,
+    timestamp: datetime,
+) -> None:
+    sys_message = _get_system_message("chat", thread)
+    messages = db.select_messages_by_thread(thread["id"])
+    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog.append(
+        {
+            "role": "user",
+            "content": messageTemplates["get_message"](
+                db.convert_dt_ts(datetime.now(timezone.utc)),
+                thread["user"],
+            ),
+        }
+    )
+    response = _generate_text(model, sys_message, chatlog)
+    message = db.Message(
+        thread=thread,
+        content=response["content"],
+        role=response["role"],
+        timestamp=timestamp,
+    )
+    db.insert_message(message)
 
-    def _generate_text(
-        self, system_message: List[Dict[str, str]], chat: List[Dict[str, str]]
-    ) -> Dict[str, str]:
-        """
-        Generate a response from the chatbot.
-        """
-        return self.model.generate_response(system_message + chat, max_new_tokens=512)
 
-    def response_cycle(self, thread_id: int, duration: timedelta | None = None) -> None:
-        """
-        Handles the entire response cycle for recieving and generating a new message.
-        """
-        # delete previous scheduled messages
-        thread = self.database.get_thread(thread_id)
-        self.database.delete_scheduled_messages_from_thread(thread_id)
-        # get response time
-        if duration is None:
-            duration = self._get_response_time(thread)
-        timestamp = datetime.now(timezone.utc) + duration
-        # get a response from the model
-        self._get_response_and_submit(thread, timestamp)
+def generate_event(model: Model, character_id: int, event_type: str) -> None:
+    """
+    Generate an event message.
+    """
+    character = db.select_character(character_id)
+    sys_message = _get_system_message(event_type, character)
+    chatlog = _event_log(character)
+    chatlog.append(
+        {
+            "role": "user",
+            "content": messageTemplates["get_event"][event_type](
+                db.convert_dt_ts(datetime.now(timezone.utc))
+            ),
+        }
+    )
+    response = _generate_text(model, sys_message, chatlog)
+    event = db.Event(
+        character=character["id"],
+        type=event_type,
+        content=response["content"],
+    )
+    db.events.insert_event(event)
 
-    def _get_response_time(self, thread: Thread) -> timedelta:
-        sys_message = self.get_system_message("time", thread)
-        messages = self.database.get_messages_by_thread(thread["id"])
-        chatlog = self._convert_messages_to_chatlog(messages)
-        chatlog.append(
-            {
-                "role": "user",
-                "content": messageTemplates["tt_next_message"](
-                    convert_dt_ts(datetime.now(timezone.utc)),
-                    thread["user"],
-                ),
-            }
-        )
-        response = self._generate_text(sys_message, chatlog)
-        return _parse_time(response["content"])
 
-    def _get_response_and_submit(self, thread: Thread, timestamp: datetime) -> None:
-        sys_message = self.get_system_message("chat", thread)
-        messages = self.database.get_messages_by_thread(thread["id"])
-        chatlog = self._convert_messages_to_chatlog(messages)
-        chatlog.append(
-            {
-                "role": "user",
-                "content": messageTemplates["get_message"](
-                    convert_dt_ts(datetime.now(timezone.utc)),
-                    thread["user"],
-                ),
-            }
-        )
-        response = self._generate_text(sys_message, chatlog)
-        self.database.post_message(
-            thread["id"], response["content"], response["role"], timestamp
-        )
-
-    def generate_event(self, event_type: str) -> None:
-        """
-        Generate an event message.
-        """
-        sys_message = self.get_system_message(event_type)
-        chatlog = self._event_chatlog()
-        chatlog.append(
-            {
-                "role": "user",
-                "content": messageTemplates["get_event"][event_type](
-                    convert_dt_ts(datetime.now(timezone.utc))
-                ),
-            }
-        )
-        response = self._generate_text(sys_message, chatlog)
-        self.database.post_event(self.character, event_type, response["content"])
-
-    def _event_chatlog(self) -> List[Dict[str, str]]:
-        """
-        Create a custom chatlog of events for the chatbot.
-        """
-        events = self.database.get_events_by_chatbot(self.character)
-        messages = self.database.get_messages_by_character(self.character)
-        all_events = _combine_events(("events", events), ("messages", messages))
-        chatlog = []
-        for event in all_events:
-            match event["type"]:
-                case "event":
+def _event_log(character: db.Character) -> List[Dict[str, str]]:
+    """
+    Create a custom chatlog of events for the chatbot.
+    """
+    events = db.events.select_events_by_character(character["id"])
+    messages = db.select_messages_by_character(character["id"])
+    all_events = _combine_events(("events", events), ("messages", messages))
+    chatlog = []
+    for event in all_events:
+        match event["type"]:
+            case "event":
+                chatlog.append(
+                    {
+                        "role": "user",
+                        "content": messageTemplates["events"](
+                            event["timestamp"], event["value"]["content"]
+                        ),
+                    }
+                )
+            case "thought":
+                chatlog.append(
+                    {
+                        "role": "user",
+                        "content": messageTemplates["thoughts"](
+                            event["timestamp"], event["value"]["content"]
+                        ),
+                    }
+                )
+            case "message":
+                if event["value"]["role"] == "user":
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["events"](
-                                event["timestamp"], event["value"]["content"]
+                            "content": messageTemplates["message_received"](
+                                event["timestamp"],
+                                event["value"]["content"],
+                                event["value"]["user"],
                             ),
                         }
                     )
-                case "thought":
+                else:
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["thoughts"](
-                                event["timestamp"], event["value"]["content"]
+                            "content": messageTemplates["message_sent"](
+                                event["timestamp"],
+                                event["value"]["content"],
+                                event["value"]["user"],
                             ),
                         }
                     )
-                case "message":
-                    if event["value"]["role"] == "user":
-                        chatlog.append(
-                            {
-                                "role": "user",
-                                "content": messageTemplates["message_received"](
-                                    event["timestamp"],
-                                    event["value"]["content"],
-                                    event["value"]["user"],
-                                ),
-                            }
-                        )
-                    else:
-                        chatlog.append(
-                            {
-                                "role": "user",
-                                "content": messageTemplates["message_sent"](
-                                    event["timestamp"],
-                                    event["value"]["content"],
-                                    event["value"]["user"],
-                                ),
-                            }
-                        )
-        return chatlog
+    return chatlog
 
-    def generate_social_media_post(self) -> None:
-        """
-        Generate a social media post.
-        """
-        # generate image description
-        sys_message = self.get_system_message("photo")
-        chatlog = self._event_chatlog()
+
+def generate_social_media_post(model: Model, character_id: int) -> None:
+    """
+    Generate a social media post.
+    """
+    character = db.select_character(character_id)
+    if character["img_gen"] is not True:
+        return
+    # generate image description
+    sys_message = _get_system_message("photo", character)
+    chatlog = _event_log(character)
+    chatlog.append(
+        {
+            "role": "user",
+            "content": messageTemplates["get_post"]["photo"](
+                db.convert_dt_ts(datetime.now(timezone.utc))
+            ),
+        }
+    )
+    description = _generate_text(model, sys_message, chatlog)
+
+    # generate stable diffusion prompt
+    sys_message = _get_system_message("sd-prompt", character)
+    prompt = [
+        {
+            "role": "user",
+            "content": description["content"],
+        }
+    ]
+    prompt = _generate_text(model, sys_message, prompt)
+
+    # generate caption
+    sys_message = _get_system_message("caption", character, description["content"])
+    chatlog[-1]["content"] = messageTemplates["get_post"]["caption"](
+        db.convert_dt_ts(datetime.now(timezone.utc)), description["content"]
+    )
+    caption = _generate_text(model, sys_message, chatlog)
+    post = db.Post(
+        character=character["id"],
+        description=description["content"],
+        prompt=prompt["content"],
+        caption=caption["content"],
+    )
+    post_id = db.posts.insert_social_media_post(post)
+
+    # use prompt to generate image
+    _civitai_generate_image(character, post_id, prompt["content"])
+
+
+def _convert_messages_to_chatlog(
+    messages: List[db.Message],
+) -> List[Dict[str, str]]:
+    chatlog: List[Dict[str, str]] = []
+    for message in messages:
+        formatter: Callable
+        if message["role"] == "user":
+            formatter = messageTemplates["message_received"]
+        else:
+            formatter = messageTemplates["message_sent"]
         chatlog.append(
             {
-                "role": "user",
-                "content": messageTemplates["get_post"]["photo"](
-                    convert_dt_ts(datetime.now(timezone.utc))
+                "role": message["role"],
+                "content": formatter(
+                    db.convert_dt_ts(message["timestamp"]),
+                    message["content"],
+                    message["thread"]["user"],
                 ),
             }
         )
-        description = self._generate_text(sys_message, chatlog)
+    return chatlog
 
-        # generate stable diffusion prompt
-        sys_message = self.get_system_message("sd-prompt")
-        prompt = [
-            {
-                "role": "user",
-                "content": description["content"],
-            }
-        ]
-        prompt = self._generate_text(sys_message, prompt)
 
-        # generate caption
-        sys_message = self.get_system_message("caption")
-        chatlog[-1]["content"] = messageTemplates["get_post"]["caption"](
-            convert_dt_ts(datetime.now(timezone.utc)), description["content"]
-        )
-        caption = self._generate_text(sys_message, chatlog)
-        post_id = self.database.post_social_media_post(
-            self.character,
-            description["content"],
-            prompt["content"],
-            caption["content"],
-        )
-
-        # use prompt to generate image
-        self.civitai_generate_image(prompt["content"], post_id)
-
-    def _convert_messages_to_chatlog(
-        self, messages: List[Message]
-    ) -> List[Dict[str, str]]:
-        chatlog: List[Dict[str, str]] = []
-        for message in messages:
-            formatter: Callable
-            if message["role"] == "user":
-                formatter = messageTemplates["message_received"]
-            else:
-                formatter = messageTemplates["message_sent"]
-            chatlog.append(
-                {
-                    "role": message["role"],
-                    "content": formatter(
-                        convert_dt_ts(message["timestamp"]),
-                        message["content"],
-                        message["user"],
-                    ),
-                }
-            )
-        return chatlog
-
-    def civitai_generate_image(self, prompt, post_id) -> None:
-        """
-        Generate an image using the Civitai API.
-        """
-        civitai_input = {
-            "model": self.character_info["img_gen"]["model"],
-            "params": {
-                "prompt": self.character_info["img_gen"]["global_positive"]
-                + self.character_info["appearance"]
-                + prompt,
-                "negativePrompt": self.character_info["img_gen"]["global_negative"],
-                "scheduler": "EulerA",
-                "steps": 15,
-                "cfgScale": 5,
-                "width": 1024,
-                "height": 1024,
-            },
-            "additionalNetworks": self.character_info["img_gen"]["additional_networks"],
-        }
-        response = civitai.image.create(civitai_input)
-        try:
-            while True:
-                response = civitai.jobs.get(token=response["token"])
-                if response["jobs"][0]["result"]["available"]:
-                    url = response["jobs"][0]["result"]["blobUrl"]
-                    image_r = requests.get(url, stream=True, timeout=5)
-                    image_r.raise_for_status()  # Raise an HTTPError for bad resposne
-                    with open(
-                        f"static/images/{self.character}/posts/{post_id}.jpg", "wb"
-                    ) as out_file:
-                        image_r.raw.decode_content = True
-                        shutil.copyfileobj(image_r.raw, out_file)
-                    self.database.update_social_media_post_image(
-                        post_id, f"{self.character}/posts/{post_id}.jpg"
-                    )
-                    break
-                if not response["jobs"][0]["scheduled"]:
-                    raise ImageGenerationFailedException(
-                        "Image generation failed on Civitai's side."
-                    )
-        except requests.exceptions.RequestException as e:
-            print(url)
-            raise IOError("Failed to download image from provided URL.") from e
-        except IOError as e:
-            raise IOError("Failed to save the downloaded image.") from e
-        except ImageGenerationFailedException as e:
-            self.civitai_generate_image(prompt, post_id)
+def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) -> None:
+    """
+    Generate an image using the Civitai API.
+    """
+    if "model" not in character:
+        raise ValueError("Character does not have a model specified.")
+    civitai_input = {
+        "model": character["model"],
+        "params": {
+            "prompt": character.get("global_positive", "")
+            + character.get("appearance", "")
+            + prompt,
+            "negativePrompt": character.get("global_negative", ""),
+            "scheduler": "EulerA",
+            "steps": 15,
+            "cfgScale": 5,
+            "width": 1024,
+            "height": 1024,
+        },
+        # TODO: Add support for additional networks
+    }
+    # Handle response from Civitai
+    response = civitai.image.create(civitai_input)
+    try:
+        while True:
+            response = civitai.jobs.get(token=response["token"])
+            if response["jobs"][0]["result"]["available"]:
+                url = response["jobs"][0]["result"]["blobUrl"]
+                image_r = requests.get(url, stream=True, timeout=5)
+                image_r.raise_for_status()  # Raise an HTTPError for bad resposne
+                with open(
+                    f"static/images/{character['name'].lower()}/posts/{post_id}.jpg",
+                    "wb",
+                ) as out_file:
+                    image_r.raw.decode_content = True
+                    shutil.copyfileobj(image_r.raw, out_file)
+                db.posts.add_image_path_to_post(
+                    post_id,
+                    f"{character['name'].lower()}/posts/{post_id}.jpg",
+                )
+                break
+            if not response["jobs"][0]["scheduled"]:
+                raise ImageGenerationFailedException(
+                    "Image generation failed on Civitai's side."
+                )
+    except requests.exceptions.RequestException as e:
+        print(url)
+        raise IOError("Failed to download image from provided URL.") from e
+    except IOError as e:
+        raise IOError("Failed to save the downloaded image.") from e
 
 
 def _parse_time(time: str) -> timedelta:
@@ -378,7 +340,7 @@ def _parse_time(time: str) -> timedelta:
 
 
 def _combine_events(
-    *event_lists: Tuple[str, Union[List[Event], List[Message]]]
+    *event_lists: Tuple[str, Union[List[db.Event], List[db.Message]]]
 ) -> List[Dict[str, Any]]:
     """
     Creates a compiled event list from multiple sources
@@ -400,3 +362,58 @@ def _combine_events(
                 }
             )
     return sorted(result, key=lambda x: x["timestamp"])
+
+
+def _get_system_message(
+    system_type: str,
+    data: db.Character | db.Thread,
+    photo_description: str = "",
+) -> List[Dict[str, str]]:
+    """
+    Change the system message between several preconfigured options.
+    """
+    with open(f"templates/{system_type}.txt", "r", encoding="utf-8") as file:
+        template_content = file.read()
+
+    if (
+        "started" in data
+    ):  # Is a thread. TypedDicts apparently don't support type checking. Almost makes you wonder wtf the point of them is.
+        character = db.select_character(data["character"])
+        thread = data
+    else:
+        character = data
+        thread = None
+
+    # prepare context for rendering
+    context = {
+        "char": character.get("name", ""),
+        "description": character.get("description", ""),
+        "age": character.get("age", ""),
+        "height": character.get("height", ""),
+        "personality": character.get("personality", ""),
+        "appearance": character.get("appearance", ""),
+        "loves": character.get("loves", ""),
+        "hates": character.get("hates", ""),
+        "details": character.get("details", ""),
+        "scenario": character.get("scenario", ""),
+        "important": character.get("important", ""),
+        "photo_description": photo_description,
+    }
+    if thread:
+        context["user"] = thread["user"]
+        # TODO: Phase-specific messages
+
+    # Render the template until no more changes are detected
+    previous_content = None
+    current_content = template_content
+    while previous_content != current_content:
+        previous_content = current_content
+        template = Template(current_content)
+        current_content = template.render(context)
+
+    return [
+        {
+            "role": "system",
+            "content": current_content,
+        }
+    ]

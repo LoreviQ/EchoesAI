@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import List, TypedDict
+from typing import List
 
 from .main import (
     connect_to_db,
@@ -7,20 +6,7 @@ from .main import (
     general_commit_returning_none,
     general_insert_returning_id,
 )
-
-
-class Post(TypedDict):
-    """
-    Post type.
-    """
-
-    id: int
-    timestamp: datetime
-    character: int
-    description: str
-    prompt: str
-    caption: str
-    image_path: str
+from .types import Post
 
 
 def insert_social_media_post(post: Post) -> int:

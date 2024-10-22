@@ -35,7 +35,7 @@ def app() -> Generator[App, None, None]:
         port = port_counter.value
         port_counter.value += 1
     model = Model(ModelMocked("short"))
-    app = App(db_path=db_path, model=model, port=port)
+    app = App(model=model, port=port)
     yield app
     os.remove(db_path)
 

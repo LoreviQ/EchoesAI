@@ -24,11 +24,11 @@ def chars(monkeypatch) -> Generator[str, None, None]:
         test_name = test_name.split(":")[-1].split(" ")[0]
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
-    db.main.create_db()
-    character_1 = db.characters.Character(name="test character")
-    character_1["id"] = db.characters.insert_character(character_1)
-    character_2 = db.characters.Character(name="test character 2")
-    character_2["id"] = db.characters.insert_character(character_2)
+    db.create_db()
+    character_1 = db.Character(name="test character")
+    character_1["id"] = db.insert_character(character_1)
+    character_2 = db.Character(name="test character 2")
+    character_2["id"] = db.insert_character(character_2)
     yield character_1, character_2
     os.remove(db_path)
 
@@ -37,7 +37,7 @@ def test_insert_social_media_post(chars) -> None:
     """
     Test the insert_social_media_post function.
     """
-    post = db.posts.Post(
+    post = db.Post(
         character=chars[0]["id"],
         description="test description",
         prompt="test prompt",
@@ -51,19 +51,19 @@ def test_get_posts_by_character(chars) -> None:
     """
     Test the get_posts_by_character function.
     """
-    post1 = db.posts.Post(
+    post1 = db.Post(
         character=chars[0]["id"],
         description="test description",
         prompt="test prompt",
         caption="test caption",
     )
-    post2 = db.posts.Post(
+    post2 = db.Post(
         character=chars[0]["id"],
         description="test description 2",
         prompt="test prompt 2",
         caption="test caption 2",
     )
-    post3 = db.posts.Post(
+    post3 = db.Post(
         character=chars[1]["id"],
         description="test description 3",
         prompt="test prompt 3",
@@ -82,7 +82,7 @@ def test_add_image_path_to_post(chars) -> None:
     """
     Test the add_image_path_to_post function.
     """
-    post = db.posts.Post(
+    post = db.Post(
         character=chars[0]["id"],
         description="test description",
         prompt="test prompt",

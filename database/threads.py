@@ -1,31 +1,34 @@
 from datetime import datetime
-from typing import List, TypedDict
+from typing import List
 
+from .characters import select_character
 from .main import connect_to_db, general_insert_returning_id
-
-
-class Thread(TypedDict):
-    """
-    Thread type.
-    """
-
-    id: int
-    started: datetime
-    user: str
-    character: int
-    phase: int
+from .messages import insert_message
+from .types import Message, Thread
 
 
 def insert_thread(user: str, character: int) -> int:
     """
     Insert a new thread into the database returning the thread id.
+    If the character has an initial message, insert it as the first message.
     """
     query = """
         INSERT INTO threads (user, character) 
         VALUES (?, ?) 
         RETURNING id
     """
-    return general_insert_returning_id(query, (user, character))
+    thread_id = general_insert_returning_id(query, (user, character))
+    thread = select_thread(thread_id)
+    character = select_character(character)
+    if "initial message" in character:
+        message = Message(
+            thread=thread,
+            content=character["initial message"],
+            role="assistant",
+            timestamp=datetime.now(),
+        )
+        insert_message(message)
+    return thread_id
 
 
 def select_thread(thread_id: int) -> Thread:

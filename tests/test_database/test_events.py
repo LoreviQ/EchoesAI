@@ -25,11 +25,11 @@ def chars(monkeypatch) -> Generator[str, None, None]:
         test_name = test_name.split(":")[-1].split(" ")[0]
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
-    db.main.create_db()
-    character_1 = db.characters.Character(name="test character")
-    character_1["id"] = db.characters.insert_character(character_1)
-    character_2 = db.characters.Character(name="test character 2")
-    character_2["id"] = db.characters.insert_character(character_2)
+    db.create_db()
+    character_1 = db.Character(name="test character")
+    character_1["id"] = db.insert_character(character_1)
+    character_2 = db.Character(name="test character 2")
+    character_2["id"] = db.insert_character(character_2)
     yield character_1, character_2
     os.remove(db_path)
 
@@ -38,12 +38,12 @@ def test_insert_event(chars) -> None:
     """
     Test the insert_event function.
     """
-    event1 = db.events.Event(
+    event1 = db.Event(
         character=chars[0]["id"],
         type="event",
         content="test event",
     )
-    event2 = db.events.Event(
+    event2 = db.Event(
         character=chars[1]["id"],
         type="thought",
         content="test thought",
@@ -58,17 +58,17 @@ def test_select_events_by_character(chars) -> None:
     """
     Test the select_events_by_character function.
     """
-    event1 = db.events.Event(
+    event1 = db.Event(
         character=chars[0]["id"],
         type="event",
         content="test event",
     )
-    event2 = db.events.Event(
+    event2 = db.Event(
         character=chars[1]["id"],
         type="thought",
         content="test thought",
     )
-    event3 = db.events.Event(
+    event3 = db.Event(
         character=chars[0]["id"],
         type="thought",
         content="test thought 2",
@@ -89,17 +89,17 @@ def test_select_most_recent_event(chars) -> None:
     """
     Test the select_most_recent_event function.
     """
-    event1 = db.events.Event(
+    event1 = db.Event(
         character=chars[0]["id"],
         type="event",
         content="test event",
     )
-    event2 = db.events.Event(
+    event2 = db.Event(
         character=chars[1]["id"],
         type="thought",
         content="test thought",
     )
-    event3 = db.events.Event(
+    event3 = db.Event(
         character=chars[0]["id"],
         type="thought",
         content="test thought 2",
@@ -121,12 +121,12 @@ def test_delete_event(chars) -> None:
     """
     Test the delete_event function.
     """
-    event1 = db.events.Event(
+    event1 = db.Event(
         character=chars[0]["id"],
         type="event",
         content="test event",
     )
-    event2 = db.events.Event(
+    event2 = db.Event(
         character=chars[0]["id"],
         type="thought",
         content="test thought",

@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import List, Tuple, TypedDict
+from typing import List, Tuple
 
 from .main import (
     connect_to_db,
@@ -8,19 +7,7 @@ from .main import (
     general_commit_returning_none,
     general_insert_returning_id,
 )
-from .threads import Thread
-
-
-class Message(TypedDict):
-    """
-    Message type.
-    """
-
-    id: int
-    timestamp: datetime
-    thread: Thread
-    content: str
-    role: str
+from .types import Message, Thread
 
 
 def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[Message]:

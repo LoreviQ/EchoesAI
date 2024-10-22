@@ -12,8 +12,8 @@ from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, Response, jsonify, make_response, request, send_from_directory
 from flask_cors import CORS
 
-from chatbot import Chatbot
-from database import DB, convert_dt_ts
+import database as db
+from chatbot import generate_event, generate_social_media_post, response_cycle
 from model import Model
 
 
@@ -22,12 +22,12 @@ class App:
     Class to manage the Flask app.
     """
 
-    def __init__(self, db_path: str, model: Model, port: int = 5000):
+    def __init__(self, model: Model, port: int = 5000):
         self.app = Flask(__name__)
         CORS(self.app)
         self.port = port
-        self.db = DB(db_path)
         self.model = model
+        db.create_db()
         self._setup_routes()
         self._schedule_events()
 
@@ -49,17 +49,17 @@ class App:
             data = request.get_json()
             username = data["username"]
             character = data["character"]
-            thread_id = self.db.post_thread(username, character)
+            thread_id = db.insert_thread(username, character)
             return make_response(str(thread_id), 200)
 
         @self.app.route("/threads/<string:username>", methods=["GET"])
         def get_threads_by_user(username: str) -> Response:
-            threads = self.db.get_threads_by_user(username)
+            threads = db.select_threads_by_user(username)
             return make_response(jsonify(threads), 200)
 
         @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
         def get_messages_by_thread(thread_id: int) -> Response:
-            messages = self.db.get_messages_by_thread(thread_id)
+            messages = db.select_messages_by_thread(thread_id)
             response: List[Dict[str, Any]] = []
             for message in messages:
                 response.append(
@@ -67,7 +67,7 @@ class App:
                         "id": message["id"],
                         "content": message["content"],
                         "role": message["role"],
-                        "timestamp": convert_dt_ts(message["timestamp"]),
+                        "timestamp": db.convert_dt_ts(message["timestamp"]),
                     },
                 )
             return make_response(jsonify(response), 200)
@@ -75,9 +75,12 @@ class App:
         @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
         def post_message(thread_id: int) -> Response:
             data = request.get_json()
-            content = data["content"]
-            role = data["role"]
-            self.db.post_message(thread_id, content, role)
+            message = db.Message(
+                thread_id=thread_id,
+                content=data["content"],
+                role=data["role"],
+            )
+            db.insert_message(message)
             # Start the chatbot response cycle in a background thread
             background_thread = threading.Thread(
                 target=self._trigger_response_cycle, args=(thread_id,)
@@ -87,24 +90,28 @@ class App:
 
         @self.app.route("/messages/<int:message_id>", methods=["DELETE"])
         def delete_messages_more_recent(message_id: int) -> Response:
-            self.db.delete_messages_more_recent(message_id)
+            db.delete_messages_more_recent(message_id)
             return make_response("", 200)
 
         @self.app.route("/threads/<int:thread_id>/messages/new", methods=["GET"])
         def get_response_now(thread_id: int) -> Response:
             # first attempt to apply scheduled message
-            message_id = self.db.get_scheduled_message(thread_id)
+            message_id = db.select_scheduled_message_id(thread_id)
             if message_id:
-                self.db.update_message(message_id, datetime.now(timezone.utc))
+                message_patch = db.Message(
+                    id=message_id,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                db.update_message(message_patch)
                 return make_response("", 200)
 
             # if no scheduled message, trigger response cycle with no timedelta
             self._trigger_response_cycle(thread_id, timedelta())
             return make_response("", 200)
 
-        @self.app.route("/events/<string:character>", methods=["GET"])
-        def get_events_by_character(character: str) -> Response:
-            events = self.db.get_events_by_chatbot(character)
+        @self.app.route("/events/<int:character>", methods=["GET"])
+        def get_events_by_character(character: int) -> Response:
+            events = db.events.select_events_by_character(character)
             response: List[Dict[str, Any]] = []
             for event in events:
                 response.append(
@@ -112,20 +119,20 @@ class App:
                         "id": event["id"],
                         "type": event["type"],
                         "content": event["content"],
-                        "timestamp": convert_dt_ts(event["timestamp"]),
+                        "timestamp": db.convert_dt_ts(event["timestamp"]),
                     },
                 )
             return make_response(jsonify(response), 200)
 
-        @self.app.route("/posts/<string:character>", methods=["GET"])
-        def get_posts_by_character(character: str) -> Response:
-            posts = self.db.get_posts_by_character(character)
+        @self.app.route("/posts/<int:character>", methods=["GET"])
+        def get_posts_by_character(character: int) -> Response:
+            posts = db.posts.get_posts_by_character(character)
             response: List[Dict[str, Any]] = []
             for post in posts:
                 response.append(
                     {
                         "id": post["id"],
-                        "timestamp": convert_dt_ts(post["timestamp"]),
+                        "timestamp": db.convert_dt_ts(post["timestamp"]),
                         "description": post["description"],
                         "prompt": post["prompt"],
                         "caption": post["caption"],
@@ -137,30 +144,39 @@ class App:
         # TODO Schedule this later, it's only a route for testing
         @self.app.route("/img_gen_start")
         def img_gen_start() -> Response:
-            chatbot = Chatbot("ophelia", self.db, self.model)
-            chatbot.generate_social_media_post()
+            generate_social_media_post(self.model, 1)
             return make_response("", 200)
 
     def _schedule_events(self) -> None:
         # TODO: extend to other chatbots and event types
         scheduler = BackgroundScheduler()
-        chatbot = Chatbot("ophelia", self.db, self.model)
         scheduler.add_job(
-            func=chatbot.generate_event,
+            func=generate_event,
             trigger=CronTrigger(minute="0,30"),
-            args=("event",),
+            args=(
+                self.model,
+                1,
+                "event",
+            ),
         )
         scheduler.add_job(
-            func=chatbot.generate_event,
+            func=generate_event,
             trigger=CronTrigger(minute="15,45"),
-            args=("thought",),
+            args=(
+                self.model,
+                1,
+                "thought",
+            ),
         )
         if not self.model.mocked:
             scheduler.add_job(
-                func=chatbot.generate_social_media_post,
+                func=generate_social_media_post,
                 trigger=CronTrigger(minute="0"),
+                args=(
+                    self.model,
+                    1,
+                ),
             )
-
         scheduler.start()
         atexit.register(scheduler.shutdown)
 
@@ -173,6 +189,4 @@ class App:
     def _trigger_response_cycle(
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
-        thread = self.db.get_thread(thread_id)
-        chatbot = Chatbot(thread["chatbot"], self.db, self.model)
-        chatbot.response_cycle(thread_id, duration)
+        response_cycle(self.model, thread_id, duration)

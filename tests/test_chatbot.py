@@ -5,19 +5,29 @@ This file contains the tests for the chatbot.py file.
 # pylint: disable=redefined-outer-name, protected-access
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 
-from chatbot import Chatbot, _parse_time
-from database import DB
+import database as db
+from chatbot import (
+    _convert_messages_to_chatlog,
+    _generate_text,
+    _get_system_message,
+    _parse_time,
+    generate_event,
+    generate_social_media_post,
+    response_cycle,
+)
 from model import Model, ModelMocked
 
 
 @pytest.fixture
-def chatbot() -> Generator[Chatbot, None, None]:
+def args(
+    monkeypatch,
+) -> Generator[Tuple[Model, db.Character, db.Thread], None, None]:
     """
-    Create a Chatbot object for testing and teardown after testing.
+    Setup the database and teardown after testing, yielding args for tests
     """
     test_name = os.environ.get("PYTEST_CURRENT_TEST")
     if test_name is None:
@@ -25,83 +35,84 @@ def chatbot() -> Generator[Chatbot, None, None]:
     else:
         test_name = test_name.split(":")[-1].split(" ")[0]
     db_path = f"test_database_{test_name}.db"
-    db = DB(db_path)
-    thread_id = db.post_thread("test_user", "test")
-    db.post_message(thread_id, "How can I help?", "assistant")
-    db.post_message(thread_id, "This is my test message", "user")
+    monkeypatch.setattr("database.main.DB_PATH", db_path)
+    db.create_db()
+    character = db.Character(
+        name="test character",
+        initial_message="test initial message",
+    )
+    character_id = db.insert_character(character)
+    thread_id = db.insert_thread("test user", character_id)
+    thread = db.select_thread(thread_id)
+    db.insert_message(
+        db.Message(
+            thread=thread,
+            content="test message",
+            role="user",
+            timestamp=datetime.now(timezone.utc),
+        )
+    )
     model = Model(ModelMocked("short"))
-    chatbot = Chatbot(character="test", database=db, model=model)
-    yield chatbot
+    yield model, character, thread
     os.remove(db_path)
 
 
-def test_initialization(chatbot: Chatbot) -> None:
+def test_get_system_message(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
-    Test the initialization of the Chatbot class.
+    Test the _get_system_message function.
     """
-    assert chatbot.character_info["char"] == "Test Character"
-    assert chatbot.character_info["description"] == "A test character"
-    assert chatbot.character_info["age"] == "25"
-    assert chatbot.character_info["phases"][0]["name"] == "Phase 1"
-
-
-def test_get_system_message(chatbot: Chatbot) -> None:
-    """
-    Test the set_system_message method of the Chatbot class.
-    """
-    thread = chatbot.database.get_thread(1)
-    system_message = chatbot.get_system_message("chat", thread)
+    system_message = _get_system_message("chat", args[2])
     assert system_message[0]["role"] == "system"
     assert "You are an expert actor who" in system_message[0]["content"]
-    system_message = chatbot.get_system_message("time", thread)
+    system_message = _get_system_message("time", args[2])
     assert system_message[0]["role"] == "system"
-    assert "response frequency of Test Character" in system_message[0]["content"]
-    assert "Response for phase 1" in system_message[0]["content"]
+    assert "current response frequency of" in system_message[0]["content"]
 
 
-def test_generate_text(chatbot: Chatbot) -> None:
+def test_generate_text(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
-    Test the get_response method of the Chatbot class.
+    Test the get_response function.
     """
-    system_message = chatbot.get_system_message("chat")
-    messages = chatbot.database.get_messages_by_thread(1)
-    chatlog = chatbot._convert_messages_to_chatlog(messages)
-    response = chatbot._generate_text(system_message, chatlog)
+    system_message = _get_system_message("chat", args[2])
+    messages = db.select_messages_by_thread(args[2]["id"])
+    chatlog = _convert_messages_to_chatlog(messages)
+    response = _generate_text(args[0], system_message, chatlog)
 
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
 
 
-def test_response_cycle_short(chatbot: Chatbot) -> None:
+def test_response_cycle_short(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
-    Test the response cycle of the Chatbot class when responses are short.
+    Test the response cycle function when responses are short.
     """
-    chatbot.response_cycle(1)
-    messages = chatbot.database.get_messages_by_thread(1)
+    response_cycle(args[0], args[2]["id"])
+    messages = db.select_messages_by_thread(args[2]["id"])
     assert messages[-1]["role"] == "assistant"
     assert "Mock response" in messages[-1]["content"]
 
 
-def test_response_cycle_long(chatbot: Chatbot) -> None:
+def test_response_cycle_long(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
-    Test the response cycle of the Chatbot class when responses are long.
+    Test the response cycle function when responses are long.
     """
-    chatbot.model = Model(ModelMocked("long"))
-    chatbot.response_cycle(1)
-    messages = chatbot.database.get_messages_by_thread(1)
+    model = Model(ModelMocked("long"))
+    response_cycle(model, args[2]["id"])
+    messages = db.select_messages_by_thread(args[2]["id"])
     assert messages[-1]["role"] == "assistant"
     assert "Mock response" in messages[-1]["content"]
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
 
 
-def test_response_cycle_single(chatbot: Chatbot) -> None:
+def test_response_cycle_single(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
     Tests that a single response is scheduled at one time.
     """
-    chatbot.response_cycle(1)
-    chatbot.response_cycle(1)
-    messages = chatbot.database.get_messages_by_thread(1)
+    response_cycle(args[0], args[2]["id"])
+    response_cycle(args[0], args[2]["id"])
+    messages = db.select_messages_by_thread(args[2]["id"])
     assert len(messages) == 3
+    assert messages[0]["role"] == "assistant"
     assert messages[-1]["role"] == "assistant"
 
 
@@ -140,7 +151,7 @@ def test_parse_time() -> None:
     assert _parse_time(time) == timedelta(seconds=0)
 
 
-def test_generate_event(chatbot: Chatbot) -> None:
+def test_generate_event(chatbot: Tuple[Model, db.Character, db.Thread]) -> None:
     """
     Test the generate_event method of the Chatbot class.
     """
