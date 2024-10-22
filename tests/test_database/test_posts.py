@@ -1,9 +1,8 @@
 """
-This file contains the tests for the database/threads.py file.
+This file contains the tests for the database/posts.py file.
 """
 
 import os
-import time
 from typing import Generator
 
 import pytest

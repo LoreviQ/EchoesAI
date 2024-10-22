@@ -6,6 +6,7 @@ from .main import (
     convert_dt_ts,
     convert_ts_dt,
     general_commit_returning_none,
+    general_insert_returning_id,
 )
 from .threads import Thread
 
@@ -44,7 +45,7 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
     return messages
 
 
-def insert_message(message: Message) -> None:
+def insert_message(message: Message) -> int:
     """
     Insert a message into the database.
     """
@@ -52,28 +53,22 @@ def insert_message(message: Message) -> None:
         query = """
             INSERT INTO messages (thread, content, role, timestamp) 
             VALUES (?, ?, ?, ?)
+            returning id
         """
         params = (
-            message["thread"],
+            message["thread"]["id"],
             message["content"],
             message["role"],
             convert_dt_ts(message["timestamp"]),
         )
     else:
-        query = "INSERT INTO messages (thread, content, role) VALUES (?, ?, ?)"
-        params = (message["thread"], message["content"], message["role"])
-    general_commit_returning_none(query, params)
-
-
-def select_messages() -> List[Message]:
-    """
-    Select all messages from the database.
-    """
-    query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot 
-        FROM messages as m JOIN threads as t ON m.thread = t.id
-    """
-    return _general_select_returning_messages(query)
+        query = """
+            INSERT INTO messages (thread, content, role) 
+            VALUES (?, ?, ?)
+            returning id
+        """
+        params = (message["thread"]["id"], message["content"], message["role"])
+    return general_insert_returning_id(query, params)
 
 
 def select_messages_by_thread(thread_id: int) -> List[Message]:
@@ -81,7 +76,7 @@ def select_messages_by_thread(thread_id: int) -> List[Message]:
     Select messages from the database by thread.
     """
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot 
+        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
         WHERE thread = ?
     """
@@ -93,7 +88,7 @@ def select_messages_by_character(character: int) -> List[Message]:
     Select messages from the database by character.
     """
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.chatbot 
+        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
         WHERE t.character = ?
     """
@@ -108,7 +103,7 @@ def delete_messages_more_recent(message_id: int) -> None:
         DELETE FROM messages 
         WHERE id = ? 
             OR (thread = (SELECT thread FROM messages WHERE id = ?) 
-            AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))",
+            AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))
     """
     general_commit_returning_none(query, (message_id, message_id, message_id))
 
