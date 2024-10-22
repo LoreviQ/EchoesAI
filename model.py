@@ -9,6 +9,8 @@ from typing import Dict, List, Protocol, Tuple
 import torch
 from transformers import AutoTokenizer, Pipeline, pipeline
 
+MODEL = "meta-llama/Llama-3.2-3B-Instruct"
+
 
 class ModelInterface(Protocol):
     """
@@ -30,7 +32,8 @@ class Model:
 
     def __init__(self, model: ModelInterface) -> None:
         self.model = model
-        self.tokenizer = AutoTokenizer.from_pretrained("Sao10K/L3-8B-Stheno-v3.2")
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
+        self.mocked = isinstance(model, ModelMocked)
 
     def generate_response(
         self, chat: List[Dict[str, str]], max_new_tokens: int = 512
@@ -61,21 +64,22 @@ class ModelActual(ModelInterface):
         """
         # prep torch
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
-            "garbage_collection_threshold:0.9,max_split_size_mb:128 "
-            "python launch.py --precision full --no-half --opt-sub-quad-attention"
+            "garbage_collection_threshold:0.8,max_split_size_mb:128 "
+            "python launch.py --opt-sub-quad-attention"
         )
         torch.cuda.empty_cache()
+        torch.cuda.set_per_process_memory_fraction(0.95, device=0)
         pipe = pipeline(
             "text-generation",
-            model="Sao10K/L3-8B-Stheno-v3.2",
-            torch_dtype=torch.bfloat16,
+            model=MODEL,
+            torch_dtype=torch.float16,
             device_map="auto",
         )
         max_tokens = pipe.model.config.max_position_embeddings
         return pipe, max_tokens
 
     def generate_response(
-        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
+        self, chat: List[Dict[str, str]], max_new_tokens: int = 256
     ) -> Dict[str, str]:
         """
         Generate a new message based on the chat history.

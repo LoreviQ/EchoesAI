@@ -2,7 +2,6 @@
 Module to manage the chatbot state.
 """
 
-
 import json
 import re
 import shutil
@@ -331,6 +330,9 @@ class Chatbot:
                     ) as out_file:
                         image_r.raw.decode_content = True
                         shutil.copyfileobj(image_r.raw, out_file)
+                    self.database.update_social_media_post_image(
+                        post_id, f"{self.character}/posts/{post_id}.jpg"
+                    )
                     break
                 if not response["jobs"][0]["scheduled"]:
                     raise ImageGenerationFailedException(

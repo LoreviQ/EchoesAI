@@ -155,6 +155,12 @@ class App:
             trigger=CronTrigger(minute="15,45"),
             args=("thought",),
         )
+        if not self.model.mocked:
+            scheduler.add_job(
+                func=chatbot.generate_social_media_post,
+                trigger=CronTrigger(minute="0"),
+            )
+
         scheduler.start()
         atexit.register(scheduler.shutdown)
 
