@@ -1,3 +1,3 @@
-from .main import create_db
+from . import characters, events, main, messages, posts, threads
 
-create_db()
+main.create_db()

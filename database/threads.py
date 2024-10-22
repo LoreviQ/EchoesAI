@@ -13,7 +13,7 @@ class Thread(TypedDict):
     started: datetime
     user: str
     character: int
-    phase: str
+    phase: int
 
 
 def insert_thread(user: str, character: int) -> int:
@@ -25,7 +25,7 @@ def insert_thread(user: str, character: int) -> int:
         VALUES (?, ?) 
         RETURNING id
     """
-    general_insert_returning_id(query, (user, character))
+    return general_insert_returning_id(query, (user, character))
 
 
 def select_thread(thread_id: int) -> Thread:
@@ -55,19 +55,19 @@ def select_thread(thread_id: int) -> Thread:
     raise ValueError("Thread not found")
 
 
-def select_latest_thread(user: str, chatbot: str) -> int:
+def select_latest_thread(user: str, character: int) -> int:
     """
-    Select the latest thread for a user and chatbot.
+    Select the latest thread for a user and character.
     """
     query = """
         SELECT MAX(id) FROM threads 
         WHERE user = ? 
-            AND chatbot = ?
+            AND character = ?
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
         query,
-        (user, chatbot),
+        (user, character),
     )
     result = cursor.fetchone()
     close()
