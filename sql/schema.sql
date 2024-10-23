@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS characters (
     important TEXT,
     initial_message TEXT,
     favorite_colour TEXT,
-    phases boolean,
-    img_gen boolean,
+    phases boolean DEFAULT 0,
+    img_gen boolean DEFAULT 0,
     model TEXT,
     global_positive TEXT,
     global_negative TEXT

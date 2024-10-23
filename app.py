@@ -165,8 +165,8 @@ class App:
                 global_positive=data["global_positive"],
                 global_negative=data["global_negative"],
             )
-            character_id = db.insert_character(character)
-            return make_response(str(character_id), 200)
+            db.insert_character(character)
+            return make_response(str(data["path_name"]), 200)
 
         @self.app.route("/characters/<int:character_id>", methods=["GET"])
         def get_character(character_id: int) -> Response:
