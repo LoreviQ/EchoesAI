@@ -5,7 +5,7 @@ Module to manage the chatbot state.
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union, cast
 
 import civitai
 import requests
@@ -351,6 +351,7 @@ def _combine_events(
             event_type: str
             match event_list[0]:
                 case "events":
+                    event = cast(db.Event, event)
                     event_type = event["type"]
                 case "messages":
                     event_type = "message"

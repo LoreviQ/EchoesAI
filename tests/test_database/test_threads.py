@@ -26,9 +26,9 @@ def chars(monkeypatch) -> Generator[str, None, None]:
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
     db.create_db()
-    character_1 = db.Character(name="test character")
+    character_1 = db.Character(name="test character", path_name="test_character")
     character_1["id"] = db.insert_character(character_1)
-    character_2 = db.Character(name="test character 2")
+    character_2 = db.Character(name="test character 2", path_name="test_character_2")
     character_2["id"] = db.insert_character(character_2)
     yield character_1, character_2
     os.remove(db_path)

@@ -40,6 +40,7 @@ def args(
     character_id = db.insert_character(
         db.Character(
             name="test character",
+            path_name="test_character",
             initial_message="test initial message",
         )
     )

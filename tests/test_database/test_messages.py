@@ -27,9 +27,9 @@ def threads(monkeypatch) -> Generator[str, None, None]:
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
     db.create_db()
-    character_1 = db.Character(name="test character")
+    character_1 = db.Character(name="test character", path_name="test_character")
     character_1["id"] = db.insert_character(character_1)
-    character_2 = db.Character(name="test character 2")
+    character_2 = db.Character(name="test character 2", path_name="test_character_2")
     character_2["id"] = db.insert_character(character_2)
     thread_id_1 = db.insert_thread("user", character_1["id"])
     thread_id_2 = db.insert_thread("user2", character_2["id"])

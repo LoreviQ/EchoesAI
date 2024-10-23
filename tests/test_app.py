@@ -56,10 +56,10 @@ def chars(app: App) -> Generator[List[db.Character], None, None]:
     """
     Create characters for tests.
     """
-    char_1 = db.Character(name="test")
+    char_1 = db.Character(name="test", path_name="test")
     char_id_1 = db.insert_character(char_1)
     character_1 = db.select_character(char_id_1)
-    char_2 = db.Character(name="test2")
+    char_2 = db.Character(name="test2", path_name="test2")
     char_id_2 = db.insert_character(char_2)
     character_2 = db.select_character(char_id_2)
     yield [character_1, character_2]

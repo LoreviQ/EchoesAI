@@ -75,8 +75,14 @@ def test_general_commit_returning_none(db_path) -> None:
     Test the general_commit_returning_none function.
     """
 
-    query = "INSERT INTO characters (name) VALUES (?)"
-    db.general_commit_returning_none(query, ("test_character",))
+    query = "INSERT INTO characters (name, path_name) VALUES (?, ?)"
+    db.general_commit_returning_none(
+        query,
+        (
+            "test_character",
+            "test_character",
+        ),
+    )
     _, cursor, close = db.connect_to_db()
     cursor.execute("SELECT name FROM characters")
     result = cursor.fetchone()
@@ -88,8 +94,14 @@ def test_general_insert_returning_id(db_path) -> None:
     """
     Test the general_insert_returning_id function.
     """
-    query = "INSERT INTO characters (name) VALUES (?) RETURNING id"
-    character_id = db.general_insert_returning_id(query, ("test_character",))
+    query = "INSERT INTO characters (name, path_name) VALUES (?, ?) RETURNING id"
+    character_id = db.general_insert_returning_id(
+        query,
+        (
+            "test_character",
+            "test_character",
+        ),
+    )
     assert character_id == 1
     _, cursor, close = db.connect_to_db()
     cursor.execute("SELECT name FROM characters")
