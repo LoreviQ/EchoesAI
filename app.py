@@ -141,6 +141,38 @@ class App:
                 )
             return make_response(jsonify(response), 200)
 
+        @self.app.route("/characters/new", methods=["POST"])
+        def new_character() -> Response:
+            data = request.get_json()
+            character = db.Character(
+                name=data["name"],
+                path_name=data["path_name"],
+                description=data["description"],
+                age=data["age"],
+                height=data["height"],
+                personality=data["personality"],
+                appearance=data["appearance"],
+                loves=data["loves"],
+                hates=data["hates"],
+                details=data["details"],
+                scenario=data["scenario"],
+                important=data["important"],
+                initial_message=data["initial_message"],
+                favorite_colour=data["favorite_colour"],
+                phases=False,
+                img_gen=data["img_gen"],
+                model=data["model"],
+                global_positive=data["global_positive"],
+                global_negative=data["global_negative"],
+            )
+            character_id = db.insert_character(character)
+            return make_response(str(character_id), 200)
+
+        @self.app.route("/characters/<int:character_id>", methods=["GET"])
+        def get_character(character_id: int) -> Response:
+            character = db.select_character(character_id)
+            return make_response(jsonify(character), 200)
+
         # TODO Schedule this later, it's only a route for testing
         @self.app.route("/img_gen_start")
         def img_gen_start() -> Response:

@@ -20,7 +20,7 @@ def main() -> None:
     args = parser.parse_args()
     model = ModelMocked("long") if args.test else ModelActual()
     manager = Model(model)
-    app = App("database.db", manager)
+    app = App(manager)
     app.serve()
 
 

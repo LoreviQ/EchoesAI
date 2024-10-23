@@ -29,7 +29,11 @@ def select_character(character_id: int) -> Character:
     Select a character from the database.
     """
     query = """
-        SELECT id, name, description, age, height, personality, appearance, loves, hates, details, scenario, important, initial_message, favorite_colour, phases, img_gen
+        SELECT 
+            id, name, description, age, height, personality, appearance, loves, 
+            hates, details, scenario, important, initial_message, 
+            favorite_colour, phases, img_gen, 
+            model, global_positive, global_negative
         FROM characters
         WHERE id = ?
     """
@@ -58,6 +62,9 @@ def select_character(character_id: int) -> Character:
             favorite_colour=result[13],
             phases=result[14],
             img_gen=result[15],
+            model=result[16],
+            global_positive=result[17],
+            global_negative=result[18],
         )
     raise ValueError("Character not found")
 

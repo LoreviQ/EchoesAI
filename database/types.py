@@ -9,6 +9,7 @@ class Character(TypedDict):
 
     id: int
     name: str
+    path_name: str
     description: str
     age: int
     height: str
@@ -26,7 +27,6 @@ class Character(TypedDict):
     model: str
     global_positive: str
     global_negative: str
-    additional_networks: str  # string representation of json
 
 
 class Thread(TypedDict):
