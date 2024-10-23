@@ -5,7 +5,7 @@ This file contains the tests for the database/dbpy file.
 import os
 import time
 from datetime import datetime, timedelta
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 
@@ -15,7 +15,9 @@ import database as db
 
 
 @pytest.fixture
-def threads(monkeypatch) -> Generator[str, None, None]:
+def threads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Tuple[db.Thread, db.Thread], None, None]:
     """
     Create a DB object for testing and teardown after testing.
     """
@@ -31,6 +33,8 @@ def threads(monkeypatch) -> Generator[str, None, None]:
     character_1["id"] = db.insert_character(character_1)
     character_2 = db.Character(name="test character 2", path_name="test_character_2")
     character_2["id"] = db.insert_character(character_2)
+    assert character_1["id"]
+    assert character_2["id"]
     thread_id_1 = db.insert_thread("user", character_1["id"])
     thread_id_2 = db.insert_thread("user2", character_2["id"])
     thread1 = db.select_thread(thread_id_1)
@@ -39,7 +43,7 @@ def threads(monkeypatch) -> Generator[str, None, None]:
     os.remove(db_path)
 
 
-def test_insert_message(threads) -> None:
+def test_insert_message(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the insert_message function.
     """
@@ -56,10 +60,12 @@ def test_insert_message(threads) -> None:
     assert message_id == 2
 
 
-def test_select_messages_by_thread(threads) -> None:
+def test_select_messages_by_thread(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the select_messages_by_thread function.
     """
+    assert threads[0]["id"]
+    assert threads[1]["id"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(thread=threads[0], content="test message 2", role="assistant")
     message3 = db.Message(thread=threads[1], content="test message 3", role="user")
@@ -78,10 +84,12 @@ def test_select_messages_by_thread(threads) -> None:
     assert messages[0]["content"] == "test message 3"
 
 
-def test_select_messages_by_character(threads) -> None:
+def test_select_messages_by_character(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the select_messages_by_character function.
     """
+    assert threads[0]["character"]
+    assert threads[1]["character"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(thread=threads[0], content="test message 2", role="assistant")
     message3 = db.Message(thread=threads[1], content="test message 3", role="user")
@@ -100,10 +108,12 @@ def test_select_messages_by_character(threads) -> None:
     assert messages[0]["content"] == "test message 3"
 
 
-def test_delete_messages_more_recent(threads) -> None:
+def test_delete_messages_more_recent(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the delete_messages_more_recent function.
     """
+    assert threads[0]["id"]
+    assert threads[1]["id"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(thread=threads[0], content="test message 2", role="assistant")
     message3 = db.Message(thread=threads[0], content="test message 3", role="user")
@@ -124,10 +134,14 @@ def test_delete_messages_more_recent(threads) -> None:
     assert messages[0]["id"] == message4_id
 
 
-def test_delete_scheduled_messages_from_thread(threads) -> None:
+def test_delete_scheduled_messages_from_thread(
+    threads: Tuple[db.Thread, db.Thread]
+) -> None:
     """
     Test the delete_scheduled_messages_from_thread function.
     """
+    assert threads[0]["id"]
+    assert threads[1]["id"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(thread=threads[0], content="test message 2", role="assistant")
     message3 = db.Message(
@@ -151,10 +165,11 @@ def test_delete_scheduled_messages_from_thread(threads) -> None:
     assert messages[0]["id"] == message4_id
 
 
-def test_select_scheduled_message_id(threads) -> None:
+def test_select_scheduled_message_id(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the select_scheduled_message_id function.
     """
+    assert threads[0]["id"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(
         thread=threads[0],
@@ -170,10 +185,12 @@ def test_select_scheduled_message_id(threads) -> None:
     assert message_id == message2_id
 
 
-def test_update_message(threads) -> None:
+def test_update_message(threads: Tuple[db.Thread, db.Thread]) -> None:
     """
     Test the update_message function.
     """
+    assert threads[0]["id"]
+    assert threads[1]["id"]
     message1 = db.Message(thread=threads[0], content="test message", role="user")
     message2 = db.Message(
         thread=threads[0],

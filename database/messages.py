@@ -23,7 +23,7 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
                 timestamp=convert_ts_dt(message[3]),
                 thread=Thread(
                     user=message[4],
-                    chatbot=message[5],
+                    character=message[5],
                 ),
                 content=message[1],
                 role=message[2],
@@ -36,17 +36,24 @@ def insert_message(message: Message) -> int:
     """
     Insert a message into the database.
     """
+    assert message["thread"]
+    assert message["thread"]["id"]
+    assert message["content"]
+    assert message["role"]
     if "timestamp" in message:
         query = """
             INSERT INTO messages (thread, content, role, timestamp) 
             VALUES (?, ?, ?, ?)
             returning id
         """
-        params = (
-            message["thread"]["id"],
-            message["content"],
-            message["role"],
-            convert_dt_ts(message["timestamp"]),
+        return general_insert_returning_id(
+            query,
+            (
+                message["thread"]["id"],
+                message["content"],
+                message["role"],
+                convert_dt_ts(message["timestamp"]),
+            ),
         )
     else:
         query = """
@@ -54,8 +61,9 @@ def insert_message(message: Message) -> int:
             VALUES (?, ?, ?)
             returning id
         """
-        params = (message["thread"]["id"], message["content"], message["role"])
-    return general_insert_returning_id(query, params)
+        return general_insert_returning_id(
+            query, (message["thread"]["id"], message["content"], message["role"])
+        )
 
 
 def select_message(message_id: int) -> Message:
@@ -80,7 +88,7 @@ def select_message(message_id: int) -> Message:
             timestamp=convert_ts_dt(result[3]),
             thread=Thread(
                 user=result[4],
-                chatbot=result[5],
+                character=result[5],
             ),
             content=result[1],
             role=result[2],

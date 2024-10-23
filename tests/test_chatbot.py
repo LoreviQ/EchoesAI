@@ -24,7 +24,7 @@ from model import Model, ModelMocked
 
 @pytest.fixture
 def args(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[Tuple[Model, db.Character, db.Thread], None, None]:
     """
     Setup the database and teardown after testing, yielding args for tests
@@ -76,6 +76,7 @@ def test_generate_text(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
     Test the get_response function.
     """
+    assert args[2]["id"]
     system_message = _get_system_message("chat", args[2])
     messages = db.select_messages_by_thread(args[2]["id"])
     chatlog = _convert_messages_to_chatlog(messages)
@@ -89,9 +90,12 @@ def test_response_cycle_short(args: Tuple[Model, db.Character, db.Thread]) -> No
     """
     Test the response cycle function when responses are short.
     """
+    assert args[2]["id"]
     response_cycle(args[0], args[2]["id"])
     messages = db.select_messages_by_thread(args[2]["id"])
+    assert messages[-1]["role"]
     assert messages[-1]["role"] == "assistant"
+    assert messages[-1]["content"]
     assert "Mock response" in messages[-1]["content"]
 
 
@@ -99,11 +103,14 @@ def test_response_cycle_long(args: Tuple[Model, db.Character, db.Thread]) -> Non
     """
     Test the response cycle function when responses are long.
     """
+    assert args[2]["id"]
     model = Model(ModelMocked("long"))
     response_cycle(model, args[2]["id"])
     messages = db.select_messages_by_thread(args[2]["id"])
     assert messages[-1]["role"] == "assistant"
+    assert messages[-1]["content"]
     assert "Mock response" in messages[-1]["content"]
+    assert messages[-1]["timestamp"]
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
 
 
@@ -111,6 +118,7 @@ def test_response_cycle_single(args: Tuple[Model, db.Character, db.Thread]) -> N
     """
     Tests that a single response is scheduled at one time.
     """
+    assert args[2]["id"]
     response_cycle(args[0], args[2]["id"])
     response_cycle(args[0], args[2]["id"])
     messages = db.select_messages_by_thread(args[2]["id"])
@@ -158,6 +166,7 @@ def test_generate_event(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
     Test the generate_event function.
     """
+    assert args[1]["id"]
     mock_event = db.Event(
         character=args[1]["id"],
         type="event",

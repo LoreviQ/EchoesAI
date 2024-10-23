@@ -65,6 +65,7 @@ def response_cycle(
 
 
 def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
+    assert thread["id"]
     sys_message = _get_system_message("time", thread)
     messages = db.select_messages_by_thread(thread["id"])
     chatlog = _convert_messages_to_chatlog(messages)
@@ -86,6 +87,7 @@ def _get_response_and_submit(
     thread: db.Thread,
     timestamp: datetime,
 ) -> None:
+    assert thread["id"]
     sys_message = _get_system_message("chat", thread)
     messages = db.select_messages_by_thread(thread["id"])
     chatlog = _convert_messages_to_chatlog(messages)
@@ -136,6 +138,7 @@ def _event_log(character: db.Character) -> List[Dict[str, str]]:
     """
     Create a custom chatlog of events for the chatbot.
     """
+    assert character["id"]
     events = db.events.select_events_by_character(character["id"])
     messages = db.select_messages_by_character(character["id"])
     all_events = _combine_events(("events", events), ("messages", messages))
@@ -208,13 +211,13 @@ def generate_social_media_post(model: Model, character_id: int) -> None:
 
     # generate stable diffusion prompt
     sys_message = _get_system_message("sd-prompt", character)
-    prompt = [
+    prompt_chatlog = [
         {
             "role": "user",
             "content": description["content"],
         }
     ]
-    prompt = _generate_text(model, sys_message, prompt)
+    prompt = _generate_text(model, sys_message, prompt_chatlog)
 
     # generate caption
     sys_message = _get_system_message("caption", character, description["content"])
@@ -240,6 +243,8 @@ def _convert_messages_to_chatlog(
     chatlog: List[Dict[str, str]] = []
     for message in messages:
         formatter: Callable
+        assert message["role"]
+        assert message["thread"]
         if message["role"] == "user":
             formatter = messageTemplates["message_received"]
         else:
@@ -263,11 +268,13 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
     """
     if "model" not in character:
         raise ValueError("Character does not have a model specified.")
+    assert character["name"]
+    char_name = character["name"].lower()
     civitai_input = {
         "model": character["model"],
         "params": {
-            "prompt": character.get("global_positive", "")
-            + character.get("appearance", "")
+            "prompt": str(character.get("global_positive", ""))
+            + str(character.get("appearance", ""))
             + prompt,
             "negativePrompt": character.get("global_negative", ""),
             "scheduler": "EulerA",
@@ -288,14 +295,14 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
                 image_r = requests.get(url, stream=True, timeout=5)
                 image_r.raise_for_status()  # Raise an HTTPError for bad resposne
                 with open(
-                    f"static/images/{character['name'].lower()}/posts/{post_id}.jpg",
+                    f"static/images/{char_name}/posts/{post_id}.jpg",
                     "wb",
                 ) as out_file:
                     image_r.raw.decode_content = True
                     shutil.copyfileobj(image_r.raw, out_file)
                 db.posts.add_image_path_to_post(
                     post_id,
-                    f"{character['name'].lower()}/posts/{post_id}.jpg",
+                    f"{char_name}/posts/{post_id}.jpg",
                 )
                 break
             if not response["jobs"][0]["scheduled"]:
@@ -352,6 +359,7 @@ def _combine_events(
             match event_list[0]:
                 case "events":
                     event = cast(db.Event, event)
+                    assert event["type"]
                     event_type = event["type"]
                 case "messages":
                     event_type = "message"
@@ -379,10 +387,11 @@ def _get_system_message(
     if (
         "started" in data
     ):  # Is a thread. TypedDicts apparently don't support type checking. Almost makes you wonder wtf the point of them is.
-        character = db.select_character(data["character"])
-        thread = data
+        thread = cast(db.Thread, data)
+        assert thread["character"]
+        character = db.select_character(thread["character"])
     else:
-        character = data
+        character = cast(db.Character, data)
         thread = None
 
     # prepare context for rendering

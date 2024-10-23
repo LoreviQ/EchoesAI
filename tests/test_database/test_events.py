@@ -4,7 +4,7 @@ This file contains the tests for the database/threads.py file.
 
 import os
 import time
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 
@@ -14,7 +14,9 @@ import database as db
 
 
 @pytest.fixture
-def chars(monkeypatch) -> Generator[str, None, None]:
+def chars(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Tuple[db.Character, db.Character], None, None]:
     """
     Create a DB object for testing and teardown after testing.
     """
@@ -34,7 +36,7 @@ def chars(monkeypatch) -> Generator[str, None, None]:
     os.remove(db_path)
 
 
-def test_insert_event(chars) -> None:
+def test_insert_event(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the insert_event function.
     """
@@ -54,10 +56,12 @@ def test_insert_event(chars) -> None:
     assert event2_id == 2
 
 
-def test_select_events_by_character(chars) -> None:
+def test_select_events_by_character(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_events_by_character function.
     """
+    assert chars[0]["id"]
+    assert chars[1]["id"]
     event1 = db.Event(
         character=chars[0]["id"],
         type="event",
@@ -85,10 +89,12 @@ def test_select_events_by_character(chars) -> None:
     assert events[0]["type"] == "thought"
 
 
-def test_select_most_recent_event(chars) -> None:
+def test_select_most_recent_event(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_most_recent_event function.
     """
+    assert chars[0]["id"]
+    assert chars[1]["id"]
     event1 = db.Event(
         character=chars[0]["id"],
         type="event",
@@ -117,10 +123,11 @@ def test_select_most_recent_event(chars) -> None:
     assert event["type"] == "thought"
 
 
-def test_delete_event(chars) -> None:
+def test_delete_event(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the delete_event function.
     """
+    assert chars[0]["id"]
     event1 = db.Event(
         character=chars[0]["id"],
         type="event",

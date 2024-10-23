@@ -3,7 +3,7 @@ This file contains the tests for the database/posts.py file.
 """
 
 import os
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 
@@ -13,7 +13,9 @@ import database as db
 
 
 @pytest.fixture
-def chars(monkeypatch) -> Generator[str, None, None]:
+def chars(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Tuple[db.Character, db.Character], None, None]:
     """
     Create a DB object for testing and teardown after testing.
     """
@@ -33,7 +35,7 @@ def chars(monkeypatch) -> Generator[str, None, None]:
     os.remove(db_path)
 
 
-def test_insert_social_media_post(chars) -> None:
+def test_insert_social_media_post(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the insert_social_media_post function.
     """
@@ -47,10 +49,11 @@ def test_insert_social_media_post(chars) -> None:
     assert post_id == 1
 
 
-def test_get_posts_by_character(chars) -> None:
+def test_get_posts_by_character(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the get_posts_by_character function.
     """
+    assert chars[0]["id"]
     post1 = db.Post(
         character=chars[0]["id"],
         description="test description",
@@ -78,10 +81,11 @@ def test_get_posts_by_character(chars) -> None:
     assert posts[1]["id"] == post2_id
 
 
-def test_add_image_path_to_post(chars) -> None:
+def test_add_image_path_to_post(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the add_image_path_to_post function.
     """
+    assert chars[0]["id"]
     post = db.Post(
         character=chars[0]["id"],
         description="test description",

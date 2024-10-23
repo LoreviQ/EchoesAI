@@ -1,79 +1,79 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 
-class Character(TypedDict):
+class Character(TypedDict, total=False):
     """
     Character type.
     """
 
-    id: int
-    name: str
-    path_name: str
-    description: str
-    age: int
-    height: str
-    personality: str
-    appearance: str
-    loves: str
-    hates: str
-    details: str
-    scenario: str
-    important: str
-    initial_message: str
-    favorite_colour: str
-    phases: bool
-    img_gen: bool
-    model: str
-    global_positive: str
-    global_negative: str
+    id: Optional[int]
+    name: Optional[str]
+    path_name: Optional[str]
+    description: Optional[str]
+    age: Optional[int]
+    height: Optional[str]
+    personality: Optional[str]
+    appearance: Optional[str]
+    loves: Optional[str]
+    hates: Optional[str]
+    details: Optional[str]
+    scenario: Optional[str]
+    important: Optional[str]
+    initial_message: Optional[str]
+    favorite_colour: Optional[str]
+    phases: Optional[bool]
+    img_gen: Optional[bool]
+    model: Optional[str]
+    global_positive: Optional[str]
+    global_negative: Optional[str]
 
 
-class Thread(TypedDict):
+class Thread(TypedDict, total=False):
     """
     Thread type.
     """
 
-    id: int
-    started: datetime
-    user: str
-    character: int
-    phase: int
+    id: Optional[int]
+    started: Optional[datetime]
+    user: Optional[str]
+    character: Optional[int]
+    phase: Optional[int]
 
 
-class Message(TypedDict):
+class Message(TypedDict, total=False):
     """
     Message type.
     """
 
-    id: int
-    timestamp: datetime
-    thread: Thread
-    content: str
-    role: str
+    id: Optional[int]
+    timestamp: Optional[datetime]
+    thread: Optional[Thread]
+    content: Optional[str]
+    role: Optional[str]
 
 
-class Event(TypedDict):
+class Event(TypedDict, total=False):
     """
     Event type.
     """
 
-    id: int
-    timestamp: datetime
-    character: int
-    type: str
-    content: str
+    id: Optional[int]
+    timestamp: Optional[datetime]
+    character: Optional[int]
+    type: Optional[str]
+    content: Optional[str]
 
 
-class Post(TypedDict):
+class Post(TypedDict, total=False):
     """
     Post type.
     """
 
-    id: int
-    timestamp: datetime
-    character: int
-    description: str
-    prompt: str
-    caption: str
-    image_path: str
+    id: Optional[int]
+    timestamp: Optional[datetime]
+    character: Optional[int]
+    description: Optional[str]
+    prompt: Optional[str]
+    caption: Optional[str]
+    image_path: Optional[str]

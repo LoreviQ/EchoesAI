@@ -12,7 +12,7 @@ import database as db
 
 
 @pytest.fixture
-def db_path(monkeypatch) -> Generator[str, None, None]:
+def db_path(monkeypatch: pytest.MonkeyPatch) -> Generator[str, None, None]:
     """
     Create a DB object for testing and teardown after testing.
     """
@@ -28,7 +28,7 @@ def db_path(monkeypatch) -> Generator[str, None, None]:
     os.remove(db_path)
 
 
-def test_create_db(db_path) -> None:
+def test_create_db(db_path: str) -> None:
     """
     Test the create_db function.
     """
@@ -36,18 +36,17 @@ def test_create_db(db_path) -> None:
     assert os.path.exists(db_path)
 
 
-def test_connect_to_db(db_path) -> None:
+def test_connect_to_db(db_path: str) -> None:
     """
     Test the connect_to_db function.
     """
     conn, cursor, close = db.connect_to_db()
     assert conn
     assert cursor
-    assert close
     close()
 
 
-def test_convert_ts_dt(db_path) -> None:
+def test_convert_ts_dt(db_path: str) -> None:
     """
     Test the convert_ts_dt function.
     """
@@ -70,7 +69,7 @@ def test_convert_dt_ts() -> None:
     assert ts == "2021-07-01 12:00:00"
 
 
-def test_general_commit_returning_none(db_path) -> None:
+def test_general_commit_returning_none(db_path: str) -> None:
     """
     Test the general_commit_returning_none function.
     """
@@ -90,7 +89,7 @@ def test_general_commit_returning_none(db_path) -> None:
     close()
 
 
-def test_general_insert_returning_id(db_path) -> None:
+def test_general_insert_returning_id(db_path: str) -> None:
     """
     Test the general_insert_returning_id function.
     """

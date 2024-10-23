@@ -4,7 +4,7 @@ This file contains the tests for the database/threads.py file.
 
 import os
 import time
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 
@@ -14,7 +14,9 @@ import database as db
 
 
 @pytest.fixture
-def chars(monkeypatch) -> Generator[str, None, None]:
+def chars(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[Tuple[db.Character, db.Character], None, None]:
     """
     Create a DB object for testing and teardown after testing.
     """
@@ -34,29 +36,33 @@ def chars(monkeypatch) -> Generator[str, None, None]:
     os.remove(db_path)
 
 
-def test_insert_thread(chars) -> None:
+def test_insert_thread(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the insert_thread function.
     """
+    assert chars[0]["id"]
     thread_id = db.insert_thread("user", chars[0]["id"])
     assert thread_id == 1
     thread_id = db.insert_thread("user2", chars[0]["id"])
     assert thread_id == 2
 
 
-def test_select_thread(chars) -> None:
+def test_select_thread(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_thread function.
     """
+    assert chars[0]["id"]
     thread_id = db.insert_thread("user", chars[0]["id"])
     thread = db.select_thread(thread_id)
     assert thread["user"] == "user"
 
 
-def test_select_latest_thread(chars) -> None:
+def test_select_latest_thread(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_latest_thread function.
     """
+    assert chars[0]["id"]
+    assert chars[1]["id"]
     db.insert_thread("user", chars[0]["id"])
     time.sleep(1)
     db.insert_thread("user", chars[0]["id"])
@@ -66,10 +72,11 @@ def test_select_latest_thread(chars) -> None:
     assert thread_id == 0
 
 
-def test_select_threads_by_user(chars) -> None:
+def test_select_threads_by_user(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_threads_by_user function.
     """
+    assert chars[0]["id"]
     db.insert_thread("user", chars[0]["id"])
     db.insert_thread("user", chars[0]["id"])
     db.insert_thread("user2", chars[0]["id"])

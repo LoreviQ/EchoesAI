@@ -33,18 +33,22 @@ def connect_to_db() -> Tuple[Connection, Cursor, Callable[[], None]]:
     return conn, cursor, close
 
 
-def convert_ts_dt(timestamp: str) -> datetime:
+def convert_ts_dt(timestamp: str | None) -> datetime:
     """
     Convert a timestamp string to a datetime object.
     """
+    if not timestamp:
+        raise ValueError("Timestamp is None.")
     dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
     return dt.replace(tzinfo=timezone.utc)
 
 
-def convert_dt_ts(dt: datetime) -> str:
+def convert_dt_ts(dt: datetime | None) -> str:
     """
     Convert a datetime object to a timestamp string.
     """
+    if not dt:
+        raise ValueError("Datetime is None.")
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 

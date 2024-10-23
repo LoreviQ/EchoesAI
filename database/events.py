@@ -58,7 +58,7 @@ def select_events_by_character(character: int) -> List[Event]:
     return events
 
 
-def select_most_recent_event(character: str) -> Event:
+def select_most_recent_event(character: int) -> Event:
     """
     Select the most recent event from the database.
     """

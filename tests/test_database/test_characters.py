@@ -13,7 +13,7 @@ import database as db
 
 @pytest.fixture
 def chars(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[Tuple[db.Character, db.Character], None, None]:
     """
     Create a DB object for testing and teardown after testing.
@@ -32,7 +32,7 @@ def chars(
     os.remove(db_path)
 
 
-def test_insert_character(chars) -> None:
+def test_insert_character(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the insert_character function.
     """
@@ -42,7 +42,7 @@ def test_insert_character(chars) -> None:
     assert character_id == 2
 
 
-def test_select_character(chars) -> None:
+def test_select_character(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_character function.
     """
@@ -54,7 +54,7 @@ def test_select_character(chars) -> None:
     assert character["name"] == "test character 2"
 
 
-def test_select_characters(chars) -> None:
+def test_select_characters(chars: Tuple[db.Character, db.Character]) -> None:
     """
     Test the select_characters function.
     """

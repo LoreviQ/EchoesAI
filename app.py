@@ -76,7 +76,7 @@ class App:
         def post_message(thread_id: int) -> Response:
             data = request.get_json()
             message = db.Message(
-                thread_id=thread_id,
+                thread=db.select_thread(thread_id),
                 content=data["content"],
                 role=data["role"],
             )

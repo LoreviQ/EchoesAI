@@ -2,13 +2,13 @@
 This file contains the tests for the app.py file.
 """
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name unused-argument
 
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from multiprocessing import Value
-from typing import Generator, List, Tuple
+from typing import Generator, List
 
 import pytest
 from flask.testing import FlaskClient
@@ -22,7 +22,7 @@ port_counter = Value("i", 5000)
 
 
 @pytest.fixture
-def app(monkeypatch) -> Generator[Tuple[App, int], None, None]:
+def app(monkeypatch: pytest.MonkeyPatch) -> Generator[App, None, None]:
     """
     Create an App object for testing and teardown after testing.
     """
@@ -70,6 +70,8 @@ def threads(chars: List[db.Character]) -> Generator[List[db.Thread], None, None]
     """
     Create threads for tests.
     """
+    assert chars[0]["id"]
+    assert chars[1]["id"]
     thread_id_1 = db.insert_thread("user", chars[0]["id"])
     thread_1 = db.select_thread(thread_id_1)
     thread_id_2 = db.insert_thread("user", chars[1]["id"])
@@ -171,6 +173,7 @@ def test_get_threads_by_user(threads: List[db.Thread], client: FlaskClient) -> N
     """
     response = client.get("/threads/user")
     assert response.status_code == 200
+    assert response.json
     assert response.json[0]["id"] == threads[0]["id"]
     assert response.json[1]["id"] == threads[1]["id"]
 
@@ -196,6 +199,7 @@ def test_delete_messages_more_recent(
     """
     Test the delete messages more recent route.
     """
+    assert messages[1]["id"]
     response = client.delete(f"/messages/{messages[0]['id']}")
     assert response.status_code == 200
     with pytest.raises(ValueError):
@@ -206,11 +210,13 @@ def test_get_response_now(threads: List[db.Thread], client: FlaskClient) -> None
     """
     Test the get response now route.
     """
+    assert threads[0]["id"]
     # Check that the response is applied
     response = client.get(f"/threads/{threads[0]['id']}/messages/new")
     assert response.status_code == 200
     time.sleep(1)
     messages = db.select_messages_by_thread(threads[0]["id"])
+    assert messages[-1]["timestamp"]
     assert messages[-1]["timestamp"] < datetime.now(timezone.utc)
 
 
@@ -220,6 +226,7 @@ def test_get_response_now_new(
     """
     Test the get response now route.
     """
+    assert threads[0]["id"]
     time.sleep(2)
 
     # Check that a new response is generated if there is no scheduled message
@@ -229,6 +236,7 @@ def test_get_response_now_new(
     messages = db.select_messages_by_thread(threads[0]["id"])
     assert len(messages) == 3
     assert messages[-1]["content"] == "Mock response"
+    assert messages[-1]["timestamp"]
     assert messages[-1]["timestamp"] < datetime.now(timezone.utc)
 
 
@@ -238,6 +246,7 @@ def test_get_events_by_character(events: List[db.Event], client: FlaskClient) ->
     """
     response = client.get(f"/events/{events[0]['character']}")
     assert response.status_code == 200
+    assert response.json
     assert response.json[0]["id"] == events[0]["id"]
     assert response.json[1]["id"] == events[1]["id"]
 
@@ -249,6 +258,7 @@ def test_get_posts_by_character(posts: List[db.Post], client: FlaskClient) -> No
 
     response = client.get(f"/posts/{posts[0]['character']}")
     assert response.status_code == 200
+    assert response.json
     assert len(response.json) == 2
     assert response.json[0]["description"] == posts[0]["description"]
     assert response.json[1]["description"] == posts[1]["description"]
