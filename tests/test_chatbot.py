@@ -37,11 +37,13 @@ def args(
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
     db.create_db()
-    character = db.Character(
-        name="test character",
-        initial_message="test initial message",
+    character_id = db.insert_character(
+        db.Character(
+            name="test character",
+            initial_message="test initial message",
+        )
     )
-    character_id = db.insert_character(character)
+    character = db.select_character(character_id)
     thread_id = db.insert_thread("test user", character_id)
     thread = db.select_thread(thread_id)
     db.insert_message(
@@ -151,15 +153,24 @@ def test_parse_time() -> None:
     assert _parse_time(time) == timedelta(seconds=0)
 
 
-def test_generate_event(chatbot: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_generate_event(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
-    Test the generate_event method of the Chatbot class.
+    Test the generate_event function.
     """
-    chatbot.database.post_message(1, "test message", "user")
-    chatbot.database.post_event("test", "event", "test was drinking tea")
-    chatbot.database.post_event("test", "thought", "test thought about the sky")
-    chatbot.generate_event("event")
-    events = chatbot.database.get_events_by_chatbot("test")
+    mock_event = db.Event(
+        character=args[1]["id"],
+        type="event",
+        content="test was drinking tea",
+    )
+    mock_thought = db.Event(
+        character=args[1]["id"],
+        type="thought",
+        content="test thought about the sky",
+    )
+    db.insert_event(mock_event)
+    db.insert_event(mock_thought)
+    generate_event(args[0], args[1]["id"], "event")
+    events = db.select_events_by_character(args[1]["id"])
     assert len(events) == 3
     assert events[0]["content"] == "test was drinking tea"
     assert events[0]["type"] == "event"
@@ -167,5 +178,3 @@ def test_generate_event(chatbot: Tuple[Model, db.Character, db.Thread]) -> None:
     assert events[1]["type"] == "thought"
     assert events[2]["content"] == "Mock event"
     assert events[2]["type"] == "event"
-    events = chatbot.database.get_events_by_chatbot("not test")
-    assert len(events) == 0

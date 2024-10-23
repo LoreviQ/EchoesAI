@@ -168,7 +168,7 @@ def _event_log(character: db.Character) -> List[Dict[str, str]]:
                             "content": messageTemplates["message_received"](
                                 event["timestamp"],
                                 event["value"]["content"],
-                                event["value"]["user"],
+                                event["value"]["thread"]["user"],
                             ),
                         }
                     )
@@ -179,7 +179,7 @@ def _event_log(character: db.Character) -> List[Dict[str, str]]:
                             "content": messageTemplates["message_sent"](
                                 event["timestamp"],
                                 event["value"]["content"],
-                                event["value"]["user"],
+                                event["value"]["thread"]["user"],
                             ),
                         }
                     )

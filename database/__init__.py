@@ -17,6 +17,7 @@ from .messages import (
     delete_messages_more_recent,
     delete_scheduled_messages_from_thread,
     insert_message,
+    select_message,
     select_messages_by_character,
     select_messages_by_thread,
     select_scheduled_message_id,

@@ -58,6 +58,36 @@ def insert_message(message: Message) -> int:
     return general_insert_returning_id(query, params)
 
 
+def select_message(message_id: int) -> Message:
+    """
+    Select a message from the database.
+    """
+    query = """
+        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
+        FROM messages as m JOIN threads as t ON m.thread = t.id 
+        WHERE m.id = ?
+    """
+    _, cursor, close = connect_to_db()
+    cursor.execute(
+        query,
+        (message_id,),
+    )
+    result = cursor.fetchone()
+    close()
+    if result:
+        return Message(
+            id=result[0],
+            timestamp=convert_ts_dt(result[3]),
+            thread=Thread(
+                user=result[4],
+                chatbot=result[5],
+            ),
+            content=result[1],
+            role=result[2],
+        )
+    raise ValueError("Message not found")
+
+
 def select_messages_by_thread(thread_id: int) -> List[Message]:
     """
     Select messages from the database by thread.
@@ -87,10 +117,21 @@ def delete_messages_more_recent(message_id: int) -> None:
     Delete selected message and all more recent messages.
     """
     query = """
-        DELETE FROM messages 
+        DELETE
+        FROM messages 
         WHERE id = ? 
-            OR (thread = (SELECT thread FROM messages WHERE id = ?) 
-            AND timestamp > (SELECT timestamp FROM messages WHERE id = ?))
+            OR (
+                thread = (
+                    SELECT thread 
+                    FROM messages 
+                    WHERE id = ?
+                ) 
+                AND timestamp > (
+                    SELECT timestamp 
+                    FROM messages 
+                    WHERE id = ?
+                )
+            )
     """
     general_commit_returning_none(query, (message_id, message_id, message_id))
 

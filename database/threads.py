@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from .characters import select_character
@@ -20,12 +20,12 @@ def insert_thread(user: str, character: int) -> int:
     thread_id = general_insert_returning_id(query, (user, character))
     thread = select_thread(thread_id)
     character = select_character(character)
-    if "initial message" in character:
+    if character["initial_message"]:
         message = Message(
             thread=thread,
-            content=character["initial message"],
+            content=character["initial_message"],
             role="assistant",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
         insert_message(message)
     return thread_id
