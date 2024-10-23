@@ -168,9 +168,14 @@ class App:
             db.insert_character(character)
             return make_response(str(data["path_name"]), 200)
 
-        @self.app.route("/characters/<int:character_id>", methods=["GET"])
+        @self.app.route("/characters/id/<int:character_id>", methods=["GET"])
         def get_character(character_id: int) -> Response:
             character = db.select_character(character_id)
+            return make_response(jsonify(character), 200)
+
+        @self.app.route("/characters/path/<string:char_path>", methods=["GET"])
+        def get_character_by_path(char_path: str) -> Response:
+            character = db.select_character_by_path(char_path)
             return make_response(jsonify(character), 200)
 
         # TODO Schedule this later, it's only a route for testing
@@ -187,7 +192,7 @@ class App:
             trigger=CronTrigger(minute="0,30"),
             args=(
                 self.model,
-                1,
+                2,
                 "event",
             ),
         )
@@ -196,7 +201,7 @@ class App:
             trigger=CronTrigger(minute="15,45"),
             args=(
                 self.model,
-                1,
+                2,
                 "thought",
             ),
         )
@@ -206,7 +211,7 @@ class App:
                 trigger=CronTrigger(minute="0"),
                 args=(
                     self.model,
-                    1,
+                    2,
                 ),
             )
         scheduler.start()

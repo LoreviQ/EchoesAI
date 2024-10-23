@@ -48,10 +48,26 @@ def test_select_character(chars: Tuple[db.Character, db.Character]) -> None:
     """
     character_id = db.insert_character(chars[0])
     character = db.select_character(character_id)
-    assert character["name"] == "test character"
+    assert character["name"] == chars[0]["name"]
     character_id = db.insert_character(chars[1])
     character = db.select_character(character_id)
-    assert character["name"] == "test character 2"
+    assert character["name"] == chars[1]["name"]
+
+
+def test_select_character_by_path(chars: Tuple[db.Character, db.Character]) -> None:
+    """
+    Test the select_character function.
+    """
+    assert chars[0]["path_name"]
+    assert chars[1]["path_name"]
+    character_id = db.insert_character(chars[0])
+    character = db.select_character_by_path(chars[0]["path_name"])
+    assert character["id"] == character_id
+    assert character["name"] == chars[0]["name"]
+    character_id = db.insert_character(chars[1])
+    character = db.select_character_by_path(chars[1]["path_name"])
+    assert character["id"] == character_id
+    assert character["name"] == chars[1]["name"]
 
 
 def test_select_characters(chars: Tuple[db.Character, db.Character]) -> None:
@@ -62,5 +78,5 @@ def test_select_characters(chars: Tuple[db.Character, db.Character]) -> None:
     db.insert_character(chars[1])
     characters = db.select_characters()
     assert len(characters) == 2
-    assert characters[0]["name"] == "test character"
-    assert characters[1]["name"] == "test character 2"
+    assert characters[0]["name"] == chars[0]["name"]
+    assert characters[1]["name"] == chars[1]["name"]

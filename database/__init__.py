@@ -1,4 +1,9 @@
-from .characters import insert_character, select_character, select_characters
+from .characters import (
+    insert_character,
+    select_character,
+    select_character_by_path,
+    select_characters,
+)
 from .events import (
     delete_event,
     insert_event,

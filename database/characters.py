@@ -30,9 +30,9 @@ def select_character(character_id: int) -> Character:
     """
     query = """
         SELECT 
-            id, name, description, age, height, personality, appearance, loves, 
-            hates, details, scenario, important, initial_message, 
-            favorite_colour, phases, img_gen, 
+            id, name, path_name, description, age, height, personality, 
+            appearance, loves, hates, details, scenario, important, 
+            initial_message, favorite_colour, phases, img_gen, 
             model, global_positive, global_negative
         FROM characters
         WHERE id = ?
@@ -48,23 +48,70 @@ def select_character(character_id: int) -> Character:
         return Character(
             id=result[0],
             name=result[1],
-            description=result[2],
-            age=result[3],
-            height=result[4],
-            personality=result[5],
-            appearance=result[6],
-            loves=result[7],
-            hates=result[8],
-            details=result[9],
-            scenario=result[10],
-            important=result[11],
-            initial_message=result[12],
-            favorite_colour=result[13],
-            phases=result[14],
-            img_gen=result[15],
-            model=result[16],
-            global_positive=result[17],
-            global_negative=result[18],
+            path_name=result[2],
+            description=result[3],
+            age=result[4],
+            height=result[5],
+            personality=result[6],
+            appearance=result[7],
+            loves=result[8],
+            hates=result[9],
+            details=result[10],
+            scenario=result[11],
+            important=result[12],
+            initial_message=result[13],
+            favorite_colour=result[14],
+            phases=result[15],
+            img_gen=result[16],
+            model=result[17],
+            global_positive=result[18],
+            global_negative=result[19],
+        )
+    raise ValueError("Character not found")
+
+
+def select_character_by_path(path: str) -> Character:
+    """
+    Select a character from the database by path.
+    """
+    query = """
+        SELECT 
+            id, name, path_name, description, age, height, personality, 
+            appearance, loves, hates, details, scenario, important, 
+            initial_message, favorite_colour, phases, img_gen, 
+            model, global_positive, global_negative
+        FROM characters
+        WHERE path_name = ?
+    """
+    _, cursor, close = connect_to_db()
+    cursor.execute(
+        query,
+        (path,),
+    )
+    result = cursor.fetchone()
+    close()
+    if result:
+        return Character(
+            id=result[0],
+            name=result[1],
+            path_name=result[2],
+            description=result[3],
+            age=result[4],
+            height=result[5],
+            personality=result[6],
+            appearance=result[7],
+            loves=result[8],
+            hates=result[9],
+            details=result[10],
+            scenario=result[11],
+            important=result[12],
+            initial_message=result[13],
+            favorite_colour=result[14],
+            phases=result[15],
+            img_gen=result[16],
+            model=result[17],
+            global_positive=result[18],
+            global_negative=result[19],
         )
     raise ValueError("Character not found")
 
@@ -74,7 +121,10 @@ def select_characters() -> List[Character]:
     Select all characters from the database.
     """
     query = """
-        SELECT id, name, description, age, height, personality, appearance, loves, hates, details, scenario, important, initial_message, favorite_colour, phases, img_gen
+        SELECT id, name, path_name, description, age, height, personality, 
+            appearance, loves, hates, details, scenario, important, 
+            initial_message, favorite_colour, phases, img_gen, 
+            model, global_positive, global_negative
         FROM characters
     """
     _, cursor, close = connect_to_db()
@@ -87,20 +137,24 @@ def select_characters() -> List[Character]:
             Character(
                 id=character[0],
                 name=character[1],
-                description=character[2],
-                age=character[3],
-                height=character[4],
-                personality=character[5],
-                appearance=character[6],
-                loves=character[7],
-                hates=character[8],
-                details=character[9],
-                scenario=character[10],
-                important=character[11],
-                initial_message=character[12],
-                favorite_colour=character[13],
-                phases=character[14],
-                img_gen=character[15],
+                path_name=character[2],
+                description=character[3],
+                age=character[4],
+                height=character[5],
+                personality=character[6],
+                appearance=character[7],
+                loves=character[8],
+                hates=character[9],
+                details=character[10],
+                scenario=character[11],
+                important=character[12],
+                initial_message=character[13],
+                favorite_colour=character[14],
+                phases=character[15],
+                img_gen=character[16],
+                model=character[17],
+                global_positive=character[18],
+                global_negative=character[19],
             )
         )
     return characters
