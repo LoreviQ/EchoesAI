@@ -42,6 +42,7 @@ def test_insert_social_media_post(chars: Tuple[db.Character, db.Character]) -> N
     post = db.Post(
         character=chars[0]["id"],
         description="test description",
+        image_post=True,
         prompt="test prompt",
         caption="test caption",
     )
@@ -57,18 +58,21 @@ def test_get_posts_by_character(chars: Tuple[db.Character, db.Character]) -> Non
     post1 = db.Post(
         character=chars[0]["id"],
         description="test description",
+        image_post=True,
         prompt="test prompt",
         caption="test caption",
     )
     post2 = db.Post(
         character=chars[0]["id"],
         description="test description 2",
+        image_post=True,
         prompt="test prompt 2",
         caption="test caption 2",
     )
     post3 = db.Post(
         character=chars[1]["id"],
         description="test description 3",
+        image_post=True,
         prompt="test prompt 3",
         caption="test caption 3",
     )
@@ -89,6 +93,7 @@ def test_add_image_path_to_post(chars: Tuple[db.Character, db.Character]) -> Non
     post = db.Post(
         character=chars[0]["id"],
         description="test description",
+        image_post=True,
         prompt="test prompt",
         caption="test caption",
     )

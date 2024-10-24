@@ -131,6 +131,7 @@ def posts(chars: List[db.Character]) -> Generator[List[db.Post], None, None]:
     p_1 = db.Post(
         character=chars[0]["id"],
         description="test post",
+        image_post=True,
         prompt="test prompt",
         caption="test caption",
         image_path="test image path",
@@ -139,6 +140,7 @@ def posts(chars: List[db.Character]) -> Generator[List[db.Post], None, None]:
     p_2 = db.Post(
         character=chars[0]["id"],
         description="test post2",
+        image_post=True,
         prompt="test prompt2",
         caption="test caption2",
         image_path="test image path2",
