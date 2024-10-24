@@ -190,10 +190,10 @@ def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
                             ),
                         }
                     )
-    truncatedLog = chatlog[:]
-    while model.token_count(truncatedLog) > MAX_TOKENS:
-        truncatedLog.pop(0)
-    return truncatedLog
+    truncated_log = chatlog[:]
+    while model.token_count(truncated_log) > MAX_TOKENS:
+        truncated_log.pop(0)
+    return truncated_log
 
 
 def generate_social_media_post(model: Model, character_id: int) -> None:
