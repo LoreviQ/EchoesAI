@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS posts (
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
     character INTEGER NOT NULL,
     description TEXT,
+    image_post boolean DEFAULT 0,
     prompt TEXT,
     caption TEXT,
     image_path TEXT,

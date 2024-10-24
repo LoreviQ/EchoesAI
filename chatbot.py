@@ -2,6 +2,7 @@
 Module to manage the chatbot state.
 """
 
+import random
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,8 @@ from jinja2 import Template
 
 import database as db
 from model import Model
+
+MAX_TOKENS = 4096
 
 messageTemplates: Dict[str, Any] = {
     "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
@@ -26,6 +29,7 @@ messageTemplates: Dict[str, Any] = {
         "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
     },
     "get_post": {
+        "text": lambda timestamp: f"The time is currently {timestamp}. Please write the post you are about to make.",
         "photo": lambda timestamp: f"The time is currently {timestamp}. Please describe the photo you are about to post.",
         "caption": lambda timestamp, p_desc: f"The time is currently {timestamp}. The photo description is {p_desc}. Please write a caption for the photo.",
     },
@@ -116,7 +120,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     """
     character = db.select_character(character_id)
     sys_message = _get_system_message(event_type, character)
-    chatlog = _event_log(character)
+    chatlog = _event_log(model, character)
     chatlog.append(
         {
             "role": "user",
@@ -134,7 +138,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     db.events.insert_event(event)
 
 
-def _event_log(character: db.Character) -> List[Dict[str, str]]:
+def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
     """
     Create a custom chatlog of events for the chatbot.
     """
@@ -186,7 +190,10 @@ def _event_log(character: db.Character) -> List[Dict[str, str]]:
                             ),
                         }
                     )
-    return chatlog
+    truncatedLog = chatlog[:]
+    while model.token_count(truncatedLog) > MAX_TOKENS:
+        truncatedLog.pop(0)
+    return truncatedLog
 
 
 def generate_social_media_post(model: Model, character_id: int) -> None:
@@ -194,11 +201,19 @@ def generate_social_media_post(model: Model, character_id: int) -> None:
     Generate a social media post.
     """
     character = db.select_character(character_id)
-    if character["img_gen"] is not True:
-        return
+    # even if image posts are allowed, there is a 2/3 chance of generating a text post
+    if character["img_gen"] is not True or random.random() < 2 / 3:
+        _generate_text_post(model, character)
+    _generate_image_post(model, character)
+
+
+def _generate_image_post(model: Model, character: db.Character) -> None:
+    """
+    Generate a social media post with an image.
+    """
     # generate image description
     sys_message = _get_system_message("photo", character)
-    chatlog = _event_log(character)
+    chatlog = _event_log(model, character)
     chatlog.append(
         {
             "role": "user",
@@ -235,6 +250,29 @@ def generate_social_media_post(model: Model, character_id: int) -> None:
 
     # use prompt to generate image
     _civitai_generate_image(character, post_id, prompt["content"])
+
+
+def _generate_text_post(model: Model, character: db.Character) -> None:
+    # generate description
+    sys_message = _get_system_message("text_post", character)
+    chatlog = _event_log(model, character)
+    chatlog.append(
+        {
+            "role": "user",
+            "content": messageTemplates["get_post"]["text"](
+                db.convert_dt_ts(datetime.now(timezone.utc))
+            ),
+        }
+    )
+    description = _generate_text(model, sys_message, chatlog)
+    post = db.Post(
+        character=character["id"],
+        description=description["content"],
+        image_post=False,
+        prompt="",
+        caption="",
+    )
+    db.posts.insert_social_media_post(post)
 
 
 def _convert_messages_to_chatlog(

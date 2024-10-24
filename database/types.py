@@ -74,6 +74,7 @@ class Post(TypedDict, total=False):
     timestamp: Optional[datetime]
     character: Optional[int]
     description: Optional[str]
+    image_post: Optional[bool]
     prompt: Optional[str]
     caption: Optional[str]
     image_path: Optional[str]
