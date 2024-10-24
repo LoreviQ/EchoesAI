@@ -14,8 +14,8 @@ def insert_social_media_post(post: Post) -> int:
     Insert a post into the database.
     """
     query = """
-        INSERT INTO posts (character, description, prompt, caption) 
-        VALUES (?, ?, ?, ?) 
+        INSERT INTO posts (character, description, image_post, prompt, caption) 
+        VALUES (?, ?, ?, ?, ?) 
         RETURNING id
     """
     return general_insert_returning_id(
@@ -23,6 +23,7 @@ def insert_social_media_post(post: Post) -> int:
         (
             post["character"],
             post["description"],
+            post["image_post"],
             post["prompt"],
             post["caption"],
         ),
@@ -46,7 +47,7 @@ def get_posts_by_character(character: int) -> List[Post]:
     Get all posts from the database.
     """
     query = """
-        SELECT id, timestamp, description, prompt, caption, image_path
+        SELECT id, timestamp, description, image_post, prompt, caption, image_path
         FROM posts 
         WHERE character = ?
     """
@@ -66,9 +67,10 @@ def get_posts_by_character(character: int) -> List[Post]:
                 timestamp=convert_ts_dt(post[1]),
                 character=character,
                 description=post[2],
-                prompt=post[3],
-                caption=post[4],
-                image_path=post[5],
+                image_post=post[3],
+                prompt=post[4],
+                caption=post[5],
+                image_path=post[6],
             )
         )
     return posts
