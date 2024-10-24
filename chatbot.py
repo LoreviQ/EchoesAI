@@ -20,10 +20,16 @@ MAX_TOKENS = 4096
 messageTemplates: Dict[str, Any] = {
     "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
     "get_message": lambda timestamp, user: f"The time is currently {timestamp}, and you have decided to send {user} another message. Please write your message to {user}. Do not include the time in your response.",
-    "message_sent": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
-    "message_received": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
-    "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
-    "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
+    "event_log": {
+        "message_sent": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
+        "message_received": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
+        "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
+        "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
+        "posts": {
+            "text": lambda timestamp, post: f"At time {timestamp}, you posted the following to social media:\n{post}",
+            "photo": lambda timestamp, desciption, caption: f"At time {timestamp}, you postsed the following photo to social media:\n{desciption}\nCaption: {caption}",
+        },
+    },
     "get_event": {
         "event": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
         "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
@@ -153,7 +159,7 @@ def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
                 chatlog.append(
                     {
                         "role": "user",
-                        "content": messageTemplates["events"](
+                        "content": messageTemplates["event_log"]["events"](
                             event["timestamp"], event["value"]["content"]
                         ),
                     }
@@ -162,7 +168,7 @@ def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
                 chatlog.append(
                     {
                         "role": "user",
-                        "content": messageTemplates["thoughts"](
+                        "content": messageTemplates["event_log"]["thoughts"](
                             event["timestamp"], event["value"]["content"]
                         ),
                     }
@@ -172,7 +178,9 @@ def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["message_received"](
+                            "content": messageTemplates["event_log"][
+                                "message_received"
+                            ](
                                 event["timestamp"],
                                 event["value"]["content"],
                                 event["value"]["thread"]["user"],
@@ -183,7 +191,7 @@ def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
                     chatlog.append(
                         {
                             "role": "user",
-                            "content": messageTemplates["message_sent"](
+                            "content": messageTemplates["event_log"]["message_sent"](
                                 event["timestamp"],
                                 event["value"]["content"],
                                 event["value"]["thread"]["user"],
@@ -284,9 +292,9 @@ def _convert_messages_to_chatlog(
         assert message["role"]
         assert message["thread"]
         if message["role"] == "user":
-            formatter = messageTemplates["message_received"]
+            formatter = messageTemplates["event_log"]["message_received"]
         else:
-            formatter = messageTemplates["message_sent"]
+            formatter = messageTemplates["event_log"]["message_sent"]
         chatlog.append(
             {
                 "role": message["role"],
