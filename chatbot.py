@@ -89,8 +89,8 @@ def _get_response_and_submit(
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     content = (
         f"The time is currently {now}, and you have decided to send {thread['user']} "
-        f"another message. Please write your message to {thread['user']}. Do not include "
-        "the time in your response."
+        f"another message. Please write your message to {thread['user']}.\n"
+        "Do not include anything except for the message content, such as time or message recipient."
     )
     chatlog.append(
         {
@@ -122,7 +122,8 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
         case "event":
             content = (
                 f"The time is currently {timestamp}. "
-                f"Please describe what you are currently doing."
+                "Please describe what you are currently doing.\n"
+                "Do not include anything except for the event description."
             )
 
     chatlog.append(ChatMessage(role="user", content=content))
@@ -163,7 +164,8 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     )
     content = (
         f"The time is currently {now}. Please describe "
-        "the photo you are about to post."
+        "the photo you are about to post.\n"
+        "Do not include anything except for the image description."
     )
     chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
@@ -177,7 +179,8 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     sys_message = _get_system_message("caption", character, description["content"])
     content = (
         f"The time is currently {now}. The photo description is "
-        f"{description['content']}. Please write a caption for the photo."
+        f"{description['content']}. Please write a caption for the photo.\n"
+        "Do not include anything except for the caption."
     )
 
     chatlog[-1] = ChatMessage(role="user", content=content)
@@ -209,7 +212,10 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
         truncate=True, model=model
     )
     content = (
-        f"The time is currently {now}. Please write " "the post you are about to make."
+        f"The time is currently {now}. Please write "
+        "the post you are about to make.\n"
+        "Reminder: It is a text only post. "
+        "Do not include anything except for the post content."
     )
     chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
@@ -385,7 +391,7 @@ class Messages:
             assert message["timestamp"]
             assert message["content"]
             assert message["role"]
-            content = f"{message['timestamp']}: {message['content']}"
+            content = f"---{message['timestamp']}---\n{message['content']}"
             message_log.append(
                 StampedChatMessage(
                     role=message["role"],
@@ -455,12 +461,18 @@ class Events:
             assert event["content"]
             match event["type"]:
                 case "thought":
-                    content = f"At time {event['timestamp']}, you had the following thought: {event['content']}"
+                    content = (
+                        f"At time {event['timestamp']}, you had the "
+                        f"following thought: {event['content']}"
+                    )
                 case "event":
-                    content = f"At time {event['timestamp']}, you were doing the following: {event['content']}"
+                    content = (
+                        f"At time {event['timestamp']}, you were "
+                        f"doing the following: {event['content']}"
+                    )
             event_log.append(
                 StampedChatMessage(
-                    role="user", content=content, timestamp=event["timestamp"]
+                    role="system", content=content, timestamp=event["timestamp"]
                 )
             )
         return event_log
@@ -487,14 +499,21 @@ class Events:
             assert message["thread"]
             assert message["thread"]["user"]
             if message["role"] == "user":
-                content = f"At time {message['timestamp']}, {message['thread']['user']} sent the message: {message['content']}"
+                content = (
+                    f"At time {message['timestamp']}, "
+                    f"{message['thread']['user']} sent the message: "
+                    f"{message['content']}"
+                )
 
             else:
-                content = f"At time {message['timestamp']}, you sent the message: {message['content']} to {message['thread']['user']}"
+                content = (
+                    f"At time {message['timestamp']}, you sent the "
+                    f"message: {message['content']} to {message['thread']['user']}"
+                )
 
             message_log.append(
                 StampedChatMessage(
-                    role=message["role"],
+                    role="system",
                     content=content,
                     timestamp=message["timestamp"],
                 )
@@ -540,7 +559,7 @@ class Events:
                 )
             post_log.append(
                 StampedChatMessage(
-                    role="user", content=content, timestamp=post["timestamp"]
+                    role="system", content=content, timestamp=post["timestamp"]
                 )
             )
         return post_log
