@@ -109,9 +109,10 @@ class App:
             self._trigger_response_cycle(thread_id, timedelta())
             return make_response("", 200)
 
-        @self.app.route("/events/<int:character>", methods=["GET"])
-        def get_events_by_character(character: int) -> Response:
-            events = db.events.select_events_by_character(character)
+        @self.app.route("/events/<string:char_path>", methods=["GET"])
+        def get_events_by_character(char_path: str) -> Response:
+            character = db.select_character_by_path(char_path)
+            events = db.events.select_events_by_character(character["id"])
             response: List[Dict[str, Any]] = []
             for event in events:
                 response.append(
@@ -124,9 +125,10 @@ class App:
                 )
             return make_response(jsonify(response), 200)
 
-        @self.app.route("/posts/<int:character>", methods=["GET"])
-        def get_posts_by_character(character: int) -> Response:
-            posts = db.posts.get_posts_by_character(character)
+        @self.app.route("/posts/<string:char_path>", methods=["GET"])
+        def get_posts_by_character(char_path: str) -> Response:
+            character = db.select_character_by_path(char_path)
+            posts = db.posts.get_posts_by_character(character["id"])
             response: List[Dict[str, Any]] = []
             for post in posts:
                 response.append(
