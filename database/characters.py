@@ -33,7 +33,7 @@ def select_character(character_id: int) -> Character:
             id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
-            model, global_positive, global_negative
+            model, global_positive, global_negative, profile_path
         FROM characters
         WHERE id = ?
     """
@@ -66,6 +66,7 @@ def select_character(character_id: int) -> Character:
             model=result[17],
             global_positive=result[18],
             global_negative=result[19],
+            profile_path=result[20],
         )
     raise ValueError("Character not found")
 
@@ -79,7 +80,7 @@ def select_character_by_path(path: str) -> Character:
             id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
-            model, global_positive, global_negative
+            model, global_positive, global_negative, profile_path
         FROM characters
         WHERE path_name = ?
     """
@@ -112,6 +113,7 @@ def select_character_by_path(path: str) -> Character:
             model=result[17],
             global_positive=result[18],
             global_negative=result[19],
+            profile_path=result[20],
         )
     raise ValueError("Character not found")
 
@@ -124,7 +126,7 @@ def select_characters() -> List[Character]:
         SELECT id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
-            model, global_positive, global_negative
+            model, global_positive, global_negative, profile_path
         FROM characters
     """
     _, cursor, close = connect_to_db()
@@ -155,6 +157,7 @@ def select_characters() -> List[Character]:
                 model=character[17],
                 global_positive=character[18],
                 global_negative=character[19],
+                profile_path=character[20],
             )
         )
     return characters

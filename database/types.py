@@ -25,6 +25,7 @@ class Character(TypedDict, total=False):
     model: Optional[str]
     global_positive: Optional[str]
     global_negative: Optional[str]
+    profile_path: Optional[str]
 
 
 class Thread(TypedDict, total=False):
