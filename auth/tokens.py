@@ -24,7 +24,7 @@ def _load_public_key() -> RSAPublicKey:
     return key
 
 
-def issue_access_token(user_id: int) -> str:
+def issue_access_token(username: str) -> str:
     """Issues a JWT access token"""
     key = _load_private_key()
     now = datetime.now(timezone.utc)
@@ -32,7 +32,7 @@ def issue_access_token(user_id: int) -> str:
         "iss": "echoesAI - auth",
         "iat": int(now.timestamp()),
         "exp": int((now + TOKEN_DURATION).timestamp()),
-        "sub": str(user_id),
+        "sub": username,
     }
     token = jwt.encode(payload, key, algorithm="RS256")
     return token

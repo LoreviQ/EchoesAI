@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from flask import Flask, Response, jsonify, make_response, request, send_from_directory
 from flask_cors import CORS
 
+import auth
 import database as db
 from chatbot import response_cycle, schedule_events
 from model import Model
@@ -179,6 +180,28 @@ class App:
         def get_character_by_path(char_path: str) -> Response:
             character = db.select_character_by_path(char_path)
             return make_response(jsonify(character), 200)
+
+        @self.app.route("/users/new", methods=["POST"])
+        def new_user() -> Response:
+            data = request.get_json()
+            user = db.User(
+                username=data["username"],
+                password=data["password"],
+            )
+            auth.insert_user(user)
+            token = auth.issue_access_token(user["username"])
+            return make_response(token, 200)
+
+        @self.app.route("/login", methods=["POST"])
+        def login() -> Response:
+            data = request.get_json()
+            username = data["username"]
+            password = data["password"]
+            if not auth.authenticate_user(username, password):
+                return make_response("", 401)
+
+            token = auth.issue_access_token(username)
+            return make_response(token, 200)
 
     def serve(self) -> None:
         """
