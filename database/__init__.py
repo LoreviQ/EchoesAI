@@ -2,6 +2,7 @@ from .characters import (
     insert_character,
     select_character,
     select_character_by_path,
+    select_character_ids,
     select_characters,
 )
 from .events import (
