@@ -38,7 +38,7 @@ def issue_access_token(username: str) -> str:
     return token
 
 
-def auth_access_token(token: str) -> int:
+def auth_access_token(token: str) -> str:
     """Authenticates a JWT access token"""
     public_key = _load_public_key()
     decoded_token = jwt.decode(token, public_key, algorithms=["RS256"])
