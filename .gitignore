@@ -7,3 +7,4 @@ database.db
 real_ophelia.json
 static/images
 .env
+.ssh
