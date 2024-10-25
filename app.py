@@ -135,6 +135,7 @@ class App:
                         "id": post["id"],
                         "timestamp": db.convert_dt_ts(post["timestamp"]),
                         "description": post["description"],
+                        "image_post": post["image_post"],
                         "prompt": post["prompt"],
                         "caption": post["caption"],
                         "image_path": post["image_path"],
