@@ -11,7 +11,8 @@ import pytest
 
 import database as db
 from chatbot import (
-    _convert_messages_to_chatlog,
+    Events,
+    Messages,
     _generate_text,
     _get_system_message,
     _parse_time,
@@ -65,11 +66,11 @@ def test_get_system_message(args: Tuple[Model, db.Character, db.Thread]) -> None
     Test the _get_system_message function.
     """
     system_message = _get_system_message("chat", args[2])
-    assert system_message[0]["role"] == "system"
-    assert "You are an expert actor who" in system_message[0]["content"]
+    assert system_message["role"] == "system"
+    assert "You are an expert actor who" in system_message["content"]
     system_message = _get_system_message("time", args[2])
-    assert system_message[0]["role"] == "system"
-    assert "current response frequency of" in system_message[0]["content"]
+    assert system_message["role"] == "system"
+    assert "current response frequency of" in system_message["content"]
 
 
 def test_generate_text(args: Tuple[Model, db.Character, db.Thread]) -> None:
@@ -78,8 +79,7 @@ def test_generate_text(args: Tuple[Model, db.Character, db.Thread]) -> None:
     """
     assert args[2]["id"]
     system_message = _get_system_message("chat", args[2])
-    messages = db.select_messages_by_thread(args[2]["id"])
-    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog = Messages(args[2]["id"]).sorted()
     response = _generate_text(args[0], system_message, chatlog)
 
     assert response["role"] == "assistant"

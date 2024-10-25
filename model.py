@@ -4,12 +4,19 @@ Module for Hugging face pipeline for text generation.
 
 import os
 import time
-from typing import Dict, List, Protocol, Tuple
+from typing import List, Protocol, Tuple, TypedDict
 
 import torch
 from transformers import AutoTokenizer, Pipeline, pipeline
 
 MODEL = "meta-llama/Llama-3.2-3B-Instruct"
+
+
+class ChatMessage(TypedDict):
+    """Chat message type."""
+
+    role: str
+    content: str
 
 
 class ModelInterface(Protocol):
@@ -18,8 +25,8 @@ class ModelInterface(Protocol):
     """
 
     def generate_response(
-        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
-    ) -> Dict[str, str]:
+        self, chat: List[ChatMessage], max_new_tokens: int = 512
+    ) -> ChatMessage:
         """
         Generate a new message based on the chat history.
         """
@@ -36,14 +43,14 @@ class Model:
         self.mocked = isinstance(model, ModelMocked)
 
     def generate_response(
-        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
-    ) -> Dict[str, str]:
+        self, chat: List[ChatMessage], max_new_tokens: int = 512
+    ) -> ChatMessage:
         """
         Generate a new message based on the chat history.
         """
         return self.model.generate_response(chat, max_new_tokens)
 
-    def token_count(self, chat: List[Dict[str, str]]) -> int:
+    def token_count(self, chat: List[ChatMessage]) -> int:
         """
         Return the number of tokens of a chat.
         """
@@ -79,8 +86,8 @@ class ModelActual(ModelInterface):
         return pipe, max_tokens
 
     def generate_response(
-        self, chat: List[Dict[str, str]], max_new_tokens: int = 256
-    ) -> Dict[str, str]:
+        self, chat: List[ChatMessage], max_new_tokens: int = 256
+    ) -> ChatMessage:
         """
         Generate a new message based on the chat history.
         """
@@ -106,8 +113,8 @@ class ModelMocked(ModelInterface):
         return None, 8192
 
     def generate_response(
-        self, chat: List[Dict[str, str]], max_new_tokens: int = 512
-    ) -> Dict[str, str]:
+        self, chat: List[ChatMessage], max_new_tokens: int = 512
+    ) -> ChatMessage:
         """
         Mocked generate_response method.
         """

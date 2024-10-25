@@ -3,9 +3,7 @@ from typing import Optional, TypedDict
 
 
 class Character(TypedDict, total=False):
-    """
-    Character type.
-    """
+    """Character type."""
 
     id: Optional[int]
     name: Optional[str]
@@ -30,9 +28,7 @@ class Character(TypedDict, total=False):
 
 
 class Thread(TypedDict, total=False):
-    """
-    Thread type.
-    """
+    """Thread type."""
 
     id: Optional[int]
     started: Optional[datetime]
@@ -42,9 +38,7 @@ class Thread(TypedDict, total=False):
 
 
 class Message(TypedDict, total=False):
-    """
-    Message type.
-    """
+    """Message type."""
 
     id: Optional[int]
     timestamp: Optional[datetime]
@@ -54,9 +48,7 @@ class Message(TypedDict, total=False):
 
 
 class Event(TypedDict, total=False):
-    """
-    Event type.
-    """
+    """Event type."""
 
     id: Optional[int]
     timestamp: Optional[datetime]
@@ -66,9 +58,7 @@ class Event(TypedDict, total=False):
 
 
 class Post(TypedDict, total=False):
-    """
-    Post type.
-    """
+    """Post type."""
 
     id: Optional[int]
     timestamp: Optional[datetime]
