@@ -187,6 +187,7 @@ class App:
             user = db.User(
                 username=data["username"],
                 password=data["password"],
+                email=data["email"],
             )
             auth.insert_user(user)
             token = auth.issue_access_token(user["username"])

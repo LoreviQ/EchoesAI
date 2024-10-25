@@ -13,6 +13,7 @@ from typing import Generator, List
 import pytest
 from flask.testing import FlaskClient
 
+import auth
 import database as db
 from app import App
 from model import Model, ModelMocked
@@ -283,3 +284,37 @@ def test_get_characters(chars: List[db.Character], client: FlaskClient) -> None:
     assert response.status_code == 200
     assert response.json
     assert response.json["id"] == chars[0]["id"]
+
+
+def test_new_user(client: FlaskClient) -> None:
+    """
+    Test the new user route.
+    """
+    response = client.post(
+        "/users/new",
+        json={"username": "user", "password": "password", "email": "test@test.com"},
+    )
+    assert response.status_code == 200
+    assert response.data
+    token = response.data
+    user = auth.auth_access_token(token)
+    assert user == "user"
+
+
+def test_login(client: FlaskClient) -> None:
+    """
+    Test the login route.
+    """
+    response = client.post(
+        "/users/new",
+        json={"username": "user", "password": "password", "email": "test@test.com"},
+    )
+    response = client.post(
+        "/login",
+        json={"username": "user", "password": "password"},
+    )
+    assert response.status_code == 200
+    assert response.data
+    token = response.data
+    user = auth.auth_access_token(token)
+    assert user == "user"
