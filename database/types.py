@@ -1,3 +1,5 @@
+"""Database types."""
+
 from datetime import datetime
 from typing import Optional, TypedDict
 
@@ -69,3 +71,12 @@ class Post(TypedDict, total=False):
     prompt: Optional[str]
     caption: Optional[str]
     image_path: Optional[str]
+
+
+class User(TypedDict, total=False):
+    """User type."""
+
+    id: Optional[int]
+    username: Optional[str]
+    password: Optional[str]
+    email: Optional[str]
