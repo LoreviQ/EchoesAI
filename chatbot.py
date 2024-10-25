@@ -6,30 +6,30 @@ import random
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Tuple, Union, cast
+from typing import Any, Dict, List, TypedDict, cast
 
 import civitai
 import requests
 from jinja2 import Template
 
 import database as db
-from model import Model
+from model import ChatMessage, Model
 
 MAX_TOKENS = 4096
+MAX_NEW_TOKENS = 512
+
+
+class StampedChatMessage(TypedDict):
+    """Chat message type."""
+
+    role: str
+    content: str
+    timestamp: datetime
+
 
 messageTemplates: Dict[str, Any] = {
     "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
     "get_message": lambda timestamp, user: f"The time is currently {timestamp}, and you have decided to send {user} another message. Please write your message to {user}. Do not include the time in your response.",
-    "event_log": {
-        "message_sent": lambda timestamp, message, user: f"At time {timestamp}, you sent the following message to {user}:\n{message}",
-        "message_received": lambda timestamp, message, user: f"At time {timestamp}, you received the following message from {user}:\n{message}",
-        "events": lambda timestamp, event: f"At time {timestamp}, you were doing the following:\n{event}",
-        "thoughts": lambda timestamp, thought: f"At time {timestamp}, you had the following thought:\n{thought}",
-        "posts": {
-            "text": lambda timestamp, post: f"At time {timestamp}, you posted the following to social media:\n{post}",
-            "photo": lambda timestamp, desciption, caption: f"At time {timestamp}, you postsed the following photo to social media:\n{desciption}\nCaption: {caption}",
-        },
-    },
     "get_event": {
         "event": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
         "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
@@ -48,13 +48,16 @@ class ImageGenerationFailedException(Exception):
 
 def _generate_text(
     model: Model,
-    system_message: List[Dict[str, str]],
-    chat: List[Dict[str, str]],
-) -> Dict[str, str]:
+    system_message: ChatMessage,
+    chat: List[ChatMessage],
+) -> ChatMessage:
     """
     Generate a response from the chatbot.
     """
-    return model.generate_response(system_message + chat, max_new_tokens=512)
+    response = model.generate_response(
+        [system_message] + chat, max_new_tokens=MAX_NEW_TOKENS
+    )
+    return cast(ChatMessage, response)
 
 
 def response_cycle(
@@ -77,8 +80,7 @@ def response_cycle(
 def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
     assert thread["id"]
     sys_message = _get_system_message("time", thread)
-    messages = db.select_messages_by_thread(thread["id"])
-    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
     chatlog.append(
         {
             "role": "user",
@@ -99,8 +101,7 @@ def _get_response_and_submit(
 ) -> None:
     assert thread["id"]
     sys_message = _get_system_message("chat", thread)
-    messages = db.select_messages_by_thread(thread["id"])
-    chatlog = _convert_messages_to_chatlog(messages)
+    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
     chatlog.append(
         {
             "role": "user",
@@ -126,7 +127,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     """
     character = db.select_character(character_id)
     sys_message = _get_system_message(event_type, character)
-    chatlog = _event_log(model, character)
+    chatlog = Events(character_id, True, True, True).sorted(truncate=True, model=model)
     chatlog.append(
         {
             "role": "user",
@@ -142,66 +143,6 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
         content=response["content"],
     )
     db.events.insert_event(event)
-
-
-def _event_log(model: Model, character: db.Character) -> List[Dict[str, str]]:
-    """
-    Create a custom chatlog of events for the chatbot.
-    """
-    assert character["id"]
-    events = db.events.select_events_by_character(character["id"])
-    messages = db.select_messages_by_character(character["id"])
-    all_events = _combine_events(("events", events), ("messages", messages))
-    chatlog = []
-    for event in all_events:
-        match event["type"]:
-            case "event":
-                chatlog.append(
-                    {
-                        "role": "user",
-                        "content": messageTemplates["event_log"]["events"](
-                            event["timestamp"], event["value"]["content"]
-                        ),
-                    }
-                )
-            case "thought":
-                chatlog.append(
-                    {
-                        "role": "user",
-                        "content": messageTemplates["event_log"]["thoughts"](
-                            event["timestamp"], event["value"]["content"]
-                        ),
-                    }
-                )
-            case "message":
-                if event["value"]["role"] == "user":
-                    chatlog.append(
-                        {
-                            "role": "user",
-                            "content": messageTemplates["event_log"][
-                                "message_received"
-                            ](
-                                event["timestamp"],
-                                event["value"]["content"],
-                                event["value"]["thread"]["user"],
-                            ),
-                        }
-                    )
-                else:
-                    chatlog.append(
-                        {
-                            "role": "user",
-                            "content": messageTemplates["event_log"]["message_sent"](
-                                event["timestamp"],
-                                event["value"]["content"],
-                                event["value"]["thread"]["user"],
-                            ),
-                        }
-                    )
-    truncated_log = chatlog[:]
-    while model.token_count(truncated_log) > MAX_TOKENS:
-        truncated_log.pop(0)
-    return truncated_log
 
 
 def generate_social_media_post(model: Model, character_id: int) -> None:
@@ -220,8 +161,13 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     Generate a social media post with an image.
     """
     # generate image description
+    if "id" not in character:
+        raise ValueError("Character does not have an ID.")
+    assert character["id"]
     sys_message = _get_system_message("photo", character)
-    chatlog = _event_log(model, character)
+    chatlog = Events(character["id"], True, True, True).sorted(
+        truncate=True, model=model
+    )
     chatlog.append(
         {
             "role": "user",
@@ -234,12 +180,7 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
 
     # generate stable diffusion prompt
     sys_message = _get_system_message("sd-prompt", character)
-    prompt_chatlog = [
-        {
-            "role": "user",
-            "content": description["content"],
-        }
-    ]
+    prompt_chatlog = [ChatMessage(role="user", content=description["content"])]
     prompt = _generate_text(model, sys_message, prompt_chatlog)
 
     # generate caption
@@ -262,8 +203,13 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
 
 def _generate_text_post(model: Model, character: db.Character) -> None:
     # generate description
+    if "id" not in character:
+        raise ValueError("Character does not have an ID.")
+    assert character["id"]
     sys_message = _get_system_message("text_post", character)
-    chatlog = _event_log(model, character)
+    chatlog = Events(character["id"], True, True, True).sorted(
+        truncate=True, model=model
+    )
     chatlog.append(
         {
             "role": "user",
@@ -281,31 +227,6 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
         caption="",
     )
     db.posts.insert_social_media_post(post)
-
-
-def _convert_messages_to_chatlog(
-    messages: List[db.Message],
-) -> List[Dict[str, str]]:
-    chatlog: List[Dict[str, str]] = []
-    for message in messages:
-        formatter: Callable
-        assert message["role"]
-        assert message["thread"]
-        if message["role"] == "user":
-            formatter = messageTemplates["event_log"]["message_received"]
-        else:
-            formatter = messageTemplates["event_log"]["message_sent"]
-        chatlog.append(
-            {
-                "role": message["role"],
-                "content": formatter(
-                    db.convert_dt_ts(message["timestamp"]),
-                    message["content"],
-                    message["thread"]["user"],
-                ),
-            }
-        )
-    return chatlog
 
 
 def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) -> None:
@@ -392,38 +313,11 @@ def _parse_time(time: str) -> timedelta:
     return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
 
 
-def _combine_events(
-    *event_lists: Tuple[str, Union[List[db.Event], List[db.Message]]]
-) -> List[Dict[str, Any]]:
-    """
-    Creates a compiled event list from multiple sources
-    """
-    result = []
-    for event_list in event_lists:
-        for event in event_list[1]:
-            event_type: str
-            match event_list[0]:
-                case "events":
-                    event = cast(db.Event, event)
-                    assert event["type"]
-                    event_type = event["type"]
-                case "messages":
-                    event_type = "message"
-            result.append(
-                {
-                    "type": event_type,
-                    "timestamp": event["timestamp"],
-                    "value": event,
-                }
-            )
-    return sorted(result, key=lambda x: x["timestamp"])
-
-
 def _get_system_message(
     system_type: str,
     data: db.Character | db.Thread,
     photo_description: str = "",
-) -> List[Dict[str, str]]:
+) -> ChatMessage:
     """
     Change the system message between several preconfigured options.
     """
@@ -467,9 +361,208 @@ def _get_system_message(
         template = Template(current_content)
         current_content = template.render(context)
 
-    return [
-        {
-            "role": "system",
-            "content": current_content,
-        }
-    ]
+    return ChatMessage(role="system", content=current_content)
+
+
+class Messages:
+    """
+    Class to manage messages related to a particular thread.
+    """
+
+    def __init__(self, thread_id: int) -> None:
+        self.messages = db.select_messages_by_thread(thread_id)
+
+    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert messages into chatlog messages.
+        """
+        message_log: List[StampedChatMessage] = []
+        for message in self.messages:
+            if not all(
+                [
+                    message["timestamp"],
+                    message["content"],
+                    message["role"],
+                ]
+            ):
+                continue
+            assert message["timestamp"]
+            assert message["content"]
+            assert message["role"]
+            content = f"{message['timestamp']}: {message['content']}"
+            message_log.append(
+                StampedChatMessage(
+                    role=message["role"],
+                    content=content,
+                    timestamp=message["timestamp"],
+                )
+            )
+        return message_log
+
+    def sorted(
+        self, truncate: bool = False, model: Model | None = None
+    ) -> List[ChatMessage]:
+        """
+        Return a sorted log of messages, optionally truncated.
+        """
+        sorter = self._convert_messages_to_chatlog()
+        sorter = sorted(sorter, key=lambda x: x["timestamp"])
+        chatlog = [cast(ChatMessage, x) for x in sorter]
+        if not truncate:
+            return chatlog
+        if not model:
+            raise ValueError("Model must be provided to truncate chatlog.")
+        # truncate chatlog to max tokens
+        truncated_log = chatlog[:]
+        while model.token_count(truncated_log) > MAX_TOKENS:
+            truncated_log.pop(0)
+        return truncated_log
+
+
+class Events:
+    """
+    Class to manage events for a character.
+    """
+
+    def __init__(self, char_id: int, events: bool, messages: bool, posts: bool) -> None:
+        if not any([events, messages, posts]):
+            raise ValueError("At least one of events, messages, or posts must be True.")
+        # events
+        self.e_bool = events
+        if events:
+            self.events = db.events.select_events_by_character(char_id)
+        # messages
+        self.m_bool = messages
+        if messages:
+            self.messages = db.select_messages_by_character(char_id)
+        # posts
+        self.p_bool = posts
+        if posts:
+            self.posts = db.posts.get_posts_by_character(char_id)
+
+    def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert events into chatlog messages.
+        """
+        event_log: List[StampedChatMessage] = []
+        for event in self.events:
+            if not all(
+                [
+                    event["type"],
+                    event["timestamp"],
+                    event["content"],
+                ]
+            ):
+                continue
+            assert event["type"]
+            assert event["timestamp"]
+            assert event["content"]
+            match event["type"]:
+                case "thought":
+                    content = f"At time {event['timestamp']}, you had the following thought: {event['content']}"
+                case "event":
+                    content = f"At time {event['timestamp']}, you were doing the following: {event['content']}"
+            event_log.append(
+                StampedChatMessage(
+                    role="user", content=content, timestamp=event["timestamp"]
+                )
+            )
+        return event_log
+
+    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert messages into chatlog messages.
+        """
+        message_log: List[StampedChatMessage] = []
+        for message in self.messages:
+            if not all(
+                [
+                    message["timestamp"],
+                    message["content"],
+                    message["role"],
+                    message["thread"],
+                    getattr(message["thread"], "user", None),
+                ]
+            ):
+                continue
+            assert message["timestamp"]
+            assert message["content"]
+            assert message["role"]
+            assert message["thread"]
+            assert message["thread"]["user"]
+            if message["role"] == "user":
+                content = f"At time {message['timestamp']}, {message['thread']['user']} sent the message: {message['content']}"
+
+            else:
+                content = f"At time {message['timestamp']}, you sent the message: {message['content']} to {message['thread']['user']}"
+
+            message_log.append(
+                StampedChatMessage(
+                    role=message["role"],
+                    content=content,
+                    timestamp=message["timestamp"],
+                )
+            )
+        return message_log
+
+    def _convert_posts_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert posts into chatlog messages.
+        """
+        post_log: List[StampedChatMessage] = []
+        for post in self.posts:
+            if post["image_post"]:
+                if not all(
+                    [
+                        post["caption"],
+                        post["timestamp"],
+                        post["description"],
+                    ]
+                ):
+                    continue
+                assert post["caption"]
+                assert post["timestamp"]
+                assert post["description"]
+                content = f"At time {post['timestamp']}, you posted the following photo to social media: {post['description']} with the caption: {post['caption']}"
+            else:
+                if not all(
+                    [
+                        post["timestamp"],
+                        post["description"],
+                    ]
+                ):
+                    continue
+                assert post["timestamp"]
+                assert post["description"]
+                content = f"At time {post['timestamp']}, you posted the following to social media:\n{post['description']}"
+            post_log.append(
+                StampedChatMessage(
+                    role="user", content=content, timestamp=post["timestamp"]
+                )
+            )
+        return post_log
+
+    def sorted(
+        self, truncate: bool = False, model: Model | None = None
+    ) -> List[ChatMessage]:
+        """
+        Return a sorted log of all events, messages, and posts, optionally truncated.
+        """
+        sorter: List[StampedChatMessage] = []
+        if self.e_bool:
+            sorter += self._convert_events_to_chatlog()
+        if self.m_bool:
+            sorter += self._convert_messages_to_chatlog()
+        if self.p_bool:
+            sorter += self._convert_posts_to_chatlog()
+        sorter = sorted(sorter, key=lambda x: x["timestamp"])
+        chatlog = [cast(ChatMessage, x) for x in sorter]
+        if not truncate:
+            return chatlog
+        if not model:
+            raise ValueError("Model must be provided to truncate chatlog.")
+        # truncate chatlog to max tokens
+        truncated_log = chatlog[:]
+        while model.token_count(truncated_log) > MAX_TOKENS:
+            truncated_log.pop(0)
+        return truncated_log
