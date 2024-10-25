@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS characters (
     img_gen boolean DEFAULT 0,
     model TEXT,
     global_positive TEXT,
-    global_negative TEXT
+    global_negative TEXT,
+    profile_path TEXT
 );
 
 CREATE TABLE IF NOT EXISTS threads (

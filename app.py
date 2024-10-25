@@ -109,6 +109,7 @@ class App:
         @self.app.route("/events/<string:char_path>", methods=["GET"])
         def get_events_by_character(char_path: str) -> Response:
             character = db.select_character_by_path(char_path)
+            assert character["id"]
             events = db.events.select_events_by_character(character["id"])
             response: List[Dict[str, Any]] = []
             for event in events:
@@ -125,6 +126,7 @@ class App:
         @self.app.route("/posts/<string:char_path>", methods=["GET"])
         def get_posts_by_character(char_path: str) -> Response:
             character = db.select_character_by_path(char_path)
+            assert character["id"]
             posts = db.posts.get_posts_by_character(character["id"])
             response: List[Dict[str, Any]] = []
             for post in posts:
