@@ -2,18 +2,15 @@
 Module to hold server logic.
 """
 
-import atexit
 import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, Response, jsonify, make_response, request, send_from_directory
 from flask_cors import CORS
 
 import database as db
-from chatbot import generate_event, generate_social_media_post, response_cycle
+from chatbot import response_cycle, schedule_events
 from model import Model
 
 
@@ -29,7 +26,7 @@ class App:
         self.model = model
         db.create_db()
         self._setup_routes()
-        self._schedule_events()
+        schedule_events(model)
 
     def _setup_routes(self) -> None:
         """
@@ -179,45 +176,6 @@ class App:
         def get_character_by_path(char_path: str) -> Response:
             character = db.select_character_by_path(char_path)
             return make_response(jsonify(character), 200)
-
-        # TODO Schedule this later, it's only a route for testing
-        @self.app.route("/img_gen_start")
-        def img_gen_start() -> Response:
-            generate_social_media_post(self.model, 1)
-            return make_response("", 200)
-
-    def _schedule_events(self) -> None:
-        # TODO: extend to other chatbots and event types
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(
-            func=generate_event,
-            trigger=CronTrigger(minute="0,30"),
-            args=(
-                self.model,
-                2,
-                "event",
-            ),
-        )
-        scheduler.add_job(
-            func=generate_event,
-            trigger=CronTrigger(minute="15,45"),
-            args=(
-                self.model,
-                2,
-                "thought",
-            ),
-        )
-        if not self.model.mocked:
-            scheduler.add_job(
-                func=generate_social_media_post,
-                trigger=CronTrigger(minute="0"),
-                args=(
-                    self.model,
-                    2,
-                ),
-            )
-        scheduler.start()
-        atexit.register(scheduler.shutdown)
 
     def serve(self) -> None:
         """

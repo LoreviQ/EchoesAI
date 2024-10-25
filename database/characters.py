@@ -158,3 +158,17 @@ def select_characters() -> List[Character]:
             )
         )
     return characters
+
+
+def select_character_ids() -> List[int]:
+    """Select all character ids from the database."""
+
+    query = """
+        SELECT id
+        FROM characters
+    """
+    _, cursor, close = connect_to_db()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    close()
+    return [character[0] for character in result]
