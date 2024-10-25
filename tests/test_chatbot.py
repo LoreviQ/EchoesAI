@@ -11,13 +11,11 @@ import pytest
 
 import database as db
 from chatbot import (
-    Events,
     Messages,
     _generate_text,
     _get_system_message,
     _parse_time,
     generate_event,
-    generate_social_media_post,
     response_cycle,
 )
 from model import Model, ModelMocked

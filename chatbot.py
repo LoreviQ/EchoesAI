@@ -6,7 +6,7 @@ import random
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, TypedDict, cast
+from typing import List, TypedDict, cast
 
 import civitai
 import requests
@@ -25,21 +25,6 @@ class StampedChatMessage(TypedDict):
     role: str
     content: str
     timestamp: datetime
-
-
-messageTemplates: Dict[str, Any] = {
-    "tt_next_message": lambda timestamp, user: f"The time is currently {timestamp}. How long until you next send a message to {user}?",
-    "get_message": lambda timestamp, user: f"The time is currently {timestamp}, and you have decided to send {user} another message. Please write your message to {user}. Do not include the time in your response.",
-    "get_event": {
-        "event": lambda timestamp: f"The time is currently {timestamp}. Please describe what you are doing now.",
-        "thought": lambda timestamp: f"The time is currently {timestamp}. Please write your current thoughts.",
-    },
-    "get_post": {
-        "text": lambda timestamp: f"The time is currently {timestamp}. Please write the post you are about to make.",
-        "photo": lambda timestamp: f"The time is currently {timestamp}. Please describe the photo you are about to post.",
-        "caption": lambda timestamp, p_desc: f"The time is currently {timestamp}. The photo description is {p_desc}. Please write a caption for the photo.",
-    },
-}
 
 
 class ImageGenerationFailedException(Exception):
@@ -81,15 +66,12 @@ def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
     assert thread["id"]
     sys_message = _get_system_message("time", thread)
     chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
-    chatlog.append(
-        {
-            "role": "user",
-            "content": messageTemplates["tt_next_message"](
-                db.convert_dt_ts(datetime.now(timezone.utc)),
-                thread["user"],
-            ),
-        }
+    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    content = (
+        f"The time is currently {now}. How long until you next send a "
+        f"message to {thread['user']}?"
     )
+    chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
     return _parse_time(response["content"])
 
@@ -102,13 +84,16 @@ def _get_response_and_submit(
     assert thread["id"]
     sys_message = _get_system_message("chat", thread)
     chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
+    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    content = (
+        f"The time is currently {now}, and you have decided to send {thread['user']} "
+        f"another message. Please write your message to {thread['user']}. Do not include "
+        "the time in your response."
+    )
     chatlog.append(
         {
             "role": "user",
-            "content": messageTemplates["get_message"](
-                db.convert_dt_ts(datetime.now(timezone.utc)),
-                thread["user"],
-            ),
+            "content": content,
         }
     )
     response = _generate_text(model, sys_message, chatlog)
@@ -128,14 +113,17 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     character = db.select_character(character_id)
     sys_message = _get_system_message(event_type, character)
     chatlog = Events(character_id, True, True, True).sorted(truncate=True, model=model)
-    chatlog.append(
-        {
-            "role": "user",
-            "content": messageTemplates["get_event"][event_type](
-                db.convert_dt_ts(datetime.now(timezone.utc))
-            ),
-        }
-    )
+    timestamp = db.convert_dt_ts(datetime.now(timezone.utc))
+    match event_type:
+        case "thought":
+            content = f"The time is currently {timestamp}. Please write your current thoughts."
+        case "event":
+            content = (
+                f"The time is currently {timestamp}. "
+                f"Please describe what you are currently doing."
+            )
+
+    chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
     event = db.Event(
         character=character["id"],
@@ -160,22 +148,22 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     """
     Generate a social media post with an image.
     """
-    # generate image description
+    # Guard clause to ensure character has an ID
     if "id" not in character:
         raise ValueError("Character does not have an ID.")
     assert character["id"]
+
+    # generate image description
+    now = db.convert_dt_ts(datetime.now(timezone.utc))
     sys_message = _get_system_message("photo", character)
     chatlog = Events(character["id"], True, True, True).sorted(
         truncate=True, model=model
     )
-    chatlog.append(
-        {
-            "role": "user",
-            "content": messageTemplates["get_post"]["photo"](
-                db.convert_dt_ts(datetime.now(timezone.utc))
-            ),
-        }
+    content = (
+        f"The time is currently {now}. Please describe "
+        "the photo you are about to post."
     )
+    chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
 
     # generate stable diffusion prompt
@@ -185,10 +173,15 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
 
     # generate caption
     sys_message = _get_system_message("caption", character, description["content"])
-    chatlog[-1]["content"] = messageTemplates["get_post"]["caption"](
-        db.convert_dt_ts(datetime.now(timezone.utc)), description["content"]
+    content = (
+        f"The time is currently {now}. The photo description is "
+        f"{description['content']}. Please write a caption for the photo."
     )
+
+    chatlog[-1] = ChatMessage(role="user", content=content)
     caption = _generate_text(model, sys_message, chatlog)
+
+    # insert post into database
     post = db.Post(
         character=character["id"],
         description=description["content"],
@@ -202,23 +195,24 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
 
 
 def _generate_text_post(model: Model, character: db.Character) -> None:
-    # generate description
+    # guard clause to ensure character has an ID
     if "id" not in character:
         raise ValueError("Character does not have an ID.")
     assert character["id"]
+
+    # generate description
     sys_message = _get_system_message("text_post", character)
+    now = db.convert_dt_ts(datetime.now(timezone.utc))
     chatlog = Events(character["id"], True, True, True).sorted(
         truncate=True, model=model
     )
-    chatlog.append(
-        {
-            "role": "user",
-            "content": messageTemplates["get_post"]["text"](
-                db.convert_dt_ts(datetime.now(timezone.utc))
-            ),
-        }
+    content = (
+        f"The time is currently {now}. Please write " "the post you are about to make."
     )
+    chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
+
+    # insert post into database
     post = db.Post(
         character=character["id"],
         description=description["content"],
@@ -324,9 +318,9 @@ def _get_system_message(
     with open(f"templates/{system_type}.txt", "r", encoding="utf-8") as file:
         template_content = file.read()
 
-    if (
-        "started" in data
-    ):  # Is a thread. TypedDicts apparently don't support type checking. Almost makes you wonder wtf the point of them is.
+    if "started" in data:  # Is a thread.
+        # TypedDicts apparently don't support type checking.
+        # Almost makes you wonder wtf the point of them is.
         thread = cast(db.Thread, data)
         assert thread["character"]
         character = db.select_character(thread["character"])
@@ -523,7 +517,11 @@ class Events:
                 assert post["caption"]
                 assert post["timestamp"]
                 assert post["description"]
-                content = f"At time {post['timestamp']}, you posted the following photo to social media: {post['description']} with the caption: {post['caption']}"
+                content = (
+                    f"At time {post['timestamp']}, you posted the following "
+                    f"photo to social media: {post['description']} with the caption: "
+                    f"{post['caption']}"
+                )
             else:
                 if not all(
                     [
@@ -534,7 +532,10 @@ class Events:
                     continue
                 assert post["timestamp"]
                 assert post["description"]
-                content = f"At time {post['timestamp']}, you posted the following to social media:\n{post['description']}"
+                content = (
+                    f"At time {post['timestamp']}, you posted the following "
+                    f"to social media:\n{post['description']}"
+                )
             post_log.append(
                 StampedChatMessage(
                     role="user", content=content, timestamp=post["timestamp"]
