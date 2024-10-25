@@ -242,23 +242,27 @@ def test_get_response_now_new(
     assert messages[-1]["timestamp"] < datetime.now(timezone.utc)
 
 
-def test_get_events_by_character(events: List[db.Event], client: FlaskClient) -> None:
+def test_get_events_by_character(
+    chars: List[db.Character], events: List[db.Event], client: FlaskClient
+) -> None:
     """
     Test the get events by character route.
     """
-    response = client.get(f"/events/{events[0]['character']}")
+    response = client.get(f"/events/{chars[0]['path_name']}")
     assert response.status_code == 200
     assert response.json
     assert response.json[0]["id"] == events[0]["id"]
     assert response.json[1]["id"] == events[1]["id"]
 
 
-def test_get_posts_by_character(posts: List[db.Post], client: FlaskClient) -> None:
+def test_get_posts_by_character(
+    chars: List[db.Character], posts: List[db.Post], client: FlaskClient
+) -> None:
     """
     Test the get posts by character route.
     """
 
-    response = client.get(f"/posts/{posts[0]['character']}")
+    response = client.get(f"/posts/{chars[0]['path_name']}")
     assert response.status_code == 200
     assert response.json
     assert len(response.json) == 2
