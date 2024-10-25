@@ -28,7 +28,7 @@ def test_issue_access_token():
     """
     Test the issue_access_token function.
     """
-    token = auth.issue_access_token(1)
+    token = auth.issue_access_token("user")
     assert isinstance(token, str)
 
 
@@ -36,9 +36,9 @@ def test_auth_access_token():
     """
     Test the auth_access_token function.
     """
-    token = auth.issue_access_token(1)
-    user_id = auth.auth_access_token(token)
-    assert user_id == "1"
+    token = auth.issue_access_token("user")
+    user = auth.auth_access_token(token)
+    assert user == "user"
     with pytest.raises(jwt.InvalidTokenError):
         auth.auth_access_token("invalid_token")
 
@@ -49,7 +49,7 @@ def test_auth_access_token_expired(monkeypatch: pytest.MonkeyPatch):
     """
     duration = timedelta(seconds=1)
     monkeypatch.setattr("auth.tokens.TOKEN_DURATION", duration)
-    token = auth.issue_access_token(1)
+    token = auth.issue_access_token("user")
     time.sleep(2)
     with pytest.raises(jwt.ExpiredSignatureError):
         auth.auth_access_token(token)
