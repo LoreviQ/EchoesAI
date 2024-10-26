@@ -26,9 +26,10 @@ CREATE TABLE IF NOT EXISTS characters (
 CREATE TABLE IF NOT EXISTS threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     started TEXT DEFAULT CURRENT_TIMESTAMP,
-    user TEXT NOT NULL,
+    user INTEGER NOT NULL,
     character INTEGER NOT NULL,
     phase INTEGER DEFAULT 0,
+    FOREIGN KEY(user) REFERENCES users(id),
     FOREIGN KEY(character) REFERENCES characters(id)
 );
 
@@ -75,4 +76,11 @@ CREATE TABLE IF NOT EXISTS phases (
     events TEXT,
     advance_conditions TEXT,
     FOREIGN KEY(character) REFERENCES characters(id)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE
 );
