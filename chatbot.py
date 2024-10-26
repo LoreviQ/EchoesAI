@@ -190,6 +190,7 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     post = db.Post(
         character=character["id"],
         description=description["content"],
+        image_post=True,
         prompt=prompt["content"],
         caption=caption["content"],
     )
