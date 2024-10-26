@@ -40,4 +40,6 @@ from .threads import (
     select_thread,
     select_threads_by_user,
 )
-from .types import Character, Event, Message, Post, Thread
+
+from .users import insert_user, select_user, update_user
+from .types import Character, Event, Message, Post, Thread, User
