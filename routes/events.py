@@ -15,13 +15,10 @@ def get_events() -> Response:
     query_params = request.args.to_dict()
     event_query = db.Event(**query_params)
     if "char_path" in query_params:
-        try:
-            char_id = db.select_characters(
-                db.Character(path_name=query_params["char_path"])
-            )[0]["id"]
-            event_query["character"] = char_id
-        except KeyError:
-            return make_response(b"character not found", 404)
+        chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
+        if not chars:
+            return make_response(jsonify([]), 200)
+        event_query["character"] = chars[0]["id"]
 
     events = db.select_events(event_query)
     response: List[Dict[str, str]] = []

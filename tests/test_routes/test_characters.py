@@ -84,7 +84,7 @@ def test_get_characters_query(
     Test the get characters route with a query.
     """
     query = f"?name={char_1['name']}"
-    response = client.get("/v1/characters" + query)
+    response = client.get(f"/v1/characters{query}")
     assert response.status_code == 200
     assert response.json
     assert len(response.json) == 1
