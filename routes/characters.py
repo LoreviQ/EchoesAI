@@ -7,7 +7,7 @@ import database as db
 from .main import bp
 
 
-@bp.route("/characters/new", methods=["POST"])
+@bp.route("/v1/characters/", methods=["POST"])
 def new_character() -> Response:
     """Creates a new character."""
     data = request.get_json()
@@ -39,7 +39,7 @@ def new_character() -> Response:
     return make_response(str(data["path_name"]), 200)
 
 
-@bp.route("/characters/id/<int:character_id>", methods=["GET"])
+@bp.route("/v1/characters/<int:character_id>", methods=["GET"])
 def get_character(character_id: int) -> Response:
     """Gets a character by ID."""
     try:
@@ -49,11 +49,6 @@ def get_character(character_id: int) -> Response:
         return make_response("character not found", 404)
 
 
-@bp.route("/characters/path/<string:char_path>", methods=["GET"])
-def get_character_by_path(char_path: str) -> Response:
-    """Gets a character by path."""
-    try:
-        character = db.select_character_by_path(char_path)
-        return make_response(jsonify(character), 200)
-    except ValueError:
-        return make_response("character not found", 404)
+@bp.route("/v1/characters", methods=["GET"])
+def get_characters_with_query(char_path: str) -> Response:
+    """Gets characters meeting the query."""

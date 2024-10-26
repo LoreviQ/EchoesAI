@@ -71,51 +71,61 @@ def select_character(character_id: int) -> Character:
     raise ValueError("character not found")
 
 
-def select_character_by_path(path: str) -> Character:
-    """
-    Select a character from the database by path.
-    """
+def select_character_by_query(character: Character) -> List[Character]:
+    """Select characters from db that match the query."""
+
     query = """
-        SELECT 
-            id, name, path_name, description, age, height, personality, 
+        SELECT id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
             model, global_positive, global_negative, profile_path
         FROM characters
-        WHERE path_name = ?
+        WHERE 
     """
+    conditions = []
+    parameters = []
+    for key, value in character.items():
+        if value is not None:
+            conditions.append(f"{key} = ?")
+            parameters.append(value)
+
+    if not conditions:
+        # return all characters if no conditions are provided
+        return select_characters()
+
+    query += " AND ".join(conditions)
     _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (path,),
-    )
-    result = cursor.fetchone()
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
     close()
-    if result:
-        return Character(
-            id=result[0],
-            name=result[1],
-            path_name=result[2],
-            description=result[3],
-            age=result[4],
-            height=result[5],
-            personality=result[6],
-            appearance=result[7],
-            loves=result[8],
-            hates=result[9],
-            details=result[10],
-            scenario=result[11],
-            important=result[12],
-            initial_message=result[13],
-            favorite_colour=result[14],
-            phases=result[15],
-            img_gen=result[16],
-            model=result[17],
-            global_positive=result[18],
-            global_negative=result[19],
-            profile_path=result[20],
+    characters = []
+    for result in results:
+        characters.append(
+            Character(
+                id=result[0],
+                name=result[1],
+                path_name=result[2],
+                description=result[3],
+                age=result[4],
+                height=result[5],
+                personality=result[6],
+                appearance=result[7],
+                loves=result[8],
+                hates=result[9],
+                details=result[10],
+                scenario=result[11],
+                important=result[12],
+                initial_message=result[13],
+                favorite_colour=result[14],
+                phases=result[15],
+                img_gen=result[16],
+                model=result[17],
+                global_positive=result[18],
+                global_negative=result[19],
+                profile_path=result[20],
+            )
         )
-    raise ValueError("Character not found")
+    return characters
 
 
 def select_characters() -> List[Character]:

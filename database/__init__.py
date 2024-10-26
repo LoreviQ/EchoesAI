@@ -1,7 +1,7 @@
 from .characters import (
     insert_character,
     select_character,
-    select_character_by_path,
+    select_character_by_query,
     select_character_ids,
     select_characters,
 )
@@ -40,6 +40,5 @@ from .threads import (
     select_thread,
     select_threads_by_user,
 )
-
-from .users import insert_user, select_user, update_user
 from .types import Character, Event, Message, Post, Thread, User
+from .users import insert_user, select_user, update_user

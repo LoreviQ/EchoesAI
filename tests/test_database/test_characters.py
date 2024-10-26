@@ -58,20 +58,59 @@ def test_select_character(db_init: str) -> None:
     assert character["name"] == char_2["name"]
 
 
-def test_select_character_by_path(db_init: str) -> None:
+def test_select_character_by_query_path(db_init: str) -> None:
     """
-    Test the select_character function.
+    Test the select_character_by_query function with a path.
     """
     char_1 = db.Character(name="test character", path_name="test_character")
     char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    character_id = db.insert_character(char_1)
-    character = db.select_character_by_path(char_1["path_name"])
-    assert character["id"] == character_id
+    character_1_id = db.insert_character(char_1)
+    character_2_id = db.insert_character(char_2)
+    character_1_query = db.Character(path_name=char_1["path_name"])
+    character_2_query = db.Character(path_name=char_2["path_name"])
+    character = db.select_character_by_query(character_1_query)[0]
+    assert character["id"] == character_1_id
     assert character["name"] == char_1["name"]
-    character_id = db.insert_character(char_2)
-    character = db.select_character_by_path(char_2["path_name"])
-    assert character["id"] == character_id
+    character = db.select_character_by_query(character_2_query)[0]
+    assert character["id"] == character_2_id
     assert character["name"] == char_2["name"]
+
+
+def test_select_character_by_query_multiple(db_init: str) -> None:
+    """
+    Test the select_character_by_query function when multiple characters are returned.
+    """
+    char_1 = db.Character(
+        name="test character", path_name="test_character", img_gen=True
+    )
+    char_2 = db.Character(
+        name="test character 2", path_name="test_character_2", img_gen=True
+    )
+    character_1_id = db.insert_character(char_1)
+    character_2_id = db.insert_character(char_2)
+    character_query = db.Character(img_gen=True)
+    characters = db.select_character_by_query(character_query)
+    assert characters[0]["id"] == character_1_id
+    assert characters[0]["name"] == char_1["name"]
+    assert characters[1]["id"] == character_2_id
+    assert characters[1]["name"] == char_2["name"]
+
+
+def test_select_character_by_query_none(db_init: str) -> None:
+    """
+    Test the select_character_by_query function when no characters are returned.
+    """
+    char_1 = db.Character(
+        name="test character", path_name="test_character", img_gen=True
+    )
+    char_2 = db.Character(
+        name="test character 2", path_name="test_character_2", img_gen=True
+    )
+    db.insert_character(char_1)
+    db.insert_character(char_2)
+    character_query = db.Character(img_gen=False)
+    characters = db.select_character_by_query(character_query)
+    assert len(characters) == 0
 
 
 def test_select_characters(db_init: str) -> None:
