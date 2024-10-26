@@ -4,16 +4,13 @@ This file contains the tests for the app.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-import time
-from datetime import datetime, timezone
+
 from multiprocessing import Value
-from typing import Generator, List
+from typing import Generator
 
 import pytest
 from flask.testing import FlaskClient
 
-import auth
-import database as db
 from app import App
 from model import Model, ModelMocked
 from tests.test_database.test_main import db_init
