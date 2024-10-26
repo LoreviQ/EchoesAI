@@ -7,7 +7,7 @@ import database as db
 from .main import bp
 
 
-@bp.route("/v1/characters/", methods=["POST"])
+@bp.route("/v1/characters", methods=["POST"])
 def new_character() -> Response:
     """Creates a new character."""
     data = request.get_json()
@@ -50,5 +50,9 @@ def get_character(character_id: int) -> Response:
 
 
 @bp.route("/v1/characters", methods=["GET"])
-def get_characters_with_query(char_path: str) -> Response:
-    """Gets characters meeting the query."""
+def get_characters() -> Response:
+    """Gets characters, optionally with a query."""
+    query_params = request.args.to_dict()
+    character = db.Character(**query_params)
+    characters = db.select_character_by_query(character)
+    return make_response(jsonify(characters), 200)
