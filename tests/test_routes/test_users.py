@@ -43,7 +43,7 @@ def test_new_user_missing_field(client: FlaskClient) -> None:
     assert response.status_code == 400
 
 
-def test_login(db_init: str, user_1: db.User, client: FlaskClient) -> None:
+def test_login(client: FlaskClient, user_1: db.User) -> None:
     """
     Test the login route.
     """
@@ -59,13 +59,13 @@ def test_login(db_init: str, user_1: db.User, client: FlaskClient) -> None:
     assert user == user_1["username"]
 
 
-def test_login_invalid_user(db_init: str, user_1: db.User, client: FlaskClient) -> None:
+def test_login_invalid_user(client: FlaskClient, user_1: db.User) -> None:
     """
     Test the login route with invalid user.
     """
     login_payload = {
         "username": user_1["username"],
-        "password": user_1["password"],
+        "password": "invalid_password",
     }
     response = client.post("/login", json=login_payload)
     assert response.status_code == 401

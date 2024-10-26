@@ -68,7 +68,7 @@ def select_character(character_id: int) -> Character:
             global_negative=result[19],
             profile_path=result[20],
         )
-    raise ValueError("Character not found")
+    raise ValueError("character not found")
 
 
 def select_character_by_path(path: str) -> Character:

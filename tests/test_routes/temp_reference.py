@@ -84,18 +84,3 @@ def test_get_posts_by_character(
     assert len(response.json) == 2
     assert response.json[0]["description"] == posts[0]["description"]
     assert response.json[1]["description"] == posts[1]["description"]
-
-
-def test_get_characters(chars: List[db.Character], client: FlaskClient) -> None:
-    """
-    Test the get characters route.
-    """
-    response = client.get(f"/characters/id/{chars[0]['id']}")
-    assert response.status_code == 200
-    assert response.json
-    assert response.json["id"] == chars[0]["id"]
-
-    response = client.get(f"/characters/path/{chars[0]['path_name']}")
-    assert response.status_code == 200
-    assert response.json
-    assert response.json["id"] == chars[0]["id"]
