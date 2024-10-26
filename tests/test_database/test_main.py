@@ -27,7 +27,7 @@ def db_init(
     monkeypatch.setattr("database.main.DB_PATH", db_path)
     db.create_db()
 
-    def cleanup():
+    def cleanup() -> None:
         os.remove(db_path)
 
     request.addfinalizer(cleanup)

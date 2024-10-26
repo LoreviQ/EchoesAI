@@ -27,9 +27,9 @@ class App:
         self._setup_before_request()
         schedule_events(model)
 
-    def _setup_before_request(self):
+    def _setup_before_request(self) -> None:
         @self.app.before_request
-        def before_request():
+        def before_request() -> None:
             g.trigger_response_cycle = self.trigger_response_cycle
 
     def serve(self) -> None:

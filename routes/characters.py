@@ -40,7 +40,7 @@ def new_character() -> Response:
 
 
 @bp.route("/v1/characters/<string:char_path>", methods=["GET"])
-def get_character(char_path: int) -> Response:
+def get_character(char_path: str) -> Response:
     """Gets a character by path name."""
     try:
         character = db.select_character(char_path)

@@ -103,10 +103,12 @@ def test_get_characters_query_no_matching(
     query = "?name=not_a_character"
     response = client.get("/v1/characters" + query)
     assert response.status_code == 200
-    assert len(response.json) == 0
+    assert not response.json
 
 
-def test_get_posts_by_character(client, char_1, post_1, post_2):
+def test_get_posts_by_character(
+    client: FlaskClient, char_1: db.Character, post_1: db.Post, post_2: db.Post
+) -> None:
     """
     Test the get characters posts.
     """
@@ -117,7 +119,9 @@ def test_get_posts_by_character(client, char_1, post_1, post_2):
     assert response.json[1]["id"] == post_2["id"]
 
 
-def test_get_posts_by_character_no_posts(client, char_1):
+def test_get_posts_by_character_no_posts(
+    client: FlaskClient, char_1: db.Character
+) -> None:
     """
     Test the get posts by character route with no posts.
     """
@@ -126,7 +130,7 @@ def test_get_posts_by_character_no_posts(client, char_1):
     assert response.json == []
 
 
-def test_get_posts_by_character_invalid_character(client):
+def test_get_posts_by_character_invalid_character(client: FlaskClient) -> None:
     """
     Test the get posts by character route with an invalid character.
     """
@@ -135,7 +139,9 @@ def test_get_posts_by_character_invalid_character(client):
     assert response.data == b"character not found"
 
 
-def test_get_events_by_character(client, char_1, event_1, event_2):
+def test_get_events_by_character(
+    client: FlaskClient, char_1: db.Character, event_1: db.Event, event_2: db.Event
+) -> None:
     """
     Test the get characters events.
     """
@@ -146,7 +152,9 @@ def test_get_events_by_character(client, char_1, event_1, event_2):
     assert response.json[1]["id"] == event_2["id"]
 
 
-def test_get_events_by_character_no_events(client, char_1):
+def test_get_events_by_character_no_events(
+    client: FlaskClient, char_1: db.Character
+) -> None:
     """
     Test the get events by character route with no events.
     """
@@ -155,7 +163,7 @@ def test_get_events_by_character_no_events(client, char_1):
     assert response.json == []
 
 
-def test_get_events_by_character_invalid_character(client):
+def test_get_events_by_character_invalid_character(client: FlaskClient) -> None:
     """
     Test the get posts by character route with an invalid character.
     """

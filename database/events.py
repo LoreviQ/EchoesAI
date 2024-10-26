@@ -1,3 +1,5 @@
+"""Database operations for the events table."""
+
 from typing import List
 
 from .main import (

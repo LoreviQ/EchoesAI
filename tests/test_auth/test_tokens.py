@@ -13,7 +13,7 @@ import pytest
 import auth
 
 
-def test_issue_access_token():
+def test_issue_access_token() -> None:
     """
     Test the issue_access_token function.
     """
@@ -21,7 +21,7 @@ def test_issue_access_token():
     assert isinstance(token, str)
 
 
-def test_auth_access_token():
+def test_auth_access_token() -> None:
     """
     Test the auth_access_token function.
     """
@@ -32,7 +32,7 @@ def test_auth_access_token():
         auth.auth_access_token("invalid_token")
 
 
-def test_auth_access_token_expired(monkeypatch: pytest.MonkeyPatch):
+def test_auth_access_token_expired(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Test that the auth_access_token function raises an error when the token is expired.
     """

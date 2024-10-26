@@ -1,3 +1,5 @@
+"""Database operations for the characters table."""
+
 from typing import List
 
 from .main import connect_to_db, general_insert_returning_id

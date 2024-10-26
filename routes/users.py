@@ -9,7 +9,7 @@ from .main import bp
 
 
 @bp.route("/v1/users", methods=["POST"])
-def new_user() -> Response:
+def post_user() -> Response:
     """Creates a new user."""
     data = request.get_json()
     if not all(key in data for key in ("username", "password", "email")):
@@ -19,6 +19,7 @@ def new_user() -> Response:
         password=data["password"],
         email=data["email"],
     )
+    assert user["username"]
     auth.insert_user(user)
     token = auth.issue_access_token(user["username"])
     return make_response(token, 200)
@@ -43,8 +44,9 @@ def login() -> Response:
 def get_threads_by_user(username: str) -> Response:
     """Gets all threads for a user."""
     try:
-        db.select_user(username)
+        user_id = db.select_user(username)
     except ValueError:
         return make_response("user not found", 400)
-    threads = db.select_threads_by_user(username)
+    assert user_id["id"]
+    threads = db.select_threads_by_user(user_id["id"])
     return make_response(jsonify(threads), 200)

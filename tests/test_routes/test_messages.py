@@ -68,6 +68,7 @@ def test_post_message(client: FlaskClient, thread_1: db.Thread) -> None:
     time.sleep(3)
     response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.status_code == 200
+    assert response.json
     assert response.json[-1]["content"] == "Mock response"
 
 
@@ -102,6 +103,7 @@ def test_get_response_now_scheduled(
 ) -> None:
     """Tests the get response now route with a scheduled message."""
 
+    assert thread_1["id"]
     response = client.get(f"/v1/threads/{thread_1['id']}/message")
     assert response.status_code == 200
     messages = db.select_messages_by_thread(thread_1["id"])
@@ -116,6 +118,7 @@ def test_get_response_now_generate(client: FlaskClient, thread_1: db.Thread) -> 
     time.sleep(2)
     response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.status_code == 200
+    assert response.json
     assert response.json[-1]["content"] == "Mock response"
 
 
@@ -133,6 +136,7 @@ def test_delete_message(
 ) -> None:
     """Test the delete message route."""
 
+    assert message_1["id"]
     response = client.delete(f"/v1/messages/{message_1['id']}")
     assert response.status_code == 200
     with pytest.raises(ValueError):
@@ -146,10 +150,15 @@ def test_delete_messages_more_recent_app(
     scheduled_message: db.Message,
 ) -> None:
     """Test the delete messages more recent route."""
+
+    assert message_2["id"]
+    assert message_1["thread"]
+    assert message_1["thread"]["id"]
     query = "?recent=true"
     response = client.delete(f"/v1/messages/{message_2['id']}{query}")
     assert response.status_code == 200
     response = client.get(f"/v1/threads/{message_1['thread']['id']}/messages")
+    assert response.json
     assert len(response.json) == 1
 
 

@@ -1,4 +1,4 @@
-"""This module contains the database operations for the users table."""
+"""Database operations for the users table."""
 
 from .main import (
     connect_to_db,

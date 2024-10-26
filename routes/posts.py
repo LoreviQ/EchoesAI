@@ -1,6 +1,6 @@
 """Routes for posts."""
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from flask import Response, jsonify, make_response, request
 
@@ -22,7 +22,7 @@ def get_posts() -> Response:
         del post_query["char_path"]
 
     posts = db.select_posts(post_query)
-    response: List[Dict[str, str]] = []
+    response: List[Dict[str, Any]] = []
     for post in posts:
         response.append(
             {

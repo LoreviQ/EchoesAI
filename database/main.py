@@ -1,3 +1,5 @@
+"""Miscellaneous database functions."""
+
 from datetime import datetime, timezone
 from sqlite3 import Connection, Cursor, connect
 from typing import Callable, Tuple
@@ -72,4 +74,4 @@ def general_insert_returning_id(query: str, params: Tuple = ()) -> int:
     result = cursor.fetchone()[0]
     conn.commit()
     close()
-    return result
+    return int(result)

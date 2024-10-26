@@ -16,6 +16,7 @@ def insert_user(user: db.User) -> int:
     """
     Insert a user into the database with a hashed password.
     """
+    assert user["password"]
     user["password"] = _hash_password(user["password"])
     return db.insert_user(user)
 
@@ -28,5 +29,6 @@ def authenticate_user(username: str, password: str) -> bool:
     user = db.select_user(username)
     if user is None:
         raise ValueError("User not found")
+    assert user["password"]
     hashed = user["password"]
     return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))

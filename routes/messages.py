@@ -1,7 +1,7 @@
 """Routes for messages."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from flask import Response, g, jsonify, make_response, request
 
@@ -18,7 +18,7 @@ def get_messages_by_thread(thread_id: int) -> Response:
     except ValueError:
         return make_response("thread not found", 404)
     messages = db.select_messages_by_thread(thread_id)
-    response: List[Dict[str, str]] = []
+    response: List[Dict[str, Any]] = []
     for message in messages:
         response.append(
             {

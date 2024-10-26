@@ -52,6 +52,8 @@ def test_select_character(db_init: str) -> None:
     char_2 = db.Character(name="test character 2", path_name="test_character_2")
     db.insert_character(char_1)
     db.insert_character(char_2)
+    assert char_1["path_name"]
+    assert char_2["path_name"]
     character_1 = db.select_character(char_1["path_name"])
     character_2 = db.select_character(char_2["path_name"])
     assert character_1["name"] == char_1["name"]

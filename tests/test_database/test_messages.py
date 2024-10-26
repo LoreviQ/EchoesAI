@@ -246,6 +246,7 @@ def test_delete_message(db_init: str, message_1: db.Message) -> None:
     """
     Test the delete_message function.
     """
+    assert message_1["id"]
     db.delete_message(message_1["id"])
     with pytest.raises(ValueError):
         db.select_message(message_1["id"])

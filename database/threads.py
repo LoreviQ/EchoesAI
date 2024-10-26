@@ -1,3 +1,5 @@
+"""Database operations for the threads table."""
+
 from datetime import datetime, timezone
 from typing import List
 
@@ -58,7 +60,7 @@ def select_thread(thread_id: int) -> Thread:
     raise ValueError("Thread not found")
 
 
-def select_latest_thread(user: str, character: int) -> int:
+def select_latest_thread(user: int, character: int) -> int:
     """
     Select the latest thread for a user and character.
     """
@@ -79,7 +81,7 @@ def select_latest_thread(user: str, character: int) -> int:
     return 0
 
 
-def select_threads_by_user(user: str) -> List[Thread]:
+def select_threads_by_user(user: int) -> List[Thread]:
     """
     Select all threads for a user.
     """

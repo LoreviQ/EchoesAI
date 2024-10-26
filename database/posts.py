@@ -1,3 +1,5 @@
+"""Database operations for the posts table."""
+
 from typing import List
 
 from .main import (

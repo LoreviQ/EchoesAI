@@ -5,13 +5,16 @@ This file contains the tests for the routes/events.py file.
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 
+from flask.testing import FlaskClient
+
+import database as db
 from tests.test_app import app, client
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_events import event_1, event_2
 from tests.test_database.test_main import db_init
 
 
-def test_get_events(client, event_1, event_2):
+def test_get_events(client: FlaskClient, event_1: db.Event, event_2: db.Event) -> None:
     """
     Test the get events route.
     """
@@ -22,7 +25,9 @@ def test_get_events(client, event_1, event_2):
     assert response.json[1]["id"] == event_2["id"]
 
 
-def test_get_events_with_query(client, char_1, event_1, event_2):
+def test_get_events_with_query(
+    client: FlaskClient, char_1: db.Character, event_1: db.Event, event_2: db.Event
+) -> None:
     """
     Test the get events route with a query specifying a characters path name.
     """
@@ -34,7 +39,7 @@ def test_get_events_with_query(client, char_1, event_1, event_2):
     assert response.json[1]["id"] == event_2["id"]
 
 
-def test_get_events_no_events(client):
+def test_get_events_no_events(client: FlaskClient) -> None:
     """
     Test the get events route with no events.
     """
@@ -43,7 +48,7 @@ def test_get_events_no_events(client):
     assert response.json == []
 
 
-def test_get_events_invalid_character(client):
+def test_get_events_invalid_character(client: FlaskClient) -> None:
     """
     Test the get events by character route with an invalid character.
     """

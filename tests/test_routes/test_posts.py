@@ -4,14 +4,16 @@ This file contains the tests for the routes/posts.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
+from flask.testing import FlaskClient
 
+import database as db
 from tests.test_app import app, client
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_main import db_init
 from tests.test_database.test_posts import post_1, post_2
 
 
-def test_get_posts(client, post_1, post_2):
+def test_get_posts(client: FlaskClient, post_1: db.Post, post_2: db.Post) -> None:
     """
     Test the get posts route without a query.
     """
@@ -22,7 +24,7 @@ def test_get_posts(client, post_1, post_2):
     assert response.json[1]["id"] == post_2["id"]
 
 
-def test_get_posts_no_posts(client):
+def test_get_posts_no_posts(client: FlaskClient) -> None:
     """
     Test the get posts  route with no posts.
     """
@@ -31,7 +33,9 @@ def test_get_posts_no_posts(client):
     assert response.json == []
 
 
-def test_get_posts_by_character(client, char_1, post_1, post_2):
+def test_get_posts_by_character(
+    client: FlaskClient, char_1: db.Character, post_1: db.Post, post_2: db.Post
+) -> None:
     """
     Test the get posts route with a query specifying a character.
     """

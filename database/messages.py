@@ -1,3 +1,5 @@
+"""Database operations for the messages table."""
+
 from typing import List, Tuple
 
 from .main import (

@@ -5,6 +5,6 @@ from . import characters, events, messages, posts, threads, users
 from .main import bp
 
 
-def register_routes(app: Flask):
+def register_routes(app: Flask) -> None:
     """Register all routes with the Flask app."""
     app.register_blueprint(bp)

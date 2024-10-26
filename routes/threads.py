@@ -23,5 +23,7 @@ def new_thread() -> Response:
         character = db.select_characters(db.Character(path_name=character_path))[0]
     except IndexError:
         return make_response("character not found", 400)
+    assert user["id"]
+    assert character["id"]
     thread_id = db.insert_thread(user["id"], character["id"])
     return make_response(str(thread_id), 200)

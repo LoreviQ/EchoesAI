@@ -1,5 +1,8 @@
+"""JWT token management for user authentication"""
+
 import os
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 import jwt
 from cryptography.hazmat.primitives import serialization
@@ -11,17 +14,20 @@ TOKEN_DURATION = timedelta(days=1)
 def _load_private_key() -> RSAPrivateKey:
     with open(".ssh/user-auth", "r", encoding="utf-8") as file:
         private_key = file.read()
+    pwd = os.getenv("SSH_KEY_PWD")
+    if not pwd:
+        raise ValueError("No password provided for private key")
     key = serialization.load_ssh_private_key(
-        private_key.encode(), password=os.getenv("SSH_KEY_PWD").encode()
+        private_key.encode(), password=pwd.encode()
     )
-    return key
+    return cast(RSAPrivateKey, key)
 
 
 def _load_public_key() -> RSAPublicKey:
     with open(".ssh/user-auth.pub", "r", encoding="utf-8") as file:
         public_key = file.read()
     key = serialization.load_ssh_public_key(public_key.encode())
-    return key
+    return cast(RSAPublicKey, key)
 
 
 def issue_access_token(username: str) -> str:
