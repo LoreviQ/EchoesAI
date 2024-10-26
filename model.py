@@ -122,8 +122,8 @@ class ModelMocked(ModelInterface):
         # time checker behavior
         if "You need to respond with the time" in chat[0]["content"]:
             if self.time_to_respond == "short":
-                return {"content": "30s", "role": "assistant"}
-            return {"content": "5m", "role": "assistant"}
+                return {"content": "1s", "role": "assistant"}
+            return {"content": "10s", "role": "assistant"}
 
         # event behavior
         if "short description of what you're currently doing" in chat[0]["content"]:

@@ -7,7 +7,7 @@ from .messages import insert_message
 from .types import Message, Thread
 
 
-def insert_thread(user: str, char_id: int) -> int:
+def insert_thread(user_id: int, char_id: int) -> int:
     """
     Insert a new thread into the database returning the thread id.
     If the character has an initial message, insert it as the first message.
@@ -17,7 +17,7 @@ def insert_thread(user: str, char_id: int) -> int:
         VALUES (?, ?) 
         RETURNING id
     """
-    thread_id = general_insert_returning_id(query, (user, char_id))
+    thread_id = general_insert_returning_id(query, (user_id, char_id))
     thread = select_thread(thread_id)
     character = select_character(char_id)
     if character["initial_message"]:

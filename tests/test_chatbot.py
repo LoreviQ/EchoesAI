@@ -2,10 +2,12 @@
 This file contains the tests for the chatbot.py file.
 """
 
-# pylint: disable=redefined-outer-name, protected-access
-import os
+# pylint: disable=redefined-outer-name unused-argument unused-import
+
+
+import time
 from datetime import datetime, timedelta, timezone
-from typing import Generator, Tuple
+from typing import Generator
 
 import pytest
 
@@ -19,92 +21,66 @@ from chatbot import (
     response_cycle,
 )
 from model import Model, ModelMocked
+from tests.test_database.test_characters import char_1
+from tests.test_database.test_events import event_1, event_2
+from tests.test_database.test_main import db_init
+from tests.test_database.test_threads import thread_1
+from tests.test_database.test_users import user_1
 
 
 @pytest.fixture
-def args(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Generator[Tuple[Model, db.Character, db.Thread], None, None]:
-    """
-    Setup the database and teardown after testing, yielding args for tests
-    """
-    test_name = os.environ.get("PYTEST_CURRENT_TEST")
-    if test_name is None:
-        test_name = "unknown"
-    else:
-        test_name = test_name.split(":")[-1].split(" ")[0]
-    db_path = f"test_database_{test_name}.db"
-    monkeypatch.setattr("database.main.DB_PATH", db_path)
-    db.create_db()
-    character_id = db.insert_character(
-        db.Character(
-            name="test character",
-            path_name="test_character",
-            initial_message="test initial message",
-        )
-    )
-    character = db.select_character(character_id)
-    thread_id = db.insert_thread("test user", character_id)
-    thread = db.select_thread(thread_id)
-    db.insert_message(
-        db.Message(
-            thread=thread,
-            content="test message",
-            role="user",
-            timestamp=datetime.now(timezone.utc),
-        )
-    )
+def model(db_init: str) -> Generator[Model, None, None]:
+    """Yields a Model object for testing."""
     model = Model(ModelMocked("short"))
-    yield model, character, thread
-    os.remove(db_path)
+    yield model
 
 
-def test_get_system_message(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_get_system_message(model: Model, thread_1: db.Thread) -> None:
     """
     Test the _get_system_message function.
     """
-    system_message = _get_system_message("chat", args[2])
+    system_message = _get_system_message("chat", thread_1)
     assert system_message["role"] == "system"
     assert "You are an expert actor who" in system_message["content"]
-    system_message = _get_system_message("time", args[2])
+    system_message = _get_system_message("time", thread_1)
     assert system_message["role"] == "system"
     assert "current response frequency of" in system_message["content"]
 
 
-def test_generate_text(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_generate_text(model: Model, thread_1: db.Thread) -> None:
     """
     Test the get_response function.
     """
-    assert args[2]["id"]
-    system_message = _get_system_message("chat", args[2])
-    chatlog = Messages(args[2]["id"]).sorted()
-    response = _generate_text(args[0], system_message, chatlog)
+    assert thread_1["id"]
+    system_message = _get_system_message("chat", thread_1)
+    chatlog = Messages(thread_1["id"]).sorted()
+    response = _generate_text(model, system_message, chatlog)
 
     assert response["role"] == "assistant"
     assert "Mock response" in response["content"]
 
 
-def test_response_cycle_short(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_response_cycle_short(model: Model, thread_1: db.Thread) -> None:
     """
     Test the response cycle function when responses are short.
     """
-    assert args[2]["id"]
-    response_cycle(args[0], args[2]["id"])
-    messages = db.select_messages_by_thread(args[2]["id"])
+    assert thread_1["id"]
+    response_cycle(model, thread_1["id"])
+    messages = db.select_messages_by_thread(thread_1["id"])
     assert messages[-1]["role"]
     assert messages[-1]["role"] == "assistant"
     assert messages[-1]["content"]
     assert "Mock response" in messages[-1]["content"]
 
 
-def test_response_cycle_long(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_response_cycle_long(model: Model, thread_1: db.Thread) -> None:
     """
     Test the response cycle function when responses are long.
     """
-    assert args[2]["id"]
+    assert thread_1["id"]
     model = Model(ModelMocked("long"))
-    response_cycle(model, args[2]["id"])
-    messages = db.select_messages_by_thread(args[2]["id"])
+    response_cycle(model, thread_1["id"])
+    messages = db.select_messages_by_thread(thread_1["id"])
     assert messages[-1]["role"] == "assistant"
     assert messages[-1]["content"]
     assert "Mock response" in messages[-1]["content"]
@@ -112,17 +88,20 @@ def test_response_cycle_long(args: Tuple[Model, db.Character, db.Thread]) -> Non
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
 
 
-def test_response_cycle_single(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_response_cycle_repeated(model: Model, thread_1: db.Thread) -> None:
     """
-    Tests that a single response is scheduled at one time.
+    Test the response cycle function ensuring multiple responses aren't
+    scheduled for repeated messages.
     """
-    assert args[2]["id"]
-    response_cycle(args[0], args[2]["id"])
-    response_cycle(args[0], args[2]["id"])
-    messages = db.select_messages_by_thread(args[2]["id"])
-    assert len(messages) == 3
-    assert messages[0]["role"] == "assistant"
+    assert thread_1["id"]
+    model = Model(ModelMocked("long"))
+    response_cycle(model, thread_1["id"])
+    response_cycle(model, thread_1["id"])
+    time.sleep(10)
+    messages = db.select_messages_by_thread(thread_1["id"])
+    assert len(messages) == 1
     assert messages[-1]["role"] == "assistant"
+    assert messages[-1]["content"] == "Mock response"
 
 
 def test_parse_time() -> None:
@@ -160,29 +139,19 @@ def test_parse_time() -> None:
     assert _parse_time(time) == timedelta(seconds=0)
 
 
-def test_generate_event(args: Tuple[Model, db.Character, db.Thread]) -> None:
+def test_generate_event(
+    model: Model, char_1: db.Character, event_1: db.Event, event_2: db.Event
+) -> None:
     """
     Test the generate_event function.
     """
-    assert args[1]["id"]
-    mock_event = db.Event(
-        character=args[1]["id"],
-        type="event",
-        content="test was drinking tea",
-    )
-    mock_thought = db.Event(
-        character=args[1]["id"],
-        type="thought",
-        content="test thought about the sky",
-    )
-    db.insert_event(mock_event)
-    db.insert_event(mock_thought)
-    generate_event(args[0], args[1]["id"], "event")
-    events = db.select_events_by_character(args[1]["id"])
+    assert char_1["id"]
+    generate_event(model, char_1["id"], "event")
+    events = db.select_events_by_character(char_1["id"])
     assert len(events) == 3
-    assert events[0]["content"] == "test was drinking tea"
+    assert events[0]["content"] == "test event"
     assert events[0]["type"] == "event"
-    assert events[1]["content"] == "test thought about the sky"
+    assert events[1]["content"] == "test thought"
     assert events[1]["type"] == "thought"
     assert events[2]["content"] == "Mock event"
     assert events[2]["type"] == "event"

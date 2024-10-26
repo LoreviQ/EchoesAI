@@ -2,81 +2,87 @@
 This file contains the tests for the database/characters.py file.
 """
 
-import os
-from typing import Generator, Tuple
+# pylint: disable=redefined-outer-name unused-argument unused-import
+
+from typing import Generator
 
 import pytest
 
-# pylint: disable=redefined-outer-name unused-argument unused-import
 import database as db
+from tests.test_database.test_main import db_init
 
 
 @pytest.fixture
-def chars(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Generator[Tuple[db.Character, db.Character], None, None]:
+def char_1() -> Generator[db.Character, None, None]:
     """
-    Create a DB object for testing and teardown after testing.
+    Creates a character to be used in testing.
     """
-    test_name = os.environ.get("PYTEST_CURRENT_TEST")
-    if test_name is None:
-        test_name = "unknown"
-    else:
-        test_name = test_name.split(":")[-1].split(" ")[0]
-    db_path = f"test_database_{test_name}.db"
-    monkeypatch.setattr("database.main.DB_PATH", db_path)
-    db.create_db()
-    character_1 = db.Character(name="test character", path_name="test_character")
-    character_2 = db.Character(name="test character 2", path_name="test_character_2")
-    yield character_1, character_2
-    os.remove(db_path)
+    char = db.Character(name="test character", path_name="test_character")
+    char["id"] = db.insert_character(char)
+    yield char
 
 
-def test_insert_character(chars: Tuple[db.Character, db.Character]) -> None:
+@pytest.fixture
+def char_2() -> Generator[db.Character, None, None]:
+    """
+    Creates a character distinct from char_1 to be used in testing.
+    """
+    char = db.Character(name="test character 2", path_name="test_character_2")
+    char["id"] = db.insert_character(char)
+    yield char
+
+
+def test_insert_character(db_init: str) -> None:
     """
     Test the insert_character function.
     """
-    character_id = db.insert_character(chars[0])
+    char_1 = db.Character(name="test character", path_name="test_character")
+    char_2 = db.Character(name="test character 2", path_name="test_character_2")
+    character_id = db.insert_character(char_1)
     assert character_id == 1
-    character_id = db.insert_character(chars[1])
+    character_id = db.insert_character(char_2)
     assert character_id == 2
 
 
-def test_select_character(chars: Tuple[db.Character, db.Character]) -> None:
+def test_select_character(db_init: str) -> None:
     """
     Test the select_character function.
     """
-    character_id = db.insert_character(chars[0])
+    char_1 = db.Character(name="test character", path_name="test_character")
+    char_2 = db.Character(name="test character 2", path_name="test_character_2")
+    character_id = db.insert_character(char_1)
     character = db.select_character(character_id)
-    assert character["name"] == chars[0]["name"]
-    character_id = db.insert_character(chars[1])
+    assert character["name"] == char_1["name"]
+    character_id = db.insert_character(char_2)
     character = db.select_character(character_id)
-    assert character["name"] == chars[1]["name"]
+    assert character["name"] == char_2["name"]
 
 
-def test_select_character_by_path(chars: Tuple[db.Character, db.Character]) -> None:
+def test_select_character_by_path(db_init: str) -> None:
     """
     Test the select_character function.
     """
-    assert chars[0]["path_name"]
-    assert chars[1]["path_name"]
-    character_id = db.insert_character(chars[0])
-    character = db.select_character_by_path(chars[0]["path_name"])
+    char_1 = db.Character(name="test character", path_name="test_character")
+    char_2 = db.Character(name="test character 2", path_name="test_character_2")
+    character_id = db.insert_character(char_1)
+    character = db.select_character_by_path(char_1["path_name"])
     assert character["id"] == character_id
-    assert character["name"] == chars[0]["name"]
-    character_id = db.insert_character(chars[1])
-    character = db.select_character_by_path(chars[1]["path_name"])
+    assert character["name"] == char_1["name"]
+    character_id = db.insert_character(char_2)
+    character = db.select_character_by_path(char_2["path_name"])
     assert character["id"] == character_id
-    assert character["name"] == chars[1]["name"]
+    assert character["name"] == char_2["name"]
 
 
-def test_select_characters(chars: Tuple[db.Character, db.Character]) -> None:
+def test_select_characters(db_init: str) -> None:
     """
     Test the select_characters function.
     """
-    db.insert_character(chars[0])
-    db.insert_character(chars[1])
+    char_1 = db.Character(name="test character", path_name="test_character")
+    char_2 = db.Character(name="test character 2", path_name="test_character_2")
+    db.insert_character(char_1)
+    db.insert_character(char_2)
     characters = db.select_characters()
     assert len(characters) == 2
-    assert characters[0]["name"] == chars[0]["name"]
-    assert characters[1]["name"] == chars[1]["name"]
+    assert characters[0]["name"] == char_1["name"]
+    assert characters[1]["name"] == char_2["name"]
