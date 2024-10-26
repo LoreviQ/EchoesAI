@@ -10,26 +10,8 @@ from typing import Generator
 import pytest
 
 import database as db
-from tests.test_database.test_characters import char_1, char_2
+from tests.test_database.test_characters import char_1, char_1_ins, char_2, char_2_ins
 from tests.test_database.test_main import db_init
-
-
-@pytest.fixture
-def char_1_ins(char_1) -> Generator[db.Character, None, None]:
-    """
-    Inserts char_1 into the database and yields it.
-    """
-    char_1["id"] = db.insert_character(char_1)
-    yield char_1
-
-
-@pytest.fixture
-def char_2_ins(char_2) -> Generator[db.Character, None, None]:
-    """
-    Inserts char_2 into the database and yields it.
-    """
-    char_2["id"] = db.insert_character(char_2)
-    yield char_2
 
 
 def test_insert_event(
@@ -125,9 +107,7 @@ def test_select_most_recent_event(
     assert event["type"] == "thought"
 
 
-def test_delete_event(
-    db_init: str, char_1_ins: db.Character, char_2_ins: db.Character
-) -> None:
+def test_delete_event(db_init: str, char_1_ins: db.Character) -> None:
     """
     Test the delete_event function.
     """

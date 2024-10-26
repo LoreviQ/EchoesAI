@@ -4,7 +4,7 @@ This file contains the tests for the database/characters.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-from typing import Generator, Tuple
+from typing import Generator
 
 import pytest
 
@@ -28,6 +28,24 @@ def char_2() -> Generator[db.Character, None, None]:
     """
     char = db.Character(name="test character 2", path_name="test_character_2")
     yield char
+
+
+@pytest.fixture
+def char_1_ins(char_1) -> Generator[db.Character, None, None]:
+    """
+    Inserts char_1 into the database and yields it.
+    """
+    char_1["id"] = db.insert_character(char_1)
+    yield char_1
+
+
+@pytest.fixture
+def char_2_ins(char_2) -> Generator[db.Character, None, None]:
+    """
+    Inserts char_2 into the database and yields it.
+    """
+    char_2["id"] = db.insert_character(char_2)
+    yield char_2
 
 
 def test_insert_character(
