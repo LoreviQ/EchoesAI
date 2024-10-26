@@ -3,14 +3,13 @@ Module to hold server logic.
 """
 
 import threading
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from datetime import timedelta
 
-from flask import Flask, Response, jsonify, make_response, request, send_from_directory
+from flask import Flask, g
 from flask_cors import CORS
 
-import auth
 import database as db
+import routes
 from chatbot import response_cycle, schedule_events
 from model import Model
 
@@ -26,183 +25,14 @@ class App:
         self.port = port
         self.model = model
         db.create_db()
-        self._setup_routes()
+        routes.register_routes(self.app)
+        self._setup_before_request()
         schedule_events(model)
 
-    def _setup_routes(self) -> None:
-        """
-        Setup the routes for the Flask app.
-        """
-
-        @self.app.route("/readiness", methods=["GET"])
-        def ready() -> Response:
-            return make_response("", 200)
-
-        @self.app.route("/images/<path:filename>", methods=["GET"])
-        def get_image(filename: str) -> Response:
-            return send_from_directory("static/images", filename)
-
-        @self.app.route("/threads/new", methods=["POST"])
-        def new_thread() -> Response:
-            data = request.get_json()
-            username = data["username"]
-            character = data["character"]
-            thread_id = db.insert_thread(username, character)
-            return make_response(str(thread_id), 200)
-
-        @self.app.route("/threads/<string:username>", methods=["GET"])
-        def get_threads_by_user(username: str) -> Response:
-            threads = db.select_threads_by_user(username)
-            return make_response(jsonify(threads), 200)
-
-        @self.app.route("/threads/<int:thread_id>/messages", methods=["GET"])
-        def get_messages_by_thread(thread_id: int) -> Response:
-            messages = db.select_messages_by_thread(thread_id)
-            response: List[Dict[str, Any]] = []
-            for message in messages:
-                response.append(
-                    {
-                        "id": message["id"],
-                        "content": message["content"],
-                        "role": message["role"],
-                        "timestamp": db.convert_dt_ts(message["timestamp"]),
-                    },
-                )
-            return make_response(jsonify(response), 200)
-
-        @self.app.route("/threads/<int:thread_id>/messages", methods=["POST"])
-        def post_message(thread_id: int) -> Response:
-            data = request.get_json()
-            message = db.Message(
-                thread=db.select_thread(thread_id),
-                content=data["content"],
-                role=data["role"],
-            )
-            db.insert_message(message)
-            # Start the chatbot response cycle in a background thread
-            background_thread = threading.Thread(
-                target=self._trigger_response_cycle, args=(thread_id,)
-            )
-            background_thread.start()
-            return make_response("", 200)
-
-        @self.app.route("/messages/<int:message_id>", methods=["DELETE"])
-        def delete_messages_more_recent(message_id: int) -> Response:
-            db.delete_messages_more_recent(message_id)
-            return make_response("", 200)
-
-        @self.app.route("/threads/<int:thread_id>/messages/new", methods=["GET"])
-        def get_response_now(thread_id: int) -> Response:
-            # first attempt to apply scheduled message
-            message_id = db.select_scheduled_message_id(thread_id)
-            if message_id:
-                message_patch = db.Message(
-                    id=message_id,
-                    timestamp=datetime.now(timezone.utc),
-                )
-                db.update_message(message_patch)
-                return make_response("", 200)
-
-            # if no scheduled message, trigger response cycle with no timedelta
-            self._trigger_response_cycle(thread_id, timedelta())
-            return make_response("", 200)
-
-        @self.app.route("/events/<string:char_path>", methods=["GET"])
-        def get_events_by_character(char_path: str) -> Response:
-            character = db.select_character_by_path(char_path)
-            assert character["id"]
-            events = db.events.select_events_by_character(character["id"])
-            response: List[Dict[str, Any]] = []
-            for event in events:
-                response.append(
-                    {
-                        "id": event["id"],
-                        "type": event["type"],
-                        "content": event["content"],
-                        "timestamp": db.convert_dt_ts(event["timestamp"]),
-                    },
-                )
-            return make_response(jsonify(response), 200)
-
-        @self.app.route("/posts/<string:char_path>", methods=["GET"])
-        def get_posts_by_character(char_path: str) -> Response:
-            character = db.select_character_by_path(char_path)
-            assert character["id"]
-            posts = db.posts.get_posts_by_character(character["id"])
-            response: List[Dict[str, Any]] = []
-            for post in posts:
-                response.append(
-                    {
-                        "id": post["id"],
-                        "timestamp": db.convert_dt_ts(post["timestamp"]),
-                        "description": post["description"],
-                        "image_post": post["image_post"],
-                        "prompt": post["prompt"],
-                        "caption": post["caption"],
-                        "image_path": post["image_path"],
-                    },
-                )
-            return make_response(jsonify(response), 200)
-
-        @self.app.route("/characters/new", methods=["POST"])
-        def new_character() -> Response:
-            data = request.get_json()
-            character = db.Character(
-                name=data["name"],
-                path_name=data["path_name"],
-                description=data["description"],
-                age=data["age"],
-                height=data["height"],
-                personality=data["personality"],
-                appearance=data["appearance"],
-                loves=data["loves"],
-                hates=data["hates"],
-                details=data["details"],
-                scenario=data["scenario"],
-                important=data["important"],
-                initial_message=data["initial_message"],
-                favorite_colour=data["favorite_colour"],
-                phases=False,
-                img_gen=data["img_gen"],
-                model=data["model"],
-                global_positive=data["global_positive"],
-                global_negative=data["global_negative"],
-            )
-            db.insert_character(character)
-            return make_response(str(data["path_name"]), 200)
-
-        @self.app.route("/characters/id/<int:character_id>", methods=["GET"])
-        def get_character(character_id: int) -> Response:
-            character = db.select_character(character_id)
-            return make_response(jsonify(character), 200)
-
-        @self.app.route("/characters/path/<string:char_path>", methods=["GET"])
-        def get_character_by_path(char_path: str) -> Response:
-            character = db.select_character_by_path(char_path)
-            return make_response(jsonify(character), 200)
-
-        @self.app.route("/users/new", methods=["POST"])
-        def new_user() -> Response:
-            data = request.get_json()
-            user = db.User(
-                username=data["username"],
-                password=data["password"],
-                email=data["email"],
-            )
-            auth.insert_user(user)
-            token = auth.issue_access_token(user["username"])
-            return make_response(token, 200)
-
-        @self.app.route("/login", methods=["POST"])
-        def login() -> Response:
-            data = request.get_json()
-            username = data["username"]
-            password = data["password"]
-            if not auth.authenticate_user(username, password):
-                return make_response("", 401)
-
-            token = auth.issue_access_token(username)
-            return make_response(token, 200)
+    def _setup_before_request(self):
+        @self.app.before_request
+        def before_request():
+            g.trigger_response_cycle = self.trigger_response_cycle
 
     def serve(self) -> None:
         """
@@ -210,7 +40,11 @@ class App:
         """
         self.app.run(port=self.port)
 
-    def _trigger_response_cycle(
+    def trigger_response_cycle(
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
-        response_cycle(self.model, thread_id, duration)
+        """Start the chatbot response cycle in a background thread."""
+        thread = threading.Thread(
+            target=response_cycle, args=(self.model, thread_id, duration)
+        )
+        thread.start()
