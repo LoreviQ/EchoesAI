@@ -2,26 +2,15 @@
 This file contains the tests for the auth/passwords.py file.
 """
 
+# pylint: disable=redefined-outer-name unused-argument unused-import
+
 import time
 from datetime import timedelta
-from typing import Generator
 
-import dotenv
 import jwt
 import pytest
 
 import auth
-
-# pylint: disable=redefined-outer-name unused-argument unused-import
-
-
-@pytest.fixture
-def user() -> Generator[None, None, None]:
-    """
-    sets environment variables for testing.
-    """
-    dotenv.load_dotenv()
-    yield None
 
 
 def test_issue_access_token():
