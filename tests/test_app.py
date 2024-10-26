@@ -34,6 +34,7 @@ def app(monkeypatch: pytest.MonkeyPatch) -> Generator[App, None, None]:
         test_name = test_name.split(":")[-1].split(" ")[0]
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
+    db.create_db()
     with port_counter.get_lock():
         port = port_counter.value
         port_counter.value += 1
