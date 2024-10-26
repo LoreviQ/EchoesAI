@@ -39,7 +39,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
     conditions = []
     parameters = []
     for key, value in event_query.items():
-        if value is not None and key in Event().keys():
+        if value is not None:
             conditions.append(f"{key} = ?")
             parameters.append(value)
 
@@ -51,7 +51,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
     cursor.execute(query, parameters)
     results = cursor.fetchall()
     close()
-    events = []
+    events: List[Event] = []
     for result in results:
         events.append(
             Event(

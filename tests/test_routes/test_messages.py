@@ -7,6 +7,7 @@ This file contains the tests for the routes/messages.py file.
 
 import time
 
+import pytest
 from flask.testing import FlaskClient
 
 import database as db
@@ -122,6 +123,18 @@ def test_get_response_now_invalid_thread(client: FlaskClient) -> None:
     assert response.data == b"thread not found"
 
 
+def test_delete_messages(
+    client: FlaskClient,
+    message_1: db.Message,
+) -> None:
+    """Test the delete message route."""
+
+    response = client.delete(f"/messages/{message_1['id']}")
+    assert response.status_code == 200
+    with pytest.raises(ValueError):
+        db.select_message(message_1["id"])
+
+
 def test_delete_messages_more_recent(
     client: FlaskClient,
     message_1: db.Message,
@@ -129,8 +142,8 @@ def test_delete_messages_more_recent(
     scheduled_message: db.Message,
 ) -> None:
     """Test the delete messages more recent route."""
-
-    response = client.delete(f"/messages/{message_2['id']}")
+    query = "?recent=true"
+    response = client.delete(f"/messages/{message_2['id']}{query}")
     assert response.status_code == 200
     response = client.get(f"/threads/{message_1['thread']['id']}/messages")
     assert len(response.json) == 1

@@ -2,29 +2,33 @@
 
 from typing import Dict, List
 
-from flask import Response, jsonify, make_response
+from flask import Response, jsonify, make_response, request
 
 import database as db
 
 from .main import bp
 
 
-@bp.route("/posts/<string:char_path>", methods=["GET"])
-def get_posts_by_character(char_path: str) -> Response:
-    """Gets all posts for a character."""
+@bp.route("/v1/posts", methods=["GET"])
+def get_posts() -> Response:
+    """Gets all posts, optionally with a query."""
+    query_params = request.args.to_dict()
+    post_query = db.Event(**query_params)
+    if "char_path" in query_params:
+        chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
+        if not chars:
+            return make_response(jsonify([]), 200)
+        post_query["character"] = chars[0]["id"]
+        del post_query["char_path"]
 
-    try:
-        character = db.select_character_by_path(char_path)
-    except ValueError:
-        return make_response("character not found", 404)
-    assert character["id"]
-    posts = db.posts.get_posts_by_character(character["id"])
+    posts = db.select_posts(post_query)
     response: List[Dict[str, str]] = []
     for post in posts:
         response.append(
             {
                 "id": post["id"],
                 "timestamp": db.convert_dt_ts(post["timestamp"]),
+                "character": post["character"],
                 "description": post["description"],
                 "image_post": post["image_post"],
                 "prompt": post["prompt"],

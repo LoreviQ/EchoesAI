@@ -192,3 +192,14 @@ def update_message(message: Message) -> None:
         message["id"],
     )
     general_commit_returning_none(query, params)
+
+
+def delete_message(message_id: int) -> None:
+    """
+    Delete a message from the database.
+    """
+    query = """
+        DELETE FROM messages 
+        WHERE id = ?
+    """
+    general_commit_returning_none(query, (message_id,))

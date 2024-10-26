@@ -16,6 +16,7 @@ from .main import (
     general_insert_returning_id,
 )
 from .messages import (
+    delete_message,
     delete_messages_more_recent,
     delete_scheduled_messages_from_thread,
     insert_message,
@@ -25,11 +26,7 @@ from .messages import (
     select_scheduled_message_id,
     update_message,
 )
-from .posts import (
-    add_image_path_to_post,
-    get_posts_by_character,
-    insert_social_media_post,
-)
+from .posts import insert_social_media_post, select_posts, update_post_with_image_path
 from .threads import (
     insert_thread,
     select_latest_thread,

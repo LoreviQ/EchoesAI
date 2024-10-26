@@ -270,7 +270,7 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
                 ) as out_file:
                     image_r.raw.decode_content = True
                     shutil.copyfileobj(image_r.raw, out_file)
-                db.posts.add_image_path_to_post(
+                db.posts.update_post_with_image_path(
                     post_id,
                     f"{char_name}/posts/{post_id}.jpg",
                 )
@@ -441,7 +441,7 @@ class Events:
         # posts
         self.p_bool = posts
         if posts:
-            self.posts = db.posts.get_posts_by_character(char_id)
+            self.posts = db.posts.select_posts(char_id)
 
     def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
         """

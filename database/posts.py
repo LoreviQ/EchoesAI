@@ -30,7 +30,7 @@ def insert_social_media_post(post: Post) -> int:
     )
 
 
-def add_image_path_to_post(post_id: int, image_path: str) -> None:
+def update_post_with_image_path(post_id: int, image_path: str) -> None:
     """
     Add an image path to a post.
     """
@@ -42,35 +42,41 @@ def add_image_path_to_post(post_id: int, image_path: str) -> None:
     general_commit_returning_none(query, (image_path, post_id))
 
 
-def get_posts_by_character(character: int) -> List[Post]:
+def select_posts(post_query: Post = Post()) -> List[Post]:
     """
-    Get all posts from the database.
+    Get all posts from the database based on a query.
     """
     query = """
-        SELECT id, timestamp, description, image_post, prompt, caption, image_path
+        SELECT id, timestamp, character, description, image_post, prompt, caption, image_path
         FROM posts 
-        WHERE character = ?
     """
+    conditions = []
+    parameters = []
+    for key, value in post_query.items():
+        if value is not None:
+            conditions.append(f"{key} = ?")
+            parameters.append(value)
+    if conditions:
+        query += " WHERE "
+        query += " AND ".join(conditions)
 
     _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (character,),
-    )
-    result = cursor.fetchall()
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
     close()
+
     posts: List[Post] = []
-    for post in result:
+    for post in results:
         posts.append(
             Post(
                 id=post[0],
                 timestamp=convert_ts_dt(post[1]),
-                character=character,
-                description=post[2],
-                image_post=post[3],
-                prompt=post[4],
-                caption=post[5],
-                image_path=post[6],
+                character=post[2],
+                description=post[3],
+                image_post=post[4],
+                prompt=post[5],
+                caption=post[6],
+                image_path=post[7],
             )
         )
     return posts

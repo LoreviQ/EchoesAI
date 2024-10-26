@@ -19,6 +19,7 @@ def get_events() -> Response:
         if not chars:
             return make_response(jsonify([]), 200)
         event_query["character"] = chars[0]["id"]
+        del event_query["char_path"]
 
     events = db.select_events(event_query)
     response: List[Dict[str, str]] = []

@@ -240,3 +240,12 @@ def test_update_message(db_init: str, thread_1: db.Thread, thread_2: db.Thread) 
     assert len(messages) == 1
     assert messages[0]["id"] == message3_id
     assert messages[0]["content"] == "test message 3"
+
+
+def test_delete_message(db_init: str, message_1: db.Message) -> None:
+    """
+    Test the delete_message function.
+    """
+    db.delete_message(message_1["id"])
+    with pytest.raises(ValueError):
+        db.select_message(message_1["id"])
