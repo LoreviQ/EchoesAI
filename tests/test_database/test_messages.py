@@ -4,10 +4,8 @@ This file contains the tests for the database/dbpy file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-import os
 import time
 from datetime import datetime, timedelta
-from typing import Tuple
 
 import database as db
 from tests.test_database.test_characters import char_1, char_2
