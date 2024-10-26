@@ -6,12 +6,55 @@ This file contains the tests for the database/dbpy file.
 
 import time
 from datetime import datetime, timedelta
+from typing import Generator
+
+import pytest
 
 import database as db
 from tests.test_database.test_characters import char_1, char_2
 from tests.test_database.test_main import db_init
 from tests.test_database.test_threads import thread_1, thread_2
 from tests.test_database.test_users import user_1, user_2
+
+
+@pytest.fixture
+def message_1(thread_1: db.Thread) -> Generator[db.Message, None, None]:
+    """
+    Creates a message to be used in testing.
+    """
+    message = db.Message(
+        thread=thread_1,
+        content="test message",
+        role="user",
+        timestamp=datetime.now() - timedelta(hours=1),
+    )
+    message_id = db.insert_message(message)
+    yield db.select_message(message_id)
+
+
+@pytest.fixture
+def message_2(thread_1: db.Thread) -> Generator[db.Message, None, None]:
+    """
+    Creates a message distinct from message_1 to be used in testing.
+    """
+    message = db.Message(thread=thread_1, content="test response", role="assistant")
+    message_id = db.insert_message(message)
+    yield db.select_message(message_id)
+
+
+@pytest.fixture
+def scheduled_message(thread_1: db.Thread) -> Generator[db.Message, None, None]:
+    """
+    Creates a message scheduled for the future to be used in testing.
+    """
+    message = db.Message(
+        thread=thread_1,
+        content="delayed response",
+        role="assistant",
+        timestamp=datetime.now() + timedelta(days=1),
+    )
+    message_id = db.insert_message(message)
+    yield db.select_message(message_id)
 
 
 def test_insert_message(db_init: str, thread_1: db.Thread) -> None:

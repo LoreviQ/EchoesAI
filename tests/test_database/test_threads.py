@@ -4,7 +4,7 @@ This file contains the tests for the database/threads.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-import os
+
 import time
 from typing import Generator
 

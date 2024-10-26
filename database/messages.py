@@ -22,8 +22,9 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
                 id=message[0],
                 timestamp=convert_ts_dt(message[3]),
                 thread=Thread(
-                    user=message[4],
-                    character=message[5],
+                    id=message[4],
+                    user=message[5],
+                    character=message[6],
                 ),
                 content=message[1],
                 role=message[2],
@@ -71,7 +72,7 @@ def select_message(message_id: int) -> Message:
     Select a message from the database.
     """
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
+        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
         WHERE m.id = ?
     """
@@ -87,8 +88,9 @@ def select_message(message_id: int) -> Message:
             id=result[0],
             timestamp=convert_ts_dt(result[3]),
             thread=Thread(
-                user=result[4],
-                character=result[5],
+                id=result[4],
+                user=result[5],
+                character=result[6],
             ),
             content=result[1],
             role=result[2],
@@ -101,7 +103,7 @@ def select_messages_by_thread(thread_id: int) -> List[Message]:
     Select messages from the database by thread.
     """
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
+        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
         WHERE thread = ?
     """
@@ -113,7 +115,7 @@ def select_messages_by_character(character: int) -> List[Message]:
     Select messages from the database by character.
     """
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.user, t.character 
+        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
         WHERE t.character = ?
     """
@@ -186,7 +188,7 @@ def update_message(message: Message) -> None:
     """
     params = (
         convert_dt_ts(message["timestamp"]),
-        message["content"],
+        message.get("content", None),
         message["id"],
     )
     general_commit_returning_none(query, params)
