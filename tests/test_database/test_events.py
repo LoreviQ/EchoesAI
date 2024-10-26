@@ -62,11 +62,11 @@ def test_insert_event(db_init: str, char_1: db.Character, char_2: db.Character) 
     assert event2_id == 2
 
 
-def test_select_events_by_character(
+def test_select_events(
     db_init: str, char_1: db.Character, char_2: db.Character
 ) -> None:
     """
-    Test the select_events_by_character function.
+    Test the select_events.
     """
     assert char_1["id"]
     assert char_2["id"]
@@ -88,11 +88,44 @@ def test_select_events_by_character(
     db.events.insert_event(event1)
     db.events.insert_event(event2)
     db.events.insert_event(event3)
-    events = db.events.select_events_by_character(char_1["id"])
+    events = db.events.select_events()
+    assert len(events) == 3
+    assert events[0]["type"] == "event"
+    assert events[1]["type"] == "thought"
+    assert events[2]["type"] == "thought"
+
+
+def test_select_events_with_query(
+    db_init: str, char_1: db.Character, char_2: db.Character
+) -> None:
+    """
+    Test the select_events with a query specifying a character.
+    """
+    assert char_1["id"]
+    assert char_2["id"]
+    event1 = db.Event(
+        character=char_1["id"],
+        type="event",
+        content="test event",
+    )
+    event2 = db.Event(
+        character=char_2["id"],
+        type="thought",
+        content="test thought",
+    )
+    event3 = db.Event(
+        character=char_1["id"],
+        type="thought",
+        content="test thought 2",
+    )
+    db.events.insert_event(event1)
+    db.events.insert_event(event2)
+    db.events.insert_event(event3)
+    events = db.events.select_events(db.Event(character=char_1["id"]))
     assert len(events) == 2
     assert events[0]["type"] == "event"
     assert events[1]["type"] == "thought"
-    events = db.events.select_events_by_character(char_2["id"])
+    events = db.events.select_events(db.Event(character=char_2["id"]))
     assert len(events) == 1
     assert events[0]["type"] == "thought"
 
@@ -151,6 +184,6 @@ def test_delete_event(db_init: str, char_1: db.Character) -> None:
     event1_id = db.events.insert_event(event1)
     event2_id = db.events.insert_event(event2)
     db.events.delete_event(event1_id)
-    events = db.events.select_events_by_character(char_1["id"])
+    events = db.events.select_events(db.Event(character=char_1["id"]))
     assert len(events) == 1
     assert events[0]["id"] == event2_id

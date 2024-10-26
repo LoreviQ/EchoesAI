@@ -68,7 +68,7 @@ def test_get_characters(
     """
     Test the get characters route without a query.
     """
-    response = client.get("/v1/characters")
+    response = client.get("/v1/characters?")
     assert response.status_code == 200
     assert response.json
     assert response.json[0]["id"] == char_1["id"]

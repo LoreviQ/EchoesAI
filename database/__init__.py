@@ -1,16 +1,12 @@
+"""__init__.py for the database package."""
+
 from .characters import (
     insert_character,
     select_character,
-    select_character_by_query,
     select_character_ids,
     select_characters,
 )
-from .events import (
-    delete_event,
-    insert_event,
-    select_events_by_character,
-    select_most_recent_event,
-)
+from .events import delete_event, insert_event, select_events, select_most_recent_event
 from .main import (
     connect_to_db,
     convert_dt_ts,

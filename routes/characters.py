@@ -51,8 +51,8 @@ def get_character(character_id: int) -> Response:
 
 @bp.route("/v1/characters", methods=["GET"])
 def get_characters() -> Response:
-    """Gets characters, optionally with a query."""
+    """Get characters, optionally with a query."""
     query_params = request.args.to_dict()
-    character = db.Character(**query_params)
-    characters = db.select_character_by_query(character)
+    character_query = db.Character(**query_params)
+    characters = db.select_characters(character_query)
     return make_response(jsonify(characters), 200)

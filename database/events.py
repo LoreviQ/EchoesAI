@@ -28,31 +28,38 @@ def insert_event(event: Event) -> int:
     )
 
 
-def select_events_by_character(character: int) -> List[Event]:
+def select_events(event_query: Event = Event()) -> List[Event]:
     """
-    Select events by character from the database.
+    Select events from the database based on a query.
     """
     query = """
-        SELECT id, timestamp, type, content 
+        SELECT id, timestamp, character, type, content 
         FROM events 
-        WHERE character = ?
     """
+    conditions = []
+    parameters = []
+    for key, value in event_query.items():
+        if value is not None:
+            conditions.append(f"{key} = ?")
+            parameters.append(value)
+
+    if conditions:
+        query += " WHERE "
+        query += " AND ".join(conditions)
+
     _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (character,),
-    )
-    result = cursor.fetchall()
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
     close()
     events = []
-    for event in result:
+    for result in results:
         events.append(
             Event(
-                id=event[0],
-                timestamp=convert_ts_dt(event[1]),
-                character=character,
-                type=event[2],
-                content=event[3],
+                id=result[0],
+                timestamp=convert_ts_dt(result[1]),
+                character=result[2],
+                type=result[3],
+                content=result[4],
             )
         )
     return events
