@@ -112,7 +112,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     """
     Generate an event message.
     """
-    character = db.select_character(character_id)
+    character = db.select_character_by_id(character_id)
     sys_message = _get_system_message(event_type, character)
     chatlog = Events(character_id, True, True, True).sorted(truncate=True, model=model)
     timestamp = db.convert_dt_ts(datetime.now(timezone.utc))
@@ -140,7 +140,7 @@ def generate_social_media_post(model: Model, character_id: int) -> None:
     """
     Generate a social media post.
     """
-    character = db.select_character(character_id)
+    character = db.select_character_by_id(character_id)
     # even if image posts are allowed, there is a 2/3 chance of generating a text post
     if character["img_gen"] is not True or random.random() < 2 / 3:
         _generate_text_post(model, character)
@@ -332,7 +332,7 @@ def _get_system_message(
         # Almost makes you wonder wtf the point of them is.
         thread = cast(db.Thread, data)
         assert thread["character"]
-        character = db.select_character(thread["character"])
+        character = db.select_character_by_id(thread["character"])
     else:
         character = cast(db.Character, data)
         thread = None

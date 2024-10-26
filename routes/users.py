@@ -1,6 +1,6 @@
 """Routes for users."""
 
-from flask import Response, make_response, request
+from flask import Response, jsonify, make_response, request
 
 import auth
 import database as db
@@ -8,7 +8,7 @@ import database as db
 from .main import bp
 
 
-@bp.route("/users/new", methods=["POST"])
+@bp.route("/v1/users", methods=["POST"])
 def new_user() -> Response:
     """Creates a new user."""
     data = request.get_json()
@@ -24,7 +24,7 @@ def new_user() -> Response:
     return make_response(token, 200)
 
 
-@bp.route("/login", methods=["POST"])
+@bp.route("/v1/login", methods=["POST"])
 def login() -> Response:
     """Logs in a user."""
     data = request.get_json()
@@ -37,3 +37,14 @@ def login() -> Response:
 
     token = auth.issue_access_token(username)
     return make_response(token, 200)
+
+
+@bp.route("/v1/users/<string:username>/threads", methods=["GET"])
+def get_threads_by_user(username: str) -> Response:
+    """Gets all threads for a user."""
+    try:
+        db.select_user(username)
+    except ValueError:
+        return make_response("user not found", 400)
+    threads = db.select_threads_by_user(username)
+    return make_response(jsonify(threads), 200)

@@ -50,12 +50,26 @@ def test_select_character(db_init: str) -> None:
     """
     char_1 = db.Character(name="test character", path_name="test_character")
     char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    character_id = db.insert_character(char_1)
-    character = db.select_character(character_id)
-    assert character["name"] == char_1["name"]
-    character_id = db.insert_character(char_2)
-    character = db.select_character(character_id)
-    assert character["name"] == char_2["name"]
+    db.insert_character(char_1)
+    db.insert_character(char_2)
+    character_1 = db.select_character(char_1["path_name"])
+    character_2 = db.select_character(char_2["path_name"])
+    assert character_1["name"] == char_1["name"]
+    assert character_2["name"] == char_2["name"]
+
+
+def test_select_character_by_id(db_init: str) -> None:
+    """
+    Test the select_character_by_id function.
+    """
+    char_1 = db.Character(name="test character", path_name="test_character")
+    char_2 = db.Character(name="test character 2", path_name="test_character_2")
+    character_1_id = db.insert_character(char_1)
+    character_2_id = db.insert_character(char_2)
+    character_1 = db.select_character_by_id(character_1_id)
+    character_2 = db.select_character_by_id(character_2_id)
+    assert character_1["name"] == char_1["name"]
+    assert character_2["name"] == char_2["name"]
 
 
 def test_select_characters(db_init: str) -> None:

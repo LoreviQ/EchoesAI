@@ -3,6 +3,7 @@
 from .characters import (
     insert_character,
     select_character,
+    select_character_by_id,
     select_character_ids,
     select_characters,
 )

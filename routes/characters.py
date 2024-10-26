@@ -39,11 +39,11 @@ def new_character() -> Response:
     return make_response(str(data["path_name"]), 200)
 
 
-@bp.route("/v1/characters/<int:character_id>", methods=["GET"])
-def get_character(character_id: int) -> Response:
-    """Gets a character by ID."""
+@bp.route("/v1/characters/<string:char_path>", methods=["GET"])
+def get_character(char_path: int) -> Response:
+    """Gets a character by path name."""
     try:
-        character = db.select_character(character_id)
+        character = db.select_character(char_path)
         return make_response(jsonify(character), 200)
     except ValueError:
         return make_response("character not found", 404)
@@ -56,3 +56,25 @@ def get_characters() -> Response:
     character_query = db.Character(**query_params)
     characters = db.select_characters(character_query)
     return make_response(jsonify(characters), 200)
+
+
+@bp.route("/v1/characters/<string:char_path>/posts", methods=["GET"])
+def get_posts_by_character(char_path: str) -> Response:
+    """Gets all posts for a character."""
+    try:
+        db.select_character(char_path)
+    except ValueError:
+        return make_response("character not found", 400)
+    posts = db.select_posts(db.Post(character=char_path))
+    return make_response(jsonify(posts), 200)
+
+
+@bp.route("/v1/characters/<string:char_path>/events", methods=["GET"])
+def get_events_by_character(char_path: str) -> Response:
+    """Gets all events for a character."""
+    try:
+        db.select_character(char_path)
+    except ValueError:
+        return make_response("character not found", 400)
+    events = db.select_events(db.Event(character=char_path))
+    return make_response(jsonify(events), 200)
