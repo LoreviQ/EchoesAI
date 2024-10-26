@@ -12,7 +12,11 @@ from .main import bp
 @bp.route("/posts/<string:char_path>", methods=["GET"])
 def get_posts_by_character(char_path: str) -> Response:
     """Gets all posts for a character."""
-    character = db.select_character_by_path(char_path)
+
+    try:
+        character = db.select_character_by_path(char_path)
+    except ValueError:
+        return make_response("character not found", 404)
     assert character["id"]
     posts = db.posts.get_posts_by_character(character["id"])
     response: List[Dict[str, str]] = []

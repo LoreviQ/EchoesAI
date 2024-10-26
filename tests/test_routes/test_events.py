@@ -24,7 +24,7 @@ def test_get_events_by_character(client, char_1, event_1, event_2):
 
 def test_get_events_by_character_no_events(client, char_1):
     """
-    Test the get events by character route.
+    Test the get events by character route with no events.
     """
     response = client.get(f"/events/{char_1['path_name']}")
     assert response.status_code == 200
@@ -33,7 +33,7 @@ def test_get_events_by_character_no_events(client, char_1):
 
 def test_get_events_by_character_invalid_character(client):
     """
-    Test the get events by character route.
+    Test the get events by character route with an invalid character.
     """
     response = client.get("/events/not_a_character")
     assert response.status_code == 404

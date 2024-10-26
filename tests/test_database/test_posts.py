@@ -4,12 +4,45 @@ This file contains the tests for the database/posts.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
+from typing import Generator
 
-from typing import Tuple
+import pytest
 
 import database as db
 from tests.test_database.test_characters import char_1, char_2
 from tests.test_database.test_main import db_init
+
+
+@pytest.fixture
+def post_1(char_1: db.Character) -> Generator[db.Post, None, None]:
+    """
+    Creates a post to be used in testing.
+    """
+    post = db.Post(
+        character=char_1["id"],
+        description="test description",
+        image_post=True,
+        prompt="test prompt",
+        caption="test caption",
+    )
+    post["id"] = db.posts.insert_social_media_post(post)
+    yield post
+
+
+@pytest.fixture
+def post_2(char_1: db.Character) -> Generator[db.Post, None, None]:
+    """
+    Creates a post distinct from post_1 to be used in testing.
+    """
+    post = db.Post(
+        character=char_1["id"],
+        description="test description 2",
+        image_post=False,
+        prompt="",
+        caption="",
+    )
+    post["id"] = db.posts.insert_social_media_post(post)
+    yield post
 
 
 def test_insert_social_media_post(db_init: str, char_1: db.Character) -> None:

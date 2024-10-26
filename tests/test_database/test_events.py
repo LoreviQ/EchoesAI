@@ -1,5 +1,5 @@
 """
-This file contains the tests for the database/threads.py file.
+This file contains the tests for the database/events.py file.
 """
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
