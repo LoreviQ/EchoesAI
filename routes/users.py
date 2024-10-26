@@ -12,6 +12,8 @@ from .main import bp
 def new_user() -> Response:
     """Creates a new user."""
     data = request.get_json()
+    if not all(key in data for key in ("username", "password", "email")):
+        return make_response("", 400)
     user = db.User(
         username=data["username"],
         password=data["password"],
@@ -26,6 +28,8 @@ def new_user() -> Response:
 def login() -> Response:
     """Logs in a user."""
     data = request.get_json()
+    if not all(key in data for key in ("username", "password")):
+        return make_response("", 400)
     username = data["username"]
     password = data["password"]
     if not auth.authenticate_user(username, password):

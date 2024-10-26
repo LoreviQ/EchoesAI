@@ -8,6 +8,7 @@ from typing import Generator
 
 import pytest
 
+import auth
 import database as db
 from tests.test_database.test_main import db_init
 
@@ -17,8 +18,10 @@ def user_1() -> Generator[db.User, None, None]:
     """
     Yields a user to be used in testing.
     """
-    user = db.User(username="test_user", password="password", email="test@test.com")
-    user["id"] = db.insert_user(user)
+    password = "password"
+    user = db.User(username="test_user", password=password, email="test@test.com")
+    user["id"] = auth.insert_user(user)
+    user["password"] = password
     yield user
 
 
@@ -27,10 +30,10 @@ def user_2() -> Generator[db.User, None, None]:
     """
     Yields a user distinct from user_1 to be used in testing.
     """
-    user = db.User(
-        username="test_user_2", password="password_2", email="test_2@test.com"
-    )
-    user["id"] = db.insert_user(user)
+    password = "password_2"
+    user = db.User(username="test_user_2", password=password, email="test_2@test.com")
+    user["id"] = auth.insert_user(user)
+    user["password"] = password
     yield user
 
 
