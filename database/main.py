@@ -41,6 +41,8 @@ def convert_ts_dt(timestamp: str | None) -> datetime:
     """
     if not timestamp:
         raise ValueError("Timestamp is None.")
+    # remove data below a second
+    timestamp = timestamp.split(".")[0]
     dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
     return dt.replace(tzinfo=timezone.utc)
 

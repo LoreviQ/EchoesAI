@@ -4,7 +4,6 @@ from typing import List
 
 from .main import (
     connect_to_db,
-    convert_ts_dt,
     general_commit_returning_none,
     general_insert_returning_id,
 )
@@ -58,7 +57,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
         events.append(
             Event(
                 id=result[0],
-                timestamp=convert_ts_dt(result[1]),
+                timestamp=result[1],
                 character=result[2],
                 type=result[3],
                 content=result[4],
@@ -88,7 +87,7 @@ def select_most_recent_event(character: int) -> Event:
     if result:
         return Event(
             id=result[0],
-            timestamp=convert_ts_dt(result[1]),
+            timestamp=result[1],
             character=character,
             type=result[2],
             content=result[3],

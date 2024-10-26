@@ -1,7 +1,5 @@
 """Routes for events."""
 
-from typing import Any, Dict, List
-
 from flask import Response, jsonify, make_response, request
 
 import database as db
@@ -22,15 +20,4 @@ def get_events() -> Response:
         del event_query["char_path"]
 
     events = db.select_events(event_query)
-    response: List[Dict[str, Any]] = []
-    for event in events:
-        response.append(
-            {
-                "id": event["id"],
-                "timestamp": db.convert_dt_ts(event["timestamp"]),
-                "character": event["character"],
-                "type": event["type"],
-                "content": event["content"],
-            },
-        )
-    return make_response(jsonify(response), 200)
+    return make_response(jsonify(events), 200)

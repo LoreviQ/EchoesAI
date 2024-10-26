@@ -85,7 +85,7 @@ def test_response_cycle_long(model: Model, thread_1: db.Thread) -> None:
     assert messages[-1]["content"]
     assert "Mock response" in messages[-1]["content"]
     assert messages[-1]["timestamp"]
-    assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
+    assert db.convert_ts_dt(messages[-1]["timestamp"]) > datetime.now(timezone.utc)
 
 
 def test_response_cycle_repeated(model: Model, thread_1: db.Thread) -> None:

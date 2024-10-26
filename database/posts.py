@@ -4,7 +4,6 @@ from typing import List
 
 from .main import (
     connect_to_db,
-    convert_ts_dt,
     general_commit_returning_none,
     general_insert_returning_id,
 )
@@ -72,7 +71,7 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
         posts.append(
             Post(
                 id=post[0],
-                timestamp=convert_ts_dt(post[1]),
+                timestamp=post[1],
                 character=post[2],
                 description=post[3],
                 image_post=post[4],

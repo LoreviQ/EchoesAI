@@ -22,18 +22,4 @@ def get_posts() -> Response:
         del post_query["char_path"]
 
     posts = db.select_posts(post_query)
-    response: List[Dict[str, Any]] = []
-    for post in posts:
-        response.append(
-            {
-                "id": post["id"],
-                "timestamp": db.convert_dt_ts(post["timestamp"]),
-                "character": post["character"],
-                "description": post["description"],
-                "image_post": post["image_post"],
-                "prompt": post["prompt"],
-                "caption": post["caption"],
-                "image_path": post["image_path"],
-            },
-        )
-    return make_response(jsonify(response), 200)
+    return make_response(jsonify(posts), 200)

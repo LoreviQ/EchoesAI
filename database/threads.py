@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List
 
 from .characters import select_character_by_id
-from .main import connect_to_db, general_insert_returning_id
+from .main import connect_to_db, convert_dt_ts, general_insert_returning_id
 from .messages import insert_message
 from .types import Message, Thread
 
@@ -22,12 +22,13 @@ def insert_thread(user_id: int, char_id: int) -> int:
     thread_id = general_insert_returning_id(query, (user_id, char_id))
     thread = select_thread(thread_id)
     character = select_character_by_id(char_id)
+    now = convert_dt_ts(datetime.now(timezone.utc))
     if character["initial_message"]:
         message = Message(
             thread=thread,
             content=character["initial_message"],
             role="assistant",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=now,
         )
         insert_message(message)
     return thread_id

@@ -1,6 +1,5 @@
 """Database types."""
 
-from datetime import datetime
 from typing import Optional, TypedDict
 
 
@@ -34,7 +33,7 @@ class Thread(TypedDict, total=False):
     """Thread type."""
 
     id: Optional[int]
-    started: Optional[datetime]
+    started: Optional[str]  # timestamp
     user: Optional[str]
     character: Optional[int]
     phase: Optional[int]
@@ -44,7 +43,7 @@ class Message(TypedDict, total=False):
     """Message type."""
 
     id: Optional[int]
-    timestamp: Optional[datetime]
+    timestamp: Optional[str]
     thread: Optional[Thread]
     content: Optional[str]
     role: Optional[str]
@@ -54,7 +53,7 @@ class Event(TypedDict, total=False):
     """Event type."""
 
     id: Optional[int]
-    timestamp: Optional[datetime]
+    timestamp: Optional[str]
     character: Optional[int]
     type: Optional[str]
     content: Optional[str]
@@ -64,7 +63,7 @@ class Post(TypedDict, total=False):
     """Post type."""
 
     id: Optional[int]
-    timestamp: Optional[datetime]
+    timestamp: Optional[str]
     character: Optional[int]
     description: Optional[str]
     image_post: Optional[bool]

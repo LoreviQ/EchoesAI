@@ -4,8 +4,6 @@ from typing import List, Tuple
 
 from .main import (
     connect_to_db,
-    convert_dt_ts,
-    convert_ts_dt,
     general_commit_returning_none,
     general_insert_returning_id,
 )
@@ -22,7 +20,7 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
         messages.append(
             Message(
                 id=message[0],
-                timestamp=convert_ts_dt(message[3]),
+                timestamp=message[3],
                 thread=Thread(
                     id=message[4],
                     user=message[5],
@@ -55,18 +53,17 @@ def insert_message(message: Message) -> int:
                 message["thread"]["id"],
                 message["content"],
                 message["role"],
-                convert_dt_ts(message["timestamp"]),
+                message["timestamp"],
             ),
         )
-    else:
-        query = """
-            INSERT INTO messages (thread, content, role) 
-            VALUES (?, ?, ?)
-            returning id
-        """
-        return general_insert_returning_id(
-            query, (message["thread"]["id"], message["content"], message["role"])
-        )
+    query = """
+        INSERT INTO messages (thread, content, role) 
+        VALUES (?, ?, ?)
+        returning id
+    """
+    return general_insert_returning_id(
+        query, (message["thread"]["id"], message["content"], message["role"])
+    )
 
 
 def select_message(message_id: int) -> Message:
@@ -88,7 +85,7 @@ def select_message(message_id: int) -> Message:
     if result:
         return Message(
             id=result[0],
-            timestamp=convert_ts_dt(result[3]),
+            timestamp=result[3],
             thread=Thread(
                 id=result[4],
                 user=result[5],
@@ -129,7 +126,7 @@ def select_messages(message_query: Message) -> List[Message]:
         messages.append(
             Message(
                 id=message[0],
-                timestamp=convert_ts_dt(message[3]),
+                timestamp=message[3],
                 thread=Thread(
                     id=message[4],
                     user=message[5],
@@ -231,7 +228,7 @@ def update_message(message: Message) -> None:
         WHERE id = ?
     """
     params = (
-        convert_dt_ts(message["timestamp"]),
+        message["timestamp"],
         message.get("content", None),
         message["id"],
     )

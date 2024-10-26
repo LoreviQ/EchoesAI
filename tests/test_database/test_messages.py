@@ -5,7 +5,7 @@ This file contains the tests for the database/dbpy file.
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Generator
 
 import pytest
@@ -26,7 +26,7 @@ def message_1(thread_1: db.Thread) -> Generator[db.Message, None, None]:
         thread=thread_1,
         content="test message",
         role="user",
-        timestamp=datetime.now() - timedelta(hours=1),
+        timestamp=datetime.now(timezone.utc) - timedelta(hours=1),
     )
     message_id = db.insert_message(message)
     yield db.select_message(message_id)
@@ -51,7 +51,7 @@ def scheduled_message(thread_1: db.Thread) -> Generator[db.Message, None, None]:
         thread=thread_1,
         content="delayed response",
         role="assistant",
-        timestamp=datetime.now() + timedelta(days=1),
+        timestamp=datetime.now(timezone.utc) + timedelta(days=1),
     )
     message_id = db.insert_message(message)
     yield db.select_message(message_id)
