@@ -12,7 +12,9 @@ import database as db
 
 
 @pytest.fixture
-def db_init(monkeypatch: pytest.MonkeyPatch) -> Generator[str, None, None]:
+def db_init(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Generator[str, None, None]:
     """
     Initialises the db for testing returning the path to the db.
     """
@@ -24,8 +26,12 @@ def db_init(monkeypatch: pytest.MonkeyPatch) -> Generator[str, None, None]:
     db_path = f"test_database_{test_name}.db"
     monkeypatch.setattr("database.main.DB_PATH", db_path)
     db.create_db()
+
+    def cleanup():
+        os.remove(db_path)
+
+    request.addfinalizer(cleanup)
     yield db_path
-    os.remove(db_path)
 
 
 def test_create_db(db_init: str) -> None:

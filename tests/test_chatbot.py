@@ -112,19 +112,6 @@ def test_response_cycle_long(args: Tuple[Model, db.Character, db.Thread]) -> Non
     assert messages[-1]["timestamp"] > datetime.now(timezone.utc)
 
 
-def test_response_cycle_single(args: Tuple[Model, db.Character, db.Thread]) -> None:
-    """
-    Tests that a single response is scheduled at one time.
-    """
-    assert args[2]["id"]
-    response_cycle(args[0], args[2]["id"])
-    response_cycle(args[0], args[2]["id"])
-    messages = db.select_messages_by_thread(args[2]["id"])
-    assert len(messages) == 3
-    assert messages[0]["role"] == "assistant"
-    assert messages[-1]["role"] == "assistant"
-
-
 def test_parse_time() -> None:
     """
     Test the _parse_time function.

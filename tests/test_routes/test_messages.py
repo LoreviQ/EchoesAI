@@ -61,6 +61,12 @@ def test_post_message(client: FlaskClient, thread_1: db.Thread) -> None:
     response = client.post(f"/threads/{thread_1['id']}/messages", json=message_payload)
     assert response.status_code == 200
 
+    # test that a response is generated
+    time.sleep(3)
+    response = client.get(f"/threads/{thread_1['id']}/messages")
+    assert response.status_code == 200
+    assert response.json[-1]["content"] == "Mock response"
+
 
 def test_post_message_missing_required_fields(
     client: FlaskClient, thread_1: db.Thread
@@ -84,21 +90,6 @@ def test_post_message_invalid_thread(client: FlaskClient) -> None:
     }
     response = client.post("/threads/0/messages", json=message_payload)
     assert response.status_code == 404
-
-
-def test_response_generation(client: FlaskClient, thread_1: db.Thread) -> None:
-    """Test that a response is generated when messaged."""
-
-    message_payload = {
-        "content": "test message",
-        "role": "user",
-    }
-    response = client.post(f"/threads/{thread_1['id']}/messages", json=message_payload)
-    assert response.status_code == 200
-    time.sleep(3)
-    response = client.get(f"/threads/{thread_1['id']}/messages")
-    assert response.status_code == 200
-    assert response.json[-1]["content"] == "Mock response"
 
 
 def test_get_response_now_scheduled(

@@ -9,28 +9,35 @@ import pytest
 import auth
 import database as db
 from tests.test_database.test_main import db_init
-from tests.test_database.test_users import user
+from tests.test_database.test_users import user_1
 
 
-def test_insert_user(db_init: str, user: db.User) -> None:
+def test_insert_user(db_init: str) -> None:
     """
     Test the insert_user function.
     """
-    original_password = user["password"]
+    unhashed_password = "password"
+    user = db.User(
+        username="test_user", password=unhashed_password, email="test@test.com"
+    )
     user_id = auth.insert_user(user)
     assert user_id == 1
     user_db = db.select_user("test_user")
     assert user_db["username"] == user["username"]
     assert user_db["email"] == user["email"]
-    assert user_db["password"] != original_password
+    assert user_db["password"] != unhashed_password
 
 
-def test_authenticate_user(db_init: str, user: db.User) -> None:
+def test_authenticate_user(db_init: str) -> None:
     """
     Test the authenticate_user function.
     """
+    unhashed_password = "password"
+    user = db.User(
+        username="test_user", password=unhashed_password, email="test@test.com"
+    )
     auth.insert_user(user)
-    assert auth.authenticate_user("test_user", "password")
+    assert auth.authenticate_user("test_user", unhashed_password)
     assert not auth.authenticate_user("test_user", "wrong_password")
     with pytest.raises(ValueError):
-        auth.authenticate_user("unknown_user", "password")
+        auth.authenticate_user("unknown_user", unhashed_password)
