@@ -28,7 +28,7 @@ def thread_1(char_1: db.Character) -> Generator[db.Thread, None, None]:
 @pytest.fixture
 def thread_2(char_2: db.Character) -> Generator[db.Thread, None, None]:
     """
-    Creates a thread distict from thread_1 to be used in testing.
+    Creates a thread distinct from thread_1 to be used in testing.
     """
     thread_id = db.insert_thread("user2", char_2["id"])
     thread = db.select_thread(thread_id)

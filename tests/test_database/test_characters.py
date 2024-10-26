@@ -15,7 +15,7 @@ from tests.test_database.test_main import db_init
 @pytest.fixture
 def char_1() -> Generator[db.Character, None, None]:
     """
-    Inserts char_1 into the database and yields it.
+    Creates a character to be used in testing.
     """
     char = db.Character(name="test character", path_name="test_character")
     char["id"] = db.insert_character(char)
@@ -25,7 +25,7 @@ def char_1() -> Generator[db.Character, None, None]:
 @pytest.fixture
 def char_2() -> Generator[db.Character, None, None]:
     """
-    Inserts char_2 into the database and yields it.
+    Creates a character distinct from char_1 to be used in testing.
     """
     char = db.Character(name="test character 2", path_name="test_character_2")
     char["id"] = db.insert_character(char)
