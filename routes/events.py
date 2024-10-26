@@ -12,7 +12,10 @@ from .main import bp
 @bp.route("/events/<string:char_path>", methods=["GET"])
 def get_events_by_character(char_path: str) -> Response:
     """Gets all events for a character."""
-    character = db.select_character_by_path(char_path)
+    try:
+        character = db.select_character_by_path(char_path)
+    except ValueError:
+        return make_response(b"character not found", 404)
     assert character["id"]
     events = db.events.select_events_by_character(character["id"])
     response: List[Dict[str, str]] = []

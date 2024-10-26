@@ -7,10 +7,9 @@ This file contains the tests for the routes/characters.py file.
 
 from flask.testing import FlaskClient
 
-import auth
 import database as db
 from tests.test_app import app, client
-from tests.test_database.test_characters import char_1, char_2
+from tests.test_database.test_characters import char_1
 from tests.test_database.test_main import db_init
 
 
@@ -63,16 +62,16 @@ def test_get_character_fail(client: FlaskClient) -> None:
     assert response.data == b"character not found"
 
 
-def test_get_character_by_path(client: FlaskClient, char_2: db.Character) -> None:
+def test_get_character_by_path(client: FlaskClient, char_1: db.Character) -> None:
     """
     Test the get character by path route.
     """
-    response = client.get(f"/characters/path/{char_2['path_name']}")
+    response = client.get(f"/characters/path/{char_1['path_name']}")
     assert response.status_code == 200
     assert response.json
-    assert response.json["id"] == char_2["id"]
-    assert response.json["name"] == char_2["name"]
-    assert response.json["path_name"] == char_2["path_name"]
+    assert response.json["id"] == char_1["id"]
+    assert response.json["name"] == char_1["name"]
+    assert response.json["path_name"] == char_1["path_name"]
 
 
 def test_get_character_by_path_fail(client: FlaskClient) -> None:

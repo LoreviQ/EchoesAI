@@ -5,10 +5,41 @@ This file contains the tests for the database/threads.py file.
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 import time
+from typing import Generator
+
+import pytest
 
 import database as db
 from tests.test_database.test_characters import char_1, char_2
 from tests.test_database.test_main import db_init
+
+
+@pytest.fixture
+def event_1(char_1: db.Character) -> Generator[db.Event, None, None]:
+    """
+    Creates a event to be used in testing.
+    """
+    event = db.Event(
+        character=char_1["id"],
+        type="event",
+        content="test event",
+    )
+    event["id"] = db.events.insert_event(event)
+    yield event
+
+
+@pytest.fixture
+def event_2(char_1: db.Character) -> Generator[db.Event, None, None]:
+    """
+    Creates a event distinct from event_1 to be used in testing.
+    """
+    event = db.Event(
+        character=char_1["id"],
+        type="thought",
+        content="test thought",
+    )
+    event["id"] = db.events.insert_event(event)
+    yield event
 
 
 def test_insert_event(db_init: str, char_1: db.Character, char_2: db.Character) -> None:
