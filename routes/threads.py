@@ -1,5 +1,7 @@
 """Routes for threads."""
 
+import urllib.parse
+
 from flask import Response, jsonify, make_response, request
 
 import database as db
@@ -20,5 +22,6 @@ def new_thread() -> Response:
 @bp.route("/threads/<string:username>", methods=["GET"])
 def get_threads_by_user(username: str) -> Response:
     """Gets all threads for a user."""
-    threads = db.select_threads_by_user(username)
+    decoded_username = urllib.parse.unquote(username)
+    threads = db.select_threads_by_user(decoded_username)
     return make_response(jsonify(threads), 200)

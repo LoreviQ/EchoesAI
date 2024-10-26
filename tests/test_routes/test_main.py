@@ -3,6 +3,7 @@ This file contains the tests for the routes/main.py file.
 """
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
+
 import os
 from typing import Generator, Tuple
 

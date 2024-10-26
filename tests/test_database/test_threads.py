@@ -13,24 +13,25 @@ import pytest
 import database as db
 from tests.test_database.test_characters import char_1, char_2
 from tests.test_database.test_main import db_init
+from tests.test_database.test_users import user_1, user_2
 
 
 @pytest.fixture
-def thread_1(char_1: db.Character) -> Generator[db.Thread, None, None]:
+def thread_1(user_1: db.User, char_1: db.Character) -> Generator[db.Thread, None, None]:
     """
     Creates a thread to be used in testing.
     """
-    thread_id = db.insert_thread("user", char_1["id"])
+    thread_id = db.insert_thread(user_1["id"], char_1["id"])
     thread = db.select_thread(thread_id)
     yield thread
 
 
 @pytest.fixture
-def thread_2(char_2: db.Character) -> Generator[db.Thread, None, None]:
+def thread_2(user_2: db.User, char_2: db.Character) -> Generator[db.Thread, None, None]:
     """
     Creates a thread distinct from thread_1 to be used in testing.
     """
-    thread_id = db.insert_thread("user2", char_2["id"])
+    thread_id = db.insert_thread(user_2["id"], char_2["id"])
     thread = db.select_thread(thread_id)
     yield thread
 

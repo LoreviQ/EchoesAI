@@ -11,6 +11,7 @@ import database as db
 from tests.test_database.test_characters import char_1, char_2
 from tests.test_database.test_main import db_init
 from tests.test_database.test_threads import thread_1, thread_2
+from tests.test_database.test_users import user_1, user_2
 
 
 def test_insert_message(db_init: str, thread_1: db.Thread) -> None:

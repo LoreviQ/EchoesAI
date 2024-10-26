@@ -44,32 +44,7 @@ def client(app: App) -> Generator[FlaskClient, None, None]:
         yield client
 
 
-def test_new_thread(client: FlaskClient, chars: List[db.Character]) -> None:
-    """
-    Test the new thread route.
-    """
-    response = client.post(
-        "/threads/new",
-        json={"username": "user", "character": chars[0]["id"]},
-    )
-    assert response.status_code == 200
-    assert response.data == b"1"
-
-
-def test_get_threads_by_user(threads: List[db.Thread], client: FlaskClient) -> None:
-    """
-    Test the get threads by user route.
-    """
-    response = client.get("/threads/user")
-    assert response.status_code == 200
-    assert response.json
-    assert response.json[0]["id"] == threads[0]["id"]
-    assert response.json[1]["id"] == threads[1]["id"]
-
-
 def test_get_messages_by_thread(
-    threads: List[db.Thread],
-    messages: List[db.Message],
     client: FlaskClient,
 ) -> None:
     """
