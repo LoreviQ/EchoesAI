@@ -1,7 +1,5 @@
 """Routes for posts."""
 
-from typing import Any, Dict, List
-
 from flask import Response, jsonify, make_response, request
 
 import database as db
