@@ -8,7 +8,6 @@ from datetime import timedelta
 from flask import Flask, g
 from flask_cors import CORS
 
-import database as db
 import routes
 from chatbot import response_cycle, schedule_events
 from model import Model
@@ -20,11 +19,10 @@ class App:
     """
 
     def __init__(self, model: Model, port: int = 5000):
-        self.app = Flask(__name__)
-        CORS(self.app)
         self.port = port
         self.model = model
-        db.create_db()
+        self.app = Flask(__name__)
+        CORS(self.app)
         routes.register_routes(self.app)
         self._setup_before_request()
         schedule_events(model)
