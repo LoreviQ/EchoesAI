@@ -27,7 +27,7 @@ def test_get_messages_by_thread(
 ) -> None:
     """Test the get messages by thread route."""
 
-    response = client.get(f"/threads/{thread_1['id']}/messages")
+    response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.json
     assert response.json[0]["id"] == message_1["id"]
     assert response.json[1]["id"] == message_2["id"]
@@ -39,7 +39,7 @@ def test_get_messages_by_thread_no_messages(
 ) -> None:
     """Test the get messages by thread route with no messages."""
 
-    response = client.get(f"/threads/{thread_1['id']}/messages")
+    response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.json == []
     assert response.status_code == 200
 
@@ -47,7 +47,7 @@ def test_get_messages_by_thread_no_messages(
 def test_get_messages_by_thread_invalid_thread(client: FlaskClient) -> None:
     """Test the get messages by thread route with an invalid thread."""
 
-    response = client.get("/threads/0/messages")
+    response = client.get("/v1/threads/0/messages")
     assert response.status_code == 404
     assert response.data == b"thread not found"
 
@@ -59,12 +59,14 @@ def test_post_message(client: FlaskClient, thread_1: db.Thread) -> None:
         "content": "test message",
         "role": "user",
     }
-    response = client.post(f"/threads/{thread_1['id']}/messages", json=message_payload)
+    response = client.post(
+        f"/v1/threads/{thread_1['id']}/messages", json=message_payload
+    )
     assert response.status_code == 200
 
     # test that a response is generated
     time.sleep(3)
-    response = client.get(f"/threads/{thread_1['id']}/messages")
+    response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.status_code == 200
     assert response.json[-1]["content"] == "Mock response"
 
@@ -77,7 +79,9 @@ def test_post_message_missing_required_fields(
     message_payload = {
         "content": "test message",
     }
-    response = client.post(f"/threads/{thread_1['id']}/messages", json=message_payload)
+    response = client.post(
+        f"/v1/threads/{thread_1['id']}/messages", json=message_payload
+    )
     assert response.status_code == 400
     assert response.data == b"missing required fields"
 
@@ -89,7 +93,7 @@ def test_post_message_invalid_thread(client: FlaskClient) -> None:
         "content": "test message",
         "role": "user",
     }
-    response = client.post("/threads/0/messages", json=message_payload)
+    response = client.post("/v1/threads/0/messages", json=message_payload)
     assert response.status_code == 404
 
 
@@ -98,7 +102,7 @@ def test_get_response_now_scheduled(
 ) -> None:
     """Tests the get response now route with a scheduled message."""
 
-    response = client.get(f"/threads/{thread_1['id']}/messages/new")
+    response = client.get(f"/v1/threads/{thread_1['id']}/message")
     assert response.status_code == 200
     messages = db.select_messages_by_thread(thread_1["id"])
     assert messages[-1]["content"] == scheduled_message["content"]
@@ -107,10 +111,10 @@ def test_get_response_now_scheduled(
 def test_get_response_now_generate(client: FlaskClient, thread_1: db.Thread) -> None:
     """Tests the get response now route without a scheduled message."""
 
-    response = client.get(f"/threads/{thread_1['id']}/messages/new")
+    response = client.get(f"/v1/threads/{thread_1['id']}/message")
     assert response.status_code == 200
     time.sleep(2)
-    response = client.get(f"/threads/{thread_1['id']}/messages")
+    response = client.get(f"/v1/threads/{thread_1['id']}/messages")
     assert response.status_code == 200
     assert response.json[-1]["content"] == "Mock response"
 
@@ -118,24 +122,24 @@ def test_get_response_now_generate(client: FlaskClient, thread_1: db.Thread) -> 
 def test_get_response_now_invalid_thread(client: FlaskClient) -> None:
     """Tests the get response now route with an invalid thread."""
 
-    response = client.get("/threads/0/messages/new")
+    response = client.get("/v1/threads/0/message")
     assert response.status_code == 404
     assert response.data == b"thread not found"
 
 
-def test_delete_messages(
+def test_delete_message(
     client: FlaskClient,
     message_1: db.Message,
 ) -> None:
     """Test the delete message route."""
 
-    response = client.delete(f"/messages/{message_1['id']}")
+    response = client.delete(f"/v1/messages/{message_1['id']}")
     assert response.status_code == 200
     with pytest.raises(ValueError):
         db.select_message(message_1["id"])
 
 
-def test_delete_messages_more_recent(
+def test_delete_messages_more_recent_app(
     client: FlaskClient,
     message_1: db.Message,
     message_2: db.Message,
@@ -143,15 +147,15 @@ def test_delete_messages_more_recent(
 ) -> None:
     """Test the delete messages more recent route."""
     query = "?recent=true"
-    response = client.delete(f"/messages/{message_2['id']}{query}")
+    response = client.delete(f"/v1/messages/{message_2['id']}{query}")
     assert response.status_code == 200
-    response = client.get(f"/threads/{message_1['thread']['id']}/messages")
+    response = client.get(f"/v1/threads/{message_1['thread']['id']}/messages")
     assert len(response.json) == 1
 
 
 def test_delete_messages_more_recent_invalid_message(client: FlaskClient) -> None:
     """Test the delete messages more recent route with an invalid message."""
 
-    response = client.delete("/messages/0")
+    response = client.delete("/v1/messages/0")
     assert response.status_code == 404
     assert response.data == b"message not found"

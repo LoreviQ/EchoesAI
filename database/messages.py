@@ -15,7 +15,7 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
     cursor.execute(query, params)
     result = cursor.fetchall()
     close()
-    messages = []
+    messages: List[Message] = []
     for message in result:
         messages.append(
             Message(
@@ -96,6 +96,48 @@ def select_message(message_id: int) -> Message:
             role=result[2],
         )
     raise ValueError("Message not found")
+
+
+def select_messages(message_query: Message) -> List[Message]:
+    """
+    Select messages from the database by thread.
+    """
+    query = """
+        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
+        FROM messages as m JOIN threads as t ON m.thread = t.id 
+    """
+    conditions = []
+    parameters = []
+    for key, value in message_query.items():
+        if value is not None:
+            conditions.append(f"{key} = ?")
+            parameters.append(value)
+
+    if conditions:
+        query += " WHERE "
+        query += " AND ".join(conditions)
+
+    _, cursor, close = connect_to_db()
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
+    close()
+
+    messages: List[Message] = []
+    for message in results:
+        messages.append(
+            Message(
+                id=message[0],
+                timestamp=convert_ts_dt(message[3]),
+                thread=Thread(
+                    id=message[4],
+                    user=message[5],
+                    character=message[6],
+                ),
+                content=message[1],
+                role=message[2],
+            )
+        )
+    return messages
 
 
 def select_messages_by_thread(thread_id: int) -> List[Message]:

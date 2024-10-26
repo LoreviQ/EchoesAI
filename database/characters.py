@@ -133,7 +133,7 @@ def select_characters(
     conditions = []
     parameters = []
     for key, value in character_query.items():
-        if value is not None and key in Character().keys():
+        if value is not None and key:
             conditions.append(f"{key} = ?")
             parameters.append(value)
 

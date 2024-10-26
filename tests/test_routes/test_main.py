@@ -27,7 +27,7 @@ def test_ready(client: FlaskClient) -> None:
     """
     Test the readiness route.
     """
-    response = client.get("/readiness")
+    response = client.get("/v1/readiness")
     assert response.status_code == 200
 
 
@@ -35,7 +35,7 @@ def test_get_image(client: FlaskClient, expected_image: Tuple[str, bytes]) -> No
     """
     Test the get image route.
     """
-    response = client.get(expected_image[0])
+    response = client.get(f"/v1/{expected_image[0]}")
     assert response.status_code == 200
     assert response.data == expected_image[1]
 
@@ -44,5 +44,5 @@ def test_get_image_with_invalid_path(client: FlaskClient) -> None:
     """
     Test the get image route with an invalid path.
     """
-    response = client.get("/images/../pwd.txt")
+    response = client.get("/v1/images/../pwd.txt")
     assert response.status_code == 404

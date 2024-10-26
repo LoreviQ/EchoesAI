@@ -96,12 +96,12 @@ def test_select_characters_by_query_path(db_init: str) -> None:
     character_2_id = db.insert_character(char_2)
     character_1_query = db.Character(path_name=char_1["path_name"])
     character_2_query = db.Character(path_name=char_2["path_name"])
-    character = db.select_characters(character_1_query)[0]
-    assert character["id"] == character_1_id
-    assert character["name"] == char_1["name"]
-    character = db.select_characters(character_2_query)[0]
-    assert character["id"] == character_2_id
-    assert character["name"] == char_2["name"]
+    character_1 = db.select_characters(character_1_query)[0]
+    character_2 = db.select_characters(character_2_query)[0]
+    assert character_1["id"] == character_1_id
+    assert character_1["name"] == char_1["name"]
+    assert character_2["id"] == character_2_id
+    assert character_2["name"] == char_2["name"]
 
 
 def test_select_characters_by_query_multiple(db_init: str) -> None:

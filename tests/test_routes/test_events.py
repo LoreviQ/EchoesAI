@@ -22,7 +22,7 @@ def test_get_events(client, event_1, event_2):
     assert response.json[1]["id"] == event_2["id"]
 
 
-def test_get_events_by_character(client, char_1, event_1, event_2):
+def test_get_events_with_query(client, char_1, event_1, event_2):
     """
     Test the get events route with a query specifying a characters path name.
     """

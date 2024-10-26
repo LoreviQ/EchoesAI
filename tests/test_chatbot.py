@@ -147,7 +147,7 @@ def test_generate_event(
     """
     assert char_1["id"]
     generate_event(model, char_1["id"], "event")
-    events = db.select_events_by_character(char_1["id"])
+    events = db.select_events(db.Event(character=char_1["id"]))
     assert len(events) == 3
     assert events[0]["content"] == "test event"
     assert events[0]["type"] == "event"

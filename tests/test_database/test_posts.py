@@ -148,5 +148,5 @@ def test_add_image_path_to_post(db_init: str, char_1: db.Character) -> None:
     )
     post_id = db.posts.insert_social_media_post(post)
     db.posts.update_post_with_image_path(post_id, "test_image_path")
-    post = db.posts.select_posts(char_1["id"])[0]
+    post = db.posts.select_posts(db.Post(id=post_id))[0]
     assert post["image_path"] == "test_image_path"

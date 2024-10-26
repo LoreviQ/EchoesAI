@@ -433,7 +433,7 @@ class Events:
         # events
         self.e_bool = events
         if events:
-            self.events = db.events.select_events_by_character(char_id)
+            self.events = db.events.select_events(db.Event(character=char_id))
         # messages
         self.m_bool = messages
         if messages:
@@ -441,7 +441,7 @@ class Events:
         # posts
         self.p_bool = posts
         if posts:
-            self.posts = db.posts.select_posts(char_id)
+            self.posts = db.posts.select_posts(db.Post(character=char_id))
 
     def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
         """

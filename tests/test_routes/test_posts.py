@@ -22,9 +22,9 @@ def test_get_posts(client, post_1, post_2):
     assert response.json[1]["id"] == post_2["id"]
 
 
-def test_get_posts_by_character_no_posts(client):
+def test_get_posts_no_posts(client):
     """
-    Test the get posts by character route with no posts.
+    Test the get posts  route with no posts.
     """
     response = client.get("/v1/posts")
     assert response.status_code == 200
@@ -41,12 +41,3 @@ def test_get_posts_by_character(client, char_1, post_1, post_2):
     assert response.json
     assert response.json[0]["id"] == post_1["id"]
     assert response.json[1]["id"] == post_2["id"]
-
-
-def test_get_posts_by_character_invalid_character(client):
-    """
-    Test the get posts by character route with an invalid character.
-    """
-    response = client.get("/posts/not_a_character")
-    assert response.status_code == 404
-    assert response.data == b"character not found"

@@ -126,7 +126,7 @@ def test_select_messages_by_character(
     assert messages[0]["content"] == "test message 3"
 
 
-def test_delete_messages_more_recent(
+def test_delete_messages_more_recent_db(
     db_init: str, thread_1: db.Thread, thread_2: db.Thread
 ) -> None:
     """

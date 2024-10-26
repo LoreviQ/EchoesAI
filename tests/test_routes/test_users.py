@@ -23,7 +23,7 @@ def test_new_user(client: FlaskClient) -> None:
         "password": "password",
         "email": "test@test.com",
     }
-    response = client.post("/users/new", json=user_payload)
+    response = client.post("/v1/users", json=user_payload)
     assert response.status_code == 200
     assert response.data
     token = response.data
@@ -39,7 +39,7 @@ def test_new_user_missing_field(client: FlaskClient) -> None:
         "username": "test_user",
         "password": "password",
     }
-    response = client.post("/users/new", json=user_payload)
+    response = client.post("/v1/users", json=user_payload)
     assert response.status_code == 400
 
 
@@ -51,7 +51,7 @@ def test_login(client: FlaskClient, user_1: db.User) -> None:
         "username": user_1["username"],
         "password": user_1["password"],
     }
-    response = client.post("/login", json=login_payload)
+    response = client.post("/v1/login", json=login_payload)
     assert response.status_code == 200
     assert response.data
     token = response.data
@@ -67,7 +67,7 @@ def test_login_invalid_user(client: FlaskClient, user_1: db.User) -> None:
         "username": user_1["username"],
         "password": "invalid_password",
     }
-    response = client.post("/login", json=login_payload)
+    response = client.post("/v1/login", json=login_payload)
     assert response.status_code == 401
     assert not response.data
 
@@ -79,5 +79,31 @@ def test_login_missing_field(client: FlaskClient) -> None:
     login_payload = {
         "username": "test_user",
     }
-    response = client.post("/login", json=login_payload)
+    response = client.post("/v1/login", json=login_payload)
     assert response.status_code == 400
+
+
+def get_threads_by_user(
+    client: FlaskClient, user_1: db.User, thread_1: db.Thread
+) -> None:
+    """Test the get threads by user route."""
+
+    response = client.get(f"/v1/users/{user_1['username']}/threads")
+    assert response.status_code == 200
+    assert response.json
+    assert response.json[0]["id"] == thread_1["id"]
+    assert response.json[0]["user"] == user_1["username"]
+
+
+def test_get_threads_by_user_no_threads(client: FlaskClient, user_1: db.User) -> None:
+    """Test the get threads by user route with no threads."""
+    response = client.get(f"/v1/users/{user_1['username']}/threads")
+    assert response.status_code == 200
+    assert response.json == []
+
+
+def test_get_threads_by_user_invalid_user(client: FlaskClient) -> None:
+    """Test the get threads by user route with an invalid user."""
+    response = client.get("/v1/users/not_a_user/threads")
+    assert response.status_code == 400
+    assert response.data == b"user not found"
