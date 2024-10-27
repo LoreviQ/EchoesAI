@@ -12,7 +12,7 @@ import pytest
 from flask.testing import FlaskClient
 
 from app import App
-from model import Model, ModelMocked
+from chatbot import new_model
 from tests.test_database.test_main import db_init
 
 # Shared counter for port numbers
@@ -27,7 +27,7 @@ def app(db_init: str) -> Generator[App, None, None]:
     with port_counter.get_lock():
         port = port_counter.value
         port_counter.value += 1
-    model = Model(ModelMocked("short"))
+    model = new_model(mocked=True)
     app = App(model=model, port=port)
     yield app
 

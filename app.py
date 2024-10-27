@@ -9,8 +9,7 @@ from flask import Flask, g
 from flask_cors import CORS
 
 import routes
-from chatbot import response_cycle, schedule_events
-from model import Model
+from chatbot import Model, response_cycle, schedule_events
 
 
 class App:

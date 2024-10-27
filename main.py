@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 import database as db
 from app import App
-from model import Model, ModelActual, ModelMocked
+from chatbot import new_model
 
 
 def main() -> None:
@@ -17,12 +17,16 @@ def main() -> None:
     """
     load_dotenv()
     parser = argparse.ArgumentParser(description="Run the application.")
-    parser.add_argument("--test", action="store_true", help="Enable test mode")
+    parser.add_argument("--test", action="store_true", help="Use a mocked model")
+    parser.add_argument(
+        "--detatched",
+        action="store_true",
+        help="Does not load a model - Used to host api without enabling generative ai",
+    )
     args = parser.parse_args()
     db.create_db()  # Create the database if it doesn't exist
-    model = ModelMocked("long") if args.test else ModelActual()
-    manager = Model(model)
-    app = App(manager)
+    model = new_model(mocked=args.test)
+    app = App(model)
     app.serve()
 
 

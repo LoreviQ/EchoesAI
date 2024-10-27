@@ -1,111 +1,26 @@
 """
-Module to manage the chatbot state.
+Handles the functions required to generate an event from the chatbot.
+I.E. Events only containing the character
 """
 
-import atexit
 import random
-import re
 import shutil
-from datetime import datetime, timedelta, timezone
-from typing import List, TypedDict, cast
+from datetime import datetime, timezone
+from typing import List, cast
 
 import civitai
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler
-from jinja2 import Template
 
 import database as db
-from model import ChatMessage, Model
 
-MAX_TOKENS = 4096
-MAX_NEW_TOKENS = 512
-
-
-class StampedChatMessage(TypedDict):
-    """Chat message type."""
-
-    role: str
-    content: str
-    timestamp: datetime
-
-
-class ImageGenerationFailedException(Exception):
-    """Exception raised when image generation fails on Civitai's side."""
-
-
-def _generate_text(
-    model: Model,
-    system_message: ChatMessage,
-    chat: List[ChatMessage],
-) -> ChatMessage:
-    """
-    Generate a response from the chatbot.
-    """
-    response = model.generate_response(
-        [system_message] + chat, max_new_tokens=MAX_NEW_TOKENS
-    )
-    return cast(ChatMessage, response)
-
-
-def response_cycle(
-    model: Model, thread_id: int, duration: timedelta | None = None
-) -> None:
-    """
-    Handles the entire response cycle for recieving and generating a new message.
-    """
-    # delete previous scheduled messages
-    thread = db.select_thread(thread_id)
-    db.delete_scheduled_messages_from_thread(thread_id)
-    # get response time
-    if duration is None:
-        duration = _get_response_time(model, thread)
-    timestamp = datetime.now(timezone.utc) + duration
-    # get a response from the model
-    _get_response_and_submit(model, thread, timestamp)
-
-
-def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
-    assert thread["id"]
-    sys_message = _get_system_message("time", thread)
-    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
-    content = (
-        f"The time is currently {now}. How long until you next send a "
-        f"message to {thread['user']}?"
-    )
-    chatlog.append(ChatMessage(role="user", content=content))
-    response = _generate_text(model, sys_message, chatlog)
-    return _parse_time(response["content"])
-
-
-def _get_response_and_submit(
-    model: Model,
-    thread: db.Thread,
-    timestamp: datetime,
-) -> None:
-    assert thread["id"]
-    sys_message = _get_system_message("chat", thread)
-    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
-    content = (
-        f"The time is currently {now}, and you have decided to send {thread['user']} "
-        f"another message. Please write your message to {thread['user']}.\n"
-        "Do not include anything except for the message content, such as time or message recipient."
-    )
-    chatlog.append(
-        {
-            "role": "user",
-            "content": content,
-        }
-    )
-    response = _generate_text(model, sys_message, chatlog)
-    message = db.Message(
-        thread=thread,
-        content=response["content"],
-        role=response["role"],
-        timestamp=timestamp,
-    )
-    db.insert_message(message)
+from .main import _generate_text, _get_system_message
+from .model import Model
+from .types import (
+    MAX_TOKENS,
+    ChatMessage,
+    ImageGenerationFailedException,
+    StampedChatMessage,
+)
 
 
 def generate_event(model: Model, character_id: int, event_type: str) -> None:
@@ -286,142 +201,6 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
         raise IOError("Failed to save the downloaded image.") from e
 
 
-def _parse_time(time: str) -> timedelta:
-    """
-    Parse a time string into days, hours, minutes, and seconds.
-    """
-    days = hours = minutes = seconds = 0
-    # regex patterns
-    day_pattern = r"(\d+)d"
-    hour_pattern = r"(\d+)h"
-    minute_pattern = r"(\d+)m"
-    second_pattern = r"(\d+)s"
-
-    # Search for the first occurrence of each time unit
-    day_match = re.search(day_pattern, time)
-    hour_match = re.search(hour_pattern, time)
-    minute_match = re.search(minute_pattern, time)
-    second_match = re.search(second_pattern, time)
-
-    # Extract the time values
-    if day_match:
-        days = int(day_match.group(1))
-    if hour_match:
-        hours = int(hour_match.group(1))
-    if minute_match:
-        minutes = int(minute_match.group(1))
-    if second_match:
-        seconds = int(second_match.group(1))
-
-    return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-
-
-def _get_system_message(
-    system_type: str,
-    data: db.Character | db.Thread,
-    photo_description: str = "",
-) -> ChatMessage:
-    """
-    Change the system message between several preconfigured options.
-    """
-    with open(f"templates/{system_type}.txt", "r", encoding="utf-8") as file:
-        template_content = file.read()
-
-    if "started" in data:  # Is a thread.
-        # TypedDicts apparently don't support type checking.
-        # Almost makes you wonder wtf the point of them is.
-        thread = cast(db.Thread, data)
-        assert thread["character"]
-        character = db.select_character_by_id(thread["character"])
-    else:
-        character = cast(db.Character, data)
-        thread = None
-
-    # prepare context for rendering
-    context = {
-        "char": character.get("name", ""),
-        "description": character.get("description", ""),
-        "age": character.get("age", ""),
-        "height": character.get("height", ""),
-        "personality": character.get("personality", ""),
-        "appearance": character.get("appearance", ""),
-        "loves": character.get("loves", ""),
-        "hates": character.get("hates", ""),
-        "details": character.get("details", ""),
-        "scenario": character.get("scenario", ""),
-        "important": character.get("important", ""),
-        "photo_description": photo_description,
-    }
-    if thread:
-        context["user"] = thread["user"]
-        # TODO: Phase-specific messages
-
-    # Render the template until no more changes are detected
-    previous_content = None
-    current_content = template_content
-    while previous_content != current_content:
-        previous_content = current_content
-        template = Template(current_content)
-        current_content = template.render(context)
-
-    return ChatMessage(role="system", content=current_content)
-
-
-class Messages:
-    """
-    Class to manage messages related to a particular thread.
-    """
-
-    def __init__(self, thread_id: int) -> None:
-        self.messages = db.select_messages_by_thread(thread_id)
-
-    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert messages into chatlog messages.
-        """
-        message_log: List[StampedChatMessage] = []
-        for message in self.messages:
-            if not all(
-                [
-                    message["timestamp"],
-                    message["content"],
-                    message["role"],
-                ]
-            ):
-                continue
-            assert message["timestamp"]
-            assert message["content"]
-            assert message["role"]
-            content = f"---{message['timestamp']}---\n{message['content']}"
-            message_log.append(
-                StampedChatMessage(
-                    role=message["role"],
-                    content=content,
-                    timestamp=message["timestamp"],
-                )
-            )
-        return message_log
-
-    def sorted(
-        self, truncate: bool = False, model: Model | None = None
-    ) -> List[ChatMessage]:
-        """
-        Return a sorted log of messages, optionally truncated.
-        """
-        sorter = self._convert_messages_to_chatlog()
-        sorter = sorted(sorter, key=lambda x: x["timestamp"])
-        chatlog = [cast(ChatMessage, x) for x in sorter]
-        if not truncate:
-            return chatlog
-        if not model:
-            raise ValueError("Model must be provided to truncate chatlog.")
-        # truncate chatlog to max tokens
-        truncated_log = chatlog[:]
-        while model.token_count(truncated_log) > MAX_TOKENS:
-            truncated_log.pop(0)
-        return truncated_log
-
-
 class Events:
     """
     Class to manage events for a character.
@@ -589,33 +368,3 @@ class Events:
         while model.token_count(truncated_log) > MAX_TOKENS:
             truncated_log.pop(0)
         return truncated_log
-
-
-def schedule_events(model: Model) -> None:
-    """Schedule events for the chatbot."""
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        _scheduled_generation,
-        trigger="interval",
-        minutes=1,
-        args=[model],
-    )
-    scheduler.start()
-    atexit.register(scheduler.shutdown)
-
-
-def _scheduled_generation(model: Model) -> None:
-    """
-    Called once a minute and uses internal logic decide what to generate.
-    """
-    char_ids = db.select_character_ids()
-    for char_id in char_ids:
-        if random.random() < 1 / 30:
-            # Thoughts happen twice an hour on average
-            generate_event(model, char_id, "thought")
-        if random.random() < 1 / 30:
-            # Events happen twice an hour on average
-            generate_event(model, char_id, "event")
-        if random.random() < 1 / 60:
-            # Posts happen once an hour on average
-            generate_social_media_post(model, char_id)
