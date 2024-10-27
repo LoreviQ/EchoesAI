@@ -3,8 +3,10 @@ Handles the functions required to generate an event from the chatbot.
 I.E. Events only containing the character
 """
 
+import os
 import random
 import shutil
+import time
 from datetime import datetime, timezone
 from typing import List, cast
 
@@ -21,6 +23,175 @@ from .types import (
     ImageGenerationFailedException,
     StampedChatMessage,
 )
+
+
+class Events:
+    """
+    Class to manage events for a character.
+    """
+
+    def __init__(self, char_id: int, events: bool, messages: bool, posts: bool) -> None:
+        if not any([events, messages, posts]):
+            raise ValueError("At least one of events, messages, or posts must be True.")
+        # events
+        self.e_bool = events
+        if events:
+            self.events = db.events.select_events(db.Event(character=char_id))
+        # messages
+        self.m_bool = messages
+        if messages:
+            self.messages = db.select_messages_by_character(char_id)
+        # posts
+        self.p_bool = posts
+        if posts:
+            self.posts = db.posts.select_posts(db.Post(character=char_id))
+
+    def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert events into chatlog messages.
+        """
+        event_log: List[StampedChatMessage] = []
+        for event in self.events:
+            if not all(
+                [
+                    event["type"],
+                    event["timestamp"],
+                    event["content"],
+                ]
+            ):
+                continue
+            assert event["type"]
+            assert event["timestamp"]
+            assert event["content"]
+            match event["type"]:
+                case "thought":
+                    content = (
+                        f"At time {event['timestamp']}, you had the "
+                        f"following thought: {event['content']}"
+                    )
+                case "event":
+                    content = (
+                        f"At time {event['timestamp']}, you were "
+                        f"doing the following: {event['content']}"
+                    )
+            event_log.append(
+                StampedChatMessage(
+                    role="system", content=content, timestamp=event["timestamp"]
+                )
+            )
+        return event_log
+
+    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert messages into chatlog messages.
+        """
+        message_log: List[StampedChatMessage] = []
+        for message in self.messages:
+            if not all(
+                [
+                    message["timestamp"],
+                    message["content"],
+                    message["role"],
+                    message["thread"],
+                    message["thread"]["user"],
+                ]
+            ):
+                continue
+            assert message["timestamp"]
+            assert message["content"]
+            assert message["role"]
+            assert message["thread"]
+            assert message["thread"]["user"]
+            if message["role"] == "user":
+                content = (
+                    f"At time {message['timestamp']}, "
+                    f"{message['thread']['user']} sent the message: "
+                    f"{message['content']}"
+                )
+
+            else:
+                content = (
+                    f"At time {message['timestamp']}, you sent the "
+                    f"message: {message['content']} to {message['thread']['user']}"
+                )
+
+            message_log.append(
+                StampedChatMessage(
+                    role="system",
+                    content=content,
+                    timestamp=message["timestamp"],
+                )
+            )
+        return message_log
+
+    def _convert_posts_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert posts into chatlog messages.
+        """
+        post_log: List[StampedChatMessage] = []
+        for post in self.posts:
+            if post["image_post"]:
+                if not all(
+                    [
+                        post["caption"],
+                        post["timestamp"],
+                        post["description"],
+                    ]
+                ):
+                    continue
+                assert post["caption"]
+                assert post["timestamp"]
+                assert post["description"]
+                content = (
+                    f"At time {post['timestamp']}, you posted the following "
+                    f"photo to social media: {post['description']} with the caption: "
+                    f"{post['caption']}"
+                )
+            else:
+                if not all(
+                    [
+                        post["timestamp"],
+                        post["description"],
+                    ]
+                ):
+                    continue
+                assert post["timestamp"]
+                assert post["description"]
+                content = (
+                    f"At time {post['timestamp']}, you posted the following "
+                    f"to social media:\n{post['description']}"
+                )
+            post_log.append(
+                StampedChatMessage(
+                    role="system", content=content, timestamp=post["timestamp"]
+                )
+            )
+        return post_log
+
+    def sorted(
+        self, truncate: bool = False, model: Model | None = None
+    ) -> List[ChatMessage]:
+        """
+        Return a sorted log of all events, messages, and posts, optionally truncated.
+        """
+        sorter: List[StampedChatMessage] = []
+        if self.e_bool:
+            sorter += self._convert_events_to_chatlog()
+        if self.m_bool:
+            sorter += self._convert_messages_to_chatlog()
+        if self.p_bool:
+            sorter += self._convert_posts_to_chatlog()
+        sorter = sorted(sorter, key=lambda x: x["timestamp"])
+        chatlog = [cast(ChatMessage, x) for x in sorter]
+        if not truncate:
+            return chatlog
+        if not model:
+            raise ValueError("Model must be provided to truncate chatlog.")
+        # truncate chatlog to max tokens
+        truncated_log = chatlog[:]
+        while model.token_count(truncated_log) > MAX_TOKENS:
+            truncated_log.pop(0)
+        return truncated_log
 
 
 def generate_event(model: Model, character_id: int, event_type: str) -> None:
@@ -154,7 +325,6 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
     if "model" not in character:
         raise ValueError("Character does not have a model specified.")
     assert character["name"]
-    char_name = character["name"].lower()
     civitai_input = {
         "model": character["model"],
         "params": {
@@ -173,198 +343,37 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
     # Handle response from Civitai
     response = civitai.image.create(civitai_input)
     try:
-        while True:
-            response = civitai.jobs.get(token=response["token"])
-            if response["jobs"][0]["result"]["available"]:
-                url = response["jobs"][0]["result"]["blobUrl"]
-                image_r = requests.get(url, stream=True, timeout=5)
-                image_r.raise_for_status()  # Raise an HTTPError for bad resposne
-                with open(
-                    f"static/images/{char_name}/posts/{post_id}.jpg",
-                    "wb",
-                ) as out_file:
-                    image_r.raw.decode_content = True
-                    shutil.copyfileobj(image_r.raw, out_file)
-                db.posts.update_post_with_image_path(
-                    post_id,
-                    f"{char_name}/posts/{post_id}.jpg",
-                )
-                break
-            if not response["jobs"][0]["scheduled"]:
-                raise ImageGenerationFailedException(
-                    "Image generation failed on Civitai's side."
-                )
+        while _check_civitai_for_image(
+            response["token"], character["name"].lower(), post_id
+        ):
+            time.sleep(60)
     except requests.exceptions.RequestException as e:
-        print(url)
         raise IOError("Failed to download image from provided URL.") from e
     except IOError as e:
         raise IOError("Failed to save the downloaded image.") from e
 
 
-class Events:
-    """
-    Class to manage events for a character.
-    """
-
-    def __init__(self, char_id: int, events: bool, messages: bool, posts: bool) -> None:
-        if not any([events, messages, posts]):
-            raise ValueError("At least one of events, messages, or posts must be True.")
-        # events
-        self.e_bool = events
-        if events:
-            self.events = db.events.select_events(db.Event(character=char_id))
-        # messages
-        self.m_bool = messages
-        if messages:
-            self.messages = db.select_messages_by_character(char_id)
-        # posts
-        self.p_bool = posts
-        if posts:
-            self.posts = db.posts.select_posts(db.Post(character=char_id))
-
-    def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert events into chatlog messages.
-        """
-        event_log: List[StampedChatMessage] = []
-        for event in self.events:
-            if not all(
-                [
-                    event["type"],
-                    event["timestamp"],
-                    event["content"],
-                ]
-            ):
-                continue
-            assert event["type"]
-            assert event["timestamp"]
-            assert event["content"]
-            match event["type"]:
-                case "thought":
-                    content = (
-                        f"At time {event['timestamp']}, you had the "
-                        f"following thought: {event['content']}"
-                    )
-                case "event":
-                    content = (
-                        f"At time {event['timestamp']}, you were "
-                        f"doing the following: {event['content']}"
-                    )
-            event_log.append(
-                StampedChatMessage(
-                    role="system", content=content, timestamp=event["timestamp"]
-                )
-            )
-        return event_log
-
-    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert messages into chatlog messages.
-        """
-        message_log: List[StampedChatMessage] = []
-        for message in self.messages:
-            if not all(
-                [
-                    message["timestamp"],
-                    message["content"],
-                    message["role"],
-                    message["thread"],
-                    getattr(message["thread"], "user", None),
-                ]
-            ):
-                continue
-            assert message["timestamp"]
-            assert message["content"]
-            assert message["role"]
-            assert message["thread"]
-            assert message["thread"]["user"]
-            if message["role"] == "user":
-                content = (
-                    f"At time {message['timestamp']}, "
-                    f"{message['thread']['user']} sent the message: "
-                    f"{message['content']}"
-                )
-
-            else:
-                content = (
-                    f"At time {message['timestamp']}, you sent the "
-                    f"message: {message['content']} to {message['thread']['user']}"
-                )
-
-            message_log.append(
-                StampedChatMessage(
-                    role="system",
-                    content=content,
-                    timestamp=message["timestamp"],
-                )
-            )
-        return message_log
-
-    def _convert_posts_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert posts into chatlog messages.
-        """
-        post_log: List[StampedChatMessage] = []
-        for post in self.posts:
-            if post["image_post"]:
-                if not all(
-                    [
-                        post["caption"],
-                        post["timestamp"],
-                        post["description"],
-                    ]
-                ):
-                    continue
-                assert post["caption"]
-                assert post["timestamp"]
-                assert post["description"]
-                content = (
-                    f"At time {post['timestamp']}, you posted the following "
-                    f"photo to social media: {post['description']} with the caption: "
-                    f"{post['caption']}"
-                )
-            else:
-                if not all(
-                    [
-                        post["timestamp"],
-                        post["description"],
-                    ]
-                ):
-                    continue
-                assert post["timestamp"]
-                assert post["description"]
-                content = (
-                    f"At time {post['timestamp']}, you posted the following "
-                    f"to social media:\n{post['description']}"
-                )
-            post_log.append(
-                StampedChatMessage(
-                    role="system", content=content, timestamp=post["timestamp"]
-                )
-            )
-        return post_log
-
-    def sorted(
-        self, truncate: bool = False, model: Model | None = None
-    ) -> List[ChatMessage]:
-        """
-        Return a sorted log of all events, messages, and posts, optionally truncated.
-        """
-        sorter: List[StampedChatMessage] = []
-        if self.e_bool:
-            sorter += self._convert_events_to_chatlog()
-        if self.m_bool:
-            sorter += self._convert_messages_to_chatlog()
-        if self.p_bool:
-            sorter += self._convert_posts_to_chatlog()
-        sorter = sorted(sorter, key=lambda x: x["timestamp"])
-        chatlog = [cast(ChatMessage, x) for x in sorter]
-        if not truncate:
-            return chatlog
-        if not model:
-            raise ValueError("Model must be provided to truncate chatlog.")
-        # truncate chatlog to max tokens
-        truncated_log = chatlog[:]
-        while model.token_count(truncated_log) > MAX_TOKENS:
-            truncated_log.pop(0)
-        return truncated_log
+def _check_civitai_for_image(token: str, char_name: str, post_id: int) -> bool:
+    response = civitai.jobs.get(token=token)
+    # if image is available, download it
+    if response["jobs"][0]["result"]["available"]:
+        url = response["jobs"][0]["result"]["blobUrl"]
+        image_r = requests.get(url, stream=True, timeout=5)
+        image_r.raise_for_status()  # Raise an HTTPError for bad resposne
+        directory = f"static/images/{char_name}/posts"
+        os.makedirs(directory, exist_ok=True)
+        with open(f"{directory}/{post_id}.jpg", "wb") as out_file:
+            image_r.raw.decode_content = True
+            shutil.copyfileobj(image_r.raw, out_file)
+        db.posts.update_post_with_image_path(
+            post_id,
+            f"{char_name}/posts/{post_id}.jpg",
+        )
+        return False
+    # if image is not available and not scheduled, raise an exception
+    if not response["jobs"][0]["scheduled"]:
+        raise ImageGenerationFailedException(
+            "Image generation failed on Civitai's side."
+        )
+    # if image is not available but scheduled, return True to continue checking
+    return True

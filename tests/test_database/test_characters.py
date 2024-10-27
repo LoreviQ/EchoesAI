@@ -17,7 +17,15 @@ def char_1() -> Generator[db.Character, None, None]:
     """
     Creates a character to be used in testing.
     """
-    char = db.Character(name="test character", path_name="test_character")
+    char = db.Character(
+        name="test character",
+        path_name="test_character",
+        img_gen=True,
+        model="urn:air:sdxl:checkpoint:civitai:811067@907264",
+        appearance="beep boop, robot, test, mechanical, cute, funny,",
+        global_positive="best quality, amazing quality, very aesthetic,",
+        global_negative="lowres, worst quality, low quality, bad anatomy, multiple views",
+    )
     char["id"] = db.insert_character(char)
     yield char
 
