@@ -25,7 +25,10 @@ def main() -> None:
     )
     args = parser.parse_args()
     db.create_db()  # Create the database if it doesn't exist
-    model = new_model(mocked=args.test)
+    if args.detatched:
+        model = None
+    else:
+        model = new_model(mocked=args.test)
     app = App(model)
     app.serve()
 

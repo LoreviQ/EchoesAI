@@ -24,7 +24,8 @@ class App:
         CORS(self.app)
         routes.register_routes(self.app)
         self._setup_before_request()
-        schedule_events(model)
+        if model is not None:
+            schedule_events(model)
 
     def _setup_before_request(self) -> None:
         @self.app.before_request
@@ -41,6 +42,9 @@ class App:
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
         """Start the chatbot response cycle in a background thread."""
+        if self.model is None:
+            print("App is in detatched mode. Cannot trigger response cycle.")
+            return
         thread = threading.Thread(
             target=response_cycle, args=(self.model, thread_id, duration)
         )
