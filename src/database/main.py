@@ -1,10 +1,13 @@
 """Miscellaneous database functions."""
 
+import os
 from datetime import datetime, timezone
 from sqlite3 import Connection, Cursor, connect
 from typing import Callable, Tuple
 
 DB_PATH = "database.db"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCHEMA_PATH = os.path.join(BASE_DIR, "sql", "schema.sql")
 
 
 def create_db() -> None:
@@ -12,7 +15,11 @@ def create_db() -> None:
     Create the database.
     """
     conn, _, close = connect_to_db()
-    with open("./sql/schema.sql", "r", encoding="utf-8") as file:
+    with open(
+        "/home/lorevi/workspace/github.com/LoreviQ/EchoesAI/sql/schema.sql",
+        "r",
+        encoding="utf-8",
+    ) as file:
         schema = file.read()
     with conn:
         conn.executescript(schema)

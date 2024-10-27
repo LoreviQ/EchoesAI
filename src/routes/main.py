@@ -14,4 +14,4 @@ def ready() -> Response:
 @bp.route("/v1/images/<path:filename>", methods=["GET"])
 def get_image(filename: str) -> Response:
     """Gets an image from the images directory."""
-    return send_from_directory("static/images", filename)
+    return send_from_directory("../static/images", filename)
