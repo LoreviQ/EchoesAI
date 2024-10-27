@@ -77,10 +77,21 @@ def test_convert_ts_dt() -> None:
         db.convert_ts_dt(None)
 
 
-def test_detatched(app: App, client: FlaskClient) -> None:
+def test_detatched_false(app: App, client: FlaskClient) -> None:
     """
     Test the detatched route.
     """
     response = client.get("/v1/detatched")
     assert response.status_code == 200  #
     assert response.data == b"False"
+
+
+def test_detatched_true() -> None:
+    """
+    Test the detatched route with a detatched app.
+    """
+    app = App(model=None, detatched=True)
+    with app.app.test_client() as client:
+        response = client.get("/v1/detatched")
+        assert response.status_code == 200
+        assert response.data == b"True"

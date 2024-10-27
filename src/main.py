@@ -29,7 +29,7 @@ def main() -> None:
         model = None
     else:
         model = new_model(mocked=args.test)
-    app = App(model)
+    app = App(model, detatched=args.detatched)
     app.serve()
 
 
