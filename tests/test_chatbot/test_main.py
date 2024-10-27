@@ -4,12 +4,12 @@
 
 import importlib
 from datetime import timedelta
-from typing import Generator
 
 import pytest
 
 import database as db
-from chatbot import Model, new_model
+from chatbot import Model
+from tests.test_chatbot.test_model import model
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_main import db_init
 from tests.test_database.test_threads import thread_1
@@ -24,13 +24,6 @@ types_module = importlib.import_module("chatbot.types")
 ChatMessage = getattr(types_module, "ChatMessage")
 
 
-@pytest.fixture
-def model(db_init: str) -> Generator[Model, None, None]:
-    """Yields a Model object for testing."""
-    model = new_model(mocked=True)
-    yield model
-
-
 def test_generate_text(model: Model) -> None:
     """
     Test the _generate_text function.
@@ -40,6 +33,16 @@ def test_generate_text(model: Model) -> None:
         ChatMessage(role="user", content="Hi!"),
     ]
     response = _generate_text(model, system_message, chat)
+    assert response["role"] == "assistant"
+    assert response["content"] == "Mock response"
+
+
+def test_generate_text_no_input(model: Model) -> None:
+    """
+    Test the _generate_text function with no input.
+    """
+    system_message = ChatMessage(role="system", content="You are an assistant.")
+    response = _generate_text(model, system_message, [])
     assert response["role"] == "assistant"
     assert response["content"] == "Mock response"
 

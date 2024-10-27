@@ -9,8 +9,6 @@ from transformers import AutoTokenizer, Pipeline, pipeline
 
 from .types import ChatMessage
 
-MODEL = "meta-llama/Llama-3.2-3B-Instruct"
-
 
 class ModelInterface(Protocol):
     """
@@ -100,7 +98,6 @@ class ModelMocked(ModelInterface):
         self.model_name = model_name
         self.time_to_respond = time_to_respond
         self.pipe, self.max_tokens = self._load_model()
-        self.model_name = "meta-llama/Llama-3.2-3B-Instruct"
 
     def _load_model(self) -> Tuple[None, int]:
         """

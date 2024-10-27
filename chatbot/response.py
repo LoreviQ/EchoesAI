@@ -13,6 +13,61 @@ from .model import Model
 from .types import MAX_TOKENS, ChatMessage, StampedChatMessage
 
 
+class Messages:
+    """
+    Class to manage messages related to a particular thread.
+    """
+
+    def __init__(self, thread_id: int) -> None:
+        self.messages = db.select_messages_by_thread(thread_id)
+
+    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
+        """
+        Convert messages into chatlog messages.
+        """
+        message_log: List[StampedChatMessage] = []
+        for message in self.messages:
+            if not all(
+                [
+                    message["timestamp"],
+                    message["content"],
+                    message["role"],
+                ]
+            ):
+                continue
+            assert message["timestamp"]
+            assert message["content"]
+            assert message["role"]
+            content = f"---{message['timestamp']}---\n{message['content']}"
+            message_log.append(
+                StampedChatMessage(
+                    role=message["role"],
+                    content=content,
+                    timestamp=message["timestamp"],
+                )
+            )
+        return message_log
+
+    def sorted(
+        self, truncate: bool = False, model: Model | None = None
+    ) -> List[ChatMessage]:
+        """
+        Return a sorted log of messages, optionally truncated.
+        """
+        sorter = self._convert_messages_to_chatlog()
+        sorter = sorted(sorter, key=lambda x: x["timestamp"])
+        chatlog = [cast(ChatMessage, x) for x in sorter]
+        if not truncate:
+            return chatlog
+        if not model:
+            raise ValueError("Model must be provided to truncate chatlog.")
+        # truncate chatlog to max tokens
+        truncated_log = chatlog[:]
+        while model.token_count(truncated_log) > MAX_TOKENS:
+            truncated_log.pop(0)
+        return truncated_log
+
+
 def response_cycle(
     model: Model, thread_id: int, duration: timedelta | None = None
 ) -> None:
@@ -72,58 +127,3 @@ def _get_response_and_submit(
         timestamp=timestamp,
     )
     db.insert_message(message)
-
-
-class Messages:
-    """
-    Class to manage messages related to a particular thread.
-    """
-
-    def __init__(self, thread_id: int) -> None:
-        self.messages = db.select_messages_by_thread(thread_id)
-
-    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert messages into chatlog messages.
-        """
-        message_log: List[StampedChatMessage] = []
-        for message in self.messages:
-            if not all(
-                [
-                    message["timestamp"],
-                    message["content"],
-                    message["role"],
-                ]
-            ):
-                continue
-            assert message["timestamp"]
-            assert message["content"]
-            assert message["role"]
-            content = f"---{message['timestamp']}---\n{message['content']}"
-            message_log.append(
-                StampedChatMessage(
-                    role=message["role"],
-                    content=content,
-                    timestamp=message["timestamp"],
-                )
-            )
-        return message_log
-
-    def sorted(
-        self, truncate: bool = False, model: Model | None = None
-    ) -> List[ChatMessage]:
-        """
-        Return a sorted log of messages, optionally truncated.
-        """
-        sorter = self._convert_messages_to_chatlog()
-        sorter = sorted(sorter, key=lambda x: x["timestamp"])
-        chatlog = [cast(ChatMessage, x) for x in sorter]
-        if not truncate:
-            return chatlog
-        if not model:
-            raise ValueError("Model must be provided to truncate chatlog.")
-        # truncate chatlog to max tokens
-        truncated_log = chatlog[:]
-        while model.token_count(truncated_log) > MAX_TOKENS:
-            truncated_log.pop(0)
-        return truncated_log
