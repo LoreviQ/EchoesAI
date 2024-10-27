@@ -12,6 +12,7 @@ import pytest
 from flask.testing import FlaskClient
 
 import database as db
+from app import App
 from tests.test_app import app, client
 from tests.test_database.test_main import db_init
 
@@ -74,3 +75,11 @@ def test_convert_ts_dt() -> None:
 
     with pytest.raises(ValueError):
         db.convert_ts_dt(None)
+
+
+def test_detatched(app: App, client: FlaskClient) -> None:
+    """
+    Test the detatched route.
+    """
+    response = client.get("/v1/detatched")
+    assert response.status_code == 400

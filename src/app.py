@@ -17,20 +17,22 @@ class App:
     Class to manage the Flask app.
     """
 
-    def __init__(self, model: Model, port: int = 5000):
+    def __init__(self, model: Model, port: int = 5000, detatched: bool = False) -> None:
         self.port = port
-        self.model = model
+        self.detatched = detatched
         self.app = Flask(__name__)
         CORS(self.app)
         routes.register_routes(self.app)
         self._setup_before_request()
-        if model is not None:
+        self.model = None
+        if not detatched:
+            self.model = model
             schedule_events(model)
 
     def _setup_before_request(self) -> None:
         @self.app.before_request
         def before_request() -> None:
-            g.model = self.model
+            g.detatched = self.detatched
             g.trigger_response_cycle = self.trigger_response_cycle
 
     def serve(self) -> None:
@@ -43,7 +45,7 @@ class App:
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
         """Start the chatbot response cycle in a background thread."""
-        if self.model is None:
+        if self.detatched:
             print("App is in detatched mode. Cannot trigger response cycle.")
             return
         thread = threading.Thread(
