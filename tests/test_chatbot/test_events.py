@@ -4,11 +4,18 @@
 
 import importlib
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
 import database as db
-from chatbot import Model, generate_event, new_model, response_cycle
+from chatbot import (
+    Model,
+    generate_event,
+    generate_social_media_post,
+    new_model,
+    response_cycle,
+)
 from tests.test_chatbot.test_model import model
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_events import event_1, event_2
@@ -23,6 +30,8 @@ ChatMessage = getattr(types_module, "ChatMessage")
 events_module = importlib.import_module("chatbot.events")
 Events = getattr(events_module, "Events")
 _civitai_generate_image = getattr(events_module, "_civitai_generate_image")
+_generate_image_post = getattr(events_module, "_generate_image_post")
+_generate_text_post = getattr(events_module, "_generate_text_post")
 
 
 def test_events_class_sorted(
@@ -97,3 +106,70 @@ def test_civitai_generate_image(
     _civitai_generate_image(char_1, post_1["id"], prompt)
     posts = db.select_posts(db.Post(id=post_1["id"]))
     assert posts[0]["image_path"] == f"{char_1['name']}/posts/{post_1['id']}.jpg"
+
+
+def test_generate_image_post(
+    monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character
+) -> None:
+    """Test the _generate_image_post function."""
+    mock_civitai_generate_image = MagicMock()
+    monkeypatch.setattr(
+        "chatbot.events._civitai_generate_image", mock_civitai_generate_image
+    )
+    _generate_image_post(model, char_1)
+
+    # assert _civitai_generate_image was called with the expected arguments
+    mock_civitai_generate_image.assert_called_once_with(char_1, 1, "Mock SD prompt")
+
+    posts = db.select_posts(db.Post(character=char_1["id"]))
+    assert len(posts) == 1
+    assert posts[0]["description"] == "Mock Image Description"
+    assert posts[0]["prompt"] == "Mock SD prompt"
+    assert posts[0]["caption"] == "Mock Caption"
+    assert posts[0]["image_post"]
+
+
+def test_generate_text_post(model: Model, char_1: db.Character) -> None:
+    """Test the _generate_text_post function."""
+    _generate_text_post(model, char_1)
+
+    posts = db.select_posts(db.Post(character=char_1["id"]))
+    assert len(posts) == 1
+    assert posts[0]["description"] == "Mock response"
+    assert posts[0]["prompt"] == ""
+    assert posts[0]["caption"] == ""
+    assert not posts[0]["image_post"]
+
+
+def test_generate_social_media_post_text(
+    monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character
+) -> None:
+    """Test the generate_social_media_post function for text post generation."""
+    character_full = db.select_character(char_1["path_name"])
+    mock_generate_text_post = MagicMock()
+    mock_generate_image_post = MagicMock()
+    monkeypatch.setattr("chatbot.events._generate_text_post", mock_generate_text_post)
+    monkeypatch.setattr("chatbot.events._generate_image_post", mock_generate_image_post)
+    monkeypatch.setattr("random.random", lambda: 0.5)  # Force text post generation
+
+    generate_social_media_post(model, char_1["id"])
+
+    mock_generate_text_post.assert_called_once_with(model, character_full)
+    mock_generate_image_post.assert_not_called()
+
+
+def test_generate_social_media_post_image(
+    monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character
+) -> None:
+    """Test the generate_social_media_post function for image post generation."""
+    character_full = db.select_character(char_1["path_name"])
+    mock_generate_text_post = MagicMock()
+    mock_generate_image_post = MagicMock()
+    monkeypatch.setattr("chatbot.events._generate_text_post", mock_generate_text_post)
+    monkeypatch.setattr("chatbot.events._generate_image_post", mock_generate_image_post)
+    monkeypatch.setattr("random.random", lambda: 0.8)  # Force image post generation
+
+    generate_social_media_post(model, char_1["id"])
+
+    mock_generate_text_post.assert_not_called()
+    mock_generate_image_post.assert_called_once_with(model, character_full)

@@ -228,9 +228,9 @@ def generate_social_media_post(model: Model, character_id: int) -> None:
     """
     character = db.select_character_by_id(character_id)
     # even if image posts are allowed, there is a 2/3 chance of generating a text post
-    if character["img_gen"] is not True or random.random() < 2 / 3:
-        _generate_text_post(model, character)
-    _generate_image_post(model, character)
+    if not character["img_gen"] or random.random() < 2 / 3:
+        return _generate_text_post(model, character)
+    return _generate_image_post(model, character)
 
 
 def _generate_image_post(model: Model, character: db.Character) -> None:
