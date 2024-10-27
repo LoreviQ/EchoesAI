@@ -30,6 +30,7 @@ class App:
     def _setup_before_request(self) -> None:
         @self.app.before_request
         def before_request() -> None:
+            g.model = self.model
             g.trigger_response_cycle = self.trigger_response_cycle
 
     def serve(self) -> None:
