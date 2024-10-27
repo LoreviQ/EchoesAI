@@ -1,6 +1,4 @@
-"""
-This file contains the tests for the app.py file.
-"""
+"""This file contains the tests for the app.py file."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 

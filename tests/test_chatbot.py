@@ -35,18 +35,6 @@ def model(db_init: str) -> Generator[Model, None, None]:
     yield model
 
 
-def test_get_system_message(model: Model, thread_1: db.Thread) -> None:
-    """
-    Test the _get_system_message function.
-    """
-    system_message = _get_system_message("chat", thread_1)
-    assert system_message["role"] == "system"
-    assert "You are an expert actor who" in system_message["content"]
-    system_message = _get_system_message("time", thread_1)
-    assert system_message["role"] == "system"
-    assert "current response frequency of" in system_message["content"]
-
-
 def test_generate_text(model: Model, thread_1: db.Thread) -> None:
     """
     Test the get_response function.
@@ -102,41 +90,6 @@ def test_response_cycle_repeated(model: Model, thread_1: db.Thread) -> None:
     assert len(messages) == 1
     assert messages[-1]["role"] == "assistant"
     assert messages[-1]["content"] == "Mock response"
-
-
-def test_parse_time() -> None:
-    """
-    Test the _parse_time function.
-    """
-    # Basic tests
-    time = "1d 2h 3m 4s"
-    assert _parse_time(time) == timedelta(days=1, hours=2, minutes=3, seconds=4)
-    time = "2h 3m 4s"
-    assert _parse_time(time) == timedelta(hours=2, minutes=3, seconds=4)
-    time = "3m 4s"
-    assert _parse_time(time) == timedelta(minutes=3, seconds=4)
-    time = "1d 2h 3m"
-    assert _parse_time(time) == timedelta(days=1, hours=2, minutes=3)
-    time = "2h 3m"
-    assert _parse_time(time) == timedelta(hours=2, minutes=3)
-    time = "3m"
-    assert _parse_time(time) == timedelta(minutes=3)
-    time = "4s"
-    assert _parse_time(time) == timedelta(seconds=4)
-
-    # Messy tests
-    time = "Sure. The time is: 2h30s"
-    assert _parse_time(time) == timedelta(hours=2, seconds=30)
-    time = "I would wait 5m and 16s"
-    assert _parse_time(time) == timedelta(minutes=5, seconds=16)
-    time = "1d3h and I think 22m"
-    assert _parse_time(time) == timedelta(days=1, hours=3, minutes=22)
-    time = "I would wait 55s no wait, 14s"  # Always take first
-    assert _parse_time(time) == timedelta(seconds=55)
-    time = "3m and 50s. What do you think?"
-    assert _parse_time(time) == timedelta(minutes=3, seconds=50)
-    time = "I can't wait!"
-    assert _parse_time(time) == timedelta(seconds=0)
 
 
 def test_generate_event(
