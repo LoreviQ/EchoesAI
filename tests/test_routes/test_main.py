@@ -82,4 +82,5 @@ def test_detatched(app: App, client: FlaskClient) -> None:
     Test the detatched route.
     """
     response = client.get("/v1/detatched")
-    assert response.status_code == 400
+    assert response.status_code == 200  #
+    assert response.data == b"False"

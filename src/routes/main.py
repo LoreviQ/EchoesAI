@@ -21,5 +21,5 @@ def get_image(filename: str) -> Response:
 def detatched() -> Response:
     """Checks if the server is running in detatched mode."""
     if g.detatched:
-        return make_response("", 200)
-    return make_response("", 400)
+        return make_response("True", 200)
+    return make_response("False", 200)
