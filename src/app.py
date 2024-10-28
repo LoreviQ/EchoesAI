@@ -23,8 +23,8 @@ class App:
     Class to manage the Flask app.
     """
 
-    def __init__(self, mocked: bool = False, port: int = 5000) -> None:
-        self.port = port
+    def __init__(self, mocked: bool = False) -> None:
+        self.port = os.getenv("PORT", "5000")
         self.app = Flask(__name__)
         self.detatched = DETACHED_MODE
         CORS(self.app)
