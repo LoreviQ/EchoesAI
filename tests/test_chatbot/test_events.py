@@ -3,19 +3,14 @@
 # pylint: disable=redefined-outer-name unused-argument unused-import too-many-arguments protected-access
 
 import importlib
-from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from unittest.mock import MagicMock
 
 import pytest
+from google.cloud import storage
 
 import database as db
-from chatbot import (
-    Model,
-    generate_event,
-    generate_social_media_post,
-    new_model,
-    response_cycle,
-)
+from chatbot import Model, generate_event, generate_social_media_post
 from tests.test_chatbot.test_model import model
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_events import event_1, event_2
@@ -32,6 +27,16 @@ Events = getattr(events_module, "Events")
 _civitai_generate_image = getattr(events_module, "_civitai_generate_image")
 _generate_image_post = getattr(events_module, "_generate_image_post")
 _generate_text_post = getattr(events_module, "_generate_text_post")
+_upload_image_to_gcs = getattr(events_module, "_upload_image_to_gcs")
+
+
+@pytest.fixture
+def image_stream():
+    """Return a BytesIO image stream."""
+    with open("tests/test_chatbot/test_image.jpg", "rb") as image_file:
+        image_stream = BytesIO(image_file.read())
+        image_stream.seek(0)  # Reset stream position
+        yield image_stream
 
 
 def test_events_class_sorted(
@@ -99,9 +104,13 @@ def test_generate_event(model: Model, char_1: db.Character) -> None:
 
 @pytest.mark.slow
 def test_civitai_generate_image(
-    model: Model, char_1: db.Character, post_1: db.Post
+    monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character, post_1: db.Post
 ) -> None:
     """Test the _civitai_generate_image function."""
+    monkeypatch.setenv(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "/home/lorevi/workspace/keys/echoes-ai-deploy.json",
+    )
     prompt = "cute, mascot, robot, drinking coffee, funny, test robot,"
     _civitai_generate_image(char_1, post_1["id"], prompt)
     posts = db.select_posts(db.Post(id=post_1["id"]))
@@ -173,3 +182,22 @@ def test_generate_social_media_post_image(
 
     mock_generate_text_post.assert_not_called()
     mock_generate_image_post.assert_called_once_with(model, character_full)
+
+
+def test_upload_image_to_gcs(monkeypatch: pytest.MonkeyPatch, image_stream):
+    """Test the _upload_image_to_gcs function."""
+    monkeypatch.setenv(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "/home/lorevi/workspace/keys/echoes-ai-deploy.json",
+    )
+    destination_blob_name = "test-folder/test-image.jpg"
+    _upload_image_to_gcs(image_stream, destination_blob_name)
+
+    # Verify the image was uploaded
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("echoesai-public-images")
+    blob = bucket.blob(destination_blob_name)
+    assert blob.exists()
+
+    # Clean up the uploaded test image
+    blob.delete()

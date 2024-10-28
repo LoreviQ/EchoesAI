@@ -3,15 +3,16 @@ Handles the functions required to generate an event from the chatbot.
 I.E. Events only containing the character
 """
 
+import io
 import os
 import random
-import shutil
 import time
 from datetime import datetime, timezone
 from typing import List, cast
 
 import civitai
 import requests
+from google.cloud import storage
 
 import database as db
 
@@ -322,6 +323,12 @@ def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) 
     """
     Generate an image using the Civitai API.
     """
+    try:
+        os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    except KeyError as exc:
+        raise ValueError(
+            "GOOGLE_APPLICATION_CREDENTIALS environment variable not set."
+        ) from exc
     if "model" not in character:
         raise ValueError("Character does not have a model specified.")
     assert character["name"]
@@ -360,14 +367,12 @@ def _check_civitai_for_image(token: str, char_name: str, post_id: int) -> bool:
         url = response["jobs"][0]["result"]["blobUrl"]
         image_r = requests.get(url, stream=True, timeout=5)
         image_r.raise_for_status()  # Raise an HTTPError for bad resposne
-        directory = f"static/images/{char_name}/posts"
-        os.makedirs(directory, exist_ok=True)
-        with open(f"{directory}/{post_id}.jpg", "wb") as out_file:
-            image_r.raw.decode_content = True
-            shutil.copyfileobj(image_r.raw, out_file)
+        destination_blob_name = f"{char_name}/posts/{post_id}.jpg"
+        image_stream = io.BytesIO(image_r.content)
+        _upload_image_to_gcs(image_stream, destination_blob_name)
         db.posts.update_post_with_image_path(
             post_id,
-            f"{char_name}/posts/{post_id}.jpg",
+            destination_blob_name,
         )
         return False
     # if image is not available and not scheduled, raise an exception
@@ -377,3 +382,11 @@ def _check_civitai_for_image(token: str, char_name: str, post_id: int) -> bool:
         )
     # if image is not available but scheduled, return True to continue checking
     return True
+
+
+def _upload_image_to_gcs(image_stream, destination_blob_name):
+    """Uploads an image to a GCS bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("echoesai-public-images")
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_file(image_stream, rewind=True)
