@@ -25,8 +25,7 @@ def app(db_init: str) -> Generator[App, None, None]:
     with port_counter.get_lock():
         port = port_counter.value
         port_counter.value += 1
-    model = new_model(mocked=True)
-    app = App(model=model, port=port)
+    app = App(mocked=True, port=port)
     yield app
 
 
