@@ -18,14 +18,17 @@ port_counter = Value("i", 5000)
 
 
 @pytest.fixture
-def app(db_init: str) -> Generator[App, None, None]:
+def app(db_init: str, monkeypatch: pytest.MonkeyPatch) -> Generator[App, None, None]:
     """
     Create an App object for testing and teardown after testing.
     """
     with port_counter.get_lock():
-        port = port_counter.value
+        monkeypatch.setenv(
+            "PORT",
+            f"{port_counter.value}",
+        )
         port_counter.value += 1
-    app = App(mocked=True, port=port)
+    app = App(mocked=True)
     yield app
 
 

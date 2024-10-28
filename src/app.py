@@ -15,18 +15,16 @@ from flask_cors import CORS
 import database as db
 import routes
 
-DETACHED_MODE = os.getenv("DETACHED_MODE", "false").lower() == "true"
-
 
 class App:
     """
     Class to manage the Flask app.
     """
 
-    def __init__(self, mocked: bool = False) -> None:
+    def __init__(self, mocked: bool = False, detached=False) -> None:
         self.port = os.getenv("PORT", "5000")
         self.app = Flask(__name__)
-        self.detatched = DETACHED_MODE
+        self.detached = detached
         CORS(self.app)
         routes.register_routes(self.app)
         self._setup_before_request()
@@ -34,15 +32,15 @@ class App:
         self.new_model = None
         self.response_cycle = None
         self.schedule_events = None
-        if not self.detatched:
+        if not self.detached:
             self._import_functions()
-            self.model = self.new_model(mocked)
+            self.model = self.new_model(mocked=mocked)
             self.schedule_events(self.model)
 
     def _setup_before_request(self) -> None:
         @self.app.before_request
         def before_request() -> None:
-            g.detatched = self.detatched
+            g.detached = self.detached
             g.trigger_response_cycle = self.trigger_response_cycle
 
     def serve(self) -> None:
@@ -55,8 +53,8 @@ class App:
         self, thread_id: int, duration: timedelta | None = None
     ) -> None:
         """Start the chatbot response cycle in a background thread."""
-        if self.detatched:
-            print("App is in detatched mode. Cannot trigger response cycle.")
+        if self.detached:
+            print("App is in detached mode. Cannot trigger response cycle.")
             return
         thread = threading.Thread(
             target=self.response_cycle, args=(self.model, thread_id, duration)
@@ -88,9 +86,10 @@ def main() -> None:
     parser.add_argument("--test", action="store_true", help="Use a mocked model")
     args = parser.parse_args()
     db.create_db()  # Create the database if it doesn't exist
-    if DETACHED_MODE:
-        print("Running in detatched mode. Generative AI is disabled.")
-    app = App(mocked=args.test)
+    detached = os.getenv("DETACHED_MODE", "false").lower() == "true"
+    if detached:
+        print("Running in detached mode. Generative AI is disabled.")
+    app = App(mocked=args.test, detached=detached)
     app.serve()
 
 
