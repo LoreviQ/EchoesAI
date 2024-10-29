@@ -8,7 +8,6 @@ import os
 import threading
 from datetime import timedelta
 
-from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 
@@ -80,7 +79,6 @@ def main() -> None:
     """
     Entry point for the application.
     """
-    load_dotenv()
     parser = argparse.ArgumentParser(description="Run the application.")
     parser.add_argument("--test", action="store_true", help="Use a mocked model")
     args = parser.parse_args()
