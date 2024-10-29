@@ -44,7 +44,7 @@ class Message(TypedDict, total=False):
 
     id: Optional[int]
     timestamp: Optional[str]
-    thread_id: Optional[Thread]
+    thread_id: Optional[int]
     content: Optional[str]
     role: Optional[str]
 

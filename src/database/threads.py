@@ -31,7 +31,7 @@ def insert_thread(user_id: int, char_id: int) -> int:
     now = convert_dt_ts(datetime.now(timezone.utc))
     if character["initial_message"]:
         message = Message(
-            thread_id=thread,
+            thread_id=thread["id"],
             content=character["initial_message"],
             role="assistant",
             timestamp=now,

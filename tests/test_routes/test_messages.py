@@ -153,11 +153,10 @@ def test_delete_messages_more_recent_app(
 
     assert message_2["id"]
     assert message_1["thread_id"]
-    assert message_1["thread_id"]["id"]
     query = "?recent=true"
     response = client.delete(f"/v1/messages/{message_2['id']}{query}")
     assert response.status_code == 200
-    response = client.get(f"/v1/threads/{message_1['thread_id']['id']}/messages")
+    response = client.get(f"/v1/threads/{message_1['thread_id']}/messages")
     assert response.json
     assert len(response.json) == 1
 

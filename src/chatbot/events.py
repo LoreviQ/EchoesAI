@@ -96,7 +96,6 @@ class Events:
                     message["content"],
                     message["role"],
                     message["thread_id"],
-                    message["thread_id"]["user_id"],
                 ]
             ):
                 continue
@@ -104,18 +103,17 @@ class Events:
             assert message["content"]
             assert message["role"]
             assert message["thread_id"]
-            assert message["thread_id"]["user_id"]
             if message["role"] == "user":
                 content = (
                     f"At time {message['timestamp']}, "
-                    f"{message['thread_id']['user_id']} sent the message: "
+                    f"{message['thread_id']} sent the message: "
                     f"{message['content']}"
                 )
 
             else:
                 content = (
                     f"At time {message['timestamp']}, you sent the "
-                    f"message: {message['content']} to {message['thread_id']['user_id']}"
+                    f"message: {message['content']} to {message['thread_id']}"
                 )
 
             message_log.append(

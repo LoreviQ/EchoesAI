@@ -8,7 +8,7 @@ from .main import (
     general_commit_returning_none,
     general_insert_returning_id,
 )
-from .types import Message, Thread
+from .types import Message
 
 
 def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[Message]:
@@ -21,14 +21,10 @@ def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[M
         messages.append(
             Message(
                 id=message[0],
-                timestamp=message[3],
-                thread_id=Thread(
-                    id=message[4],
-                    user_id=message[5],
-                    char_id=message[6],
-                ),
-                content=message[1],
-                role=message[2],
+                timestamp=message[1],
+                thread_id=message[2],
+                content=message[3],
+                role=message[4],
             )
         )
     return messages
@@ -40,22 +36,21 @@ def insert_message(message: Message) -> int:
     """
     ph = _placeholder_gen()
     assert message["thread_id"]
-    assert message["thread_id"]["id"]
     assert message["content"]
     assert message["role"]
     if "timestamp" in message:
         query = f"""
-            INSERT INTO messages (thread_id, content, role, timestamp) 
+            INSERT INTO messages (thread_id, timestamp, content, role ) 
             VALUES ({next(ph)}, {next(ph)}, {next(ph)}, {next(ph)})
             returning id
         """
         return general_insert_returning_id(
             query,
             (
-                message["thread_id"]["id"],
+                message["thread_id"],
+                message["timestamp"],
                 message["content"],
                 message["role"],
-                message["timestamp"],
             ),
         )
     query = f"""
@@ -64,7 +59,7 @@ def insert_message(message: Message) -> int:
         returning id
     """
     return general_insert_returning_id(
-        query, (message["thread_id"]["id"], message["content"], message["role"])
+        query, (message["thread_id"], message["content"], message["role"])
     )
 
 
@@ -74,9 +69,9 @@ def select_message(message_id: int) -> Message:
     """
     ph = _placeholder_gen()
     query = f"""
-        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user_id, t.char_id 
-        FROM messages as m JOIN threads as t ON m.thread_id = t.id 
-        WHERE m.id = {next(ph)}
+        SELECT id, timestamp, thread_id, content, role
+        FROM messages
+        WHERE id = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -88,14 +83,10 @@ def select_message(message_id: int) -> Message:
     if result:
         return Message(
             id=result[0],
-            timestamp=result[3],
-            thread_id=Thread(
-                id=result[4],
-                user_id=result[5],
-                char_id=result[6],
-            ),
-            content=result[1],
-            role=result[2],
+            timestamp=result[1],
+            thread_id=result[2],
+            content=result[3],
+            role=result[4],
         )
     raise ValueError("Message not found")
 
@@ -106,8 +97,8 @@ def select_messages(message_query: Message) -> List[Message]:
     """
     ph = _placeholder_gen()
     query = """
-        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user_id, t.char_id 
-        FROM messages as m JOIN threads as t ON m.thread_id = t.id 
+        SELECT id, timestamp, thread_id, content, role
+        FROM messages
     """
     conditions = []
     parameters = []
@@ -130,14 +121,10 @@ def select_messages(message_query: Message) -> List[Message]:
         messages.append(
             Message(
                 id=message[0],
-                timestamp=message[3],
-                thread_id=Thread(
-                    id=message[4],
-                    user_id=message[5],
-                    char_id=message[6],
-                ),
-                content=message[1],
-                role=message[2],
+                timestamp=message[1],
+                thread_id=message[2],
+                content=message[3],
+                role=message[4],
             )
         )
     return messages
@@ -149,8 +136,8 @@ def select_messages_by_thread(thread_id: int) -> List[Message]:
     """
     ph = _placeholder_gen()
     query = f"""
-        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user_id, t.char_id 
-        FROM messages as m JOIN threads as t ON m.thread_id = t.id 
+        SELECT id, timestamp, thread_id, content, role
+        FROM messages
         WHERE thread_id = {next(ph)}
     """
     return _general_select_returning_messages(query, (thread_id,))
@@ -162,7 +149,7 @@ def select_messages_by_character(character: int) -> List[Message]:
     """
     ph = _placeholder_gen()
     query = f"""
-        SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user_id, t.char_id 
+        SELECT m.id, m.timestamp, m.thread_id, m.content, m.role
         FROM messages as m JOIN threads as t ON m.thread_id = t.id 
         WHERE t.char_id = {next(ph)}
     """
