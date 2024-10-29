@@ -22,9 +22,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: '>= 363.0.0'
-    
-      - name: Update Requirements
-        run: scripts/update_requirements.sh
 
       - name: Submit Build
         run: gcloud builds submit --tag europe-west2-docker.pkg.dev/echoesai/echoes-server/echoes-api:latest .

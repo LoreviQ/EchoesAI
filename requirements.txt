@@ -1,8 +1,14 @@
 #accelerate==1.0.1 - detatched mode deployment
+aiofiles==24.1.0
+aiohappyeyeballs==2.4.3
+aiohttp==3.10.10
+aiosignal==1.3.1
 annotated-types==0.7.0
 anyio==4.6.2.post1
 APScheduler==3.10.4
+asn1crypto==1.5.1
 asttokens==2.4.1
+async-timeout==4.0.3
 attrs==24.2.0
 backcall==0.2.0
 background==0.2.1
@@ -18,6 +24,7 @@ charset-normalizer==3.4.0
 civitai==1.0.0
 civitai-py==0.1.10
 click==8.1.7
+cloud-sql-python-connector==1.13.0
 cryptography==43.0.3
 decorator==5.1.1
 defusedxml==0.7.1
@@ -29,6 +36,7 @@ fastjsonschema==2.20.0
 filelock==3.16.1
 Flask==3.0.3
 Flask-Cors==5.0.0
+frozenlist==1.5.0
 fsspec==2024.9.0
 git-filter-repo==2.45.0
 google-api-core==2.21.0
@@ -57,6 +65,7 @@ MarkupSafe==3.0.1
 matplotlib-inline==0.1.7
 mistune==3.0.2
 mpmath==1.3.0
+multidict==6.1.0
 mypy==1.12.0
 mypy-extensions==1.0.0
 nbclient==0.10.0
@@ -68,14 +77,17 @@ packaging==24.1
 pandocfilters==1.5.1
 parso==0.8.4
 pexpect==4.9.0
+pg8000==1.31.2
 pickleshare==0.7.5
 pillow==11.0.0
 platformdirs==4.3.6
 pluggy==1.5.0
 prompt_toolkit==3.0.48
+propcache==0.2.0
 proto-plus==1.25.0
 protobuf==5.28.3
 psutil==6.0.0
+psycopg2==2.9.10
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyasn1==0.6.1
@@ -89,6 +101,7 @@ pyproject_hooks==1.2.0
 pytest==8.3.3
 pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
 #pytorch-triton-rocm - detatched mode deployment
 pytz==2024.2
 PyYAML==6.0.2
@@ -100,6 +113,7 @@ rpds-py==0.20.0
 rsa==4.9
 #safetensors==0.4.5 - detatched mode deployment
 scheduler==0.8.7
+scramp==1.4.5
 six==1.16.0
 sniffio==1.3.1
 soupsieve==2.6
@@ -123,3 +137,4 @@ wcwidth==0.2.13
 webencodings==0.5.1
 Werkzeug==3.0.4
 yarg==0.1.9
+yarl==1.17.0
