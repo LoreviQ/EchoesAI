@@ -52,7 +52,7 @@ def test_get_messages_by_thread_invalid_thread(client: FlaskClient) -> None:
     assert response.data == b"thread not found"
 
 
-def test_post_message(client: FlaskClient, thread_1: db.Thread) -> None:
+def test_post_message_app(client: FlaskClient, thread_1: db.Thread) -> None:
     """Test the post message route."""
 
     message_payload = {
@@ -152,12 +152,12 @@ def test_delete_messages_more_recent_app(
     """Test the delete messages more recent route."""
 
     assert message_2["id"]
-    assert message_1["thread"]
-    assert message_1["thread"]["id"]
+    assert message_1["thread_id"]
+    assert message_1["thread_id"]["id"]
     query = "?recent=true"
     response = client.delete(f"/v1/messages/{message_2['id']}{query}")
     assert response.status_code == 200
-    response = client.get(f"/v1/threads/{message_1['thread']['id']}/messages")
+    response = client.get(f"/v1/threads/{message_1['thread_id']['id']}/messages")
     assert response.json
     assert len(response.json) == 1
 

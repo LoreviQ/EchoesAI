@@ -1,39 +1,56 @@
 """Miscellaneous database functions."""
 
-import os
+import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
-from sqlite3 import Connection, Cursor, connect
-from typing import Callable, Tuple
+from typing import Any, Callable, Generator, Tuple
 
+from google.cloud.sql.connector import Connector
+
+connector = Connector()
+
+LOCAL = False
+
+# Used for local SQLite connection
 DB_PATH = "database.db"
-SCHEMA_PATH = os.path.join(Path(__file__).resolve().parents[2], "sql", "schema.sql")
+
+# Used for GCP SQL psql connection
+INSTANCE_CONNECTION_NAME = "echoesai:europe-west2:echoesai-db"
+DB_NAME = "echoesai-main"
+DB_USER = "echoes-db-manager"
+DB_PASS = "fwRVZRtC5v&%Rsba"
 
 
-def create_db() -> None:
+def _placeholder_gen() -> Generator:
+    """Returns corrrect placeholder for queries"""
+    if LOCAL:
+        while True:
+            yield "?"
+    else:
+        num = 0
+        while True:
+            num += 1
+            yield f"${num}"
+
+
+def connect_to_db() -> Tuple[Any, Any, Callable[[], None]]:
     """
-    Create the database.
-    """
-    conn, _, close = connect_to_db()
-    with open(
-        SCHEMA_PATH,
-        "r",
-        encoding="utf-8",
-    ) as file:
-        schema = file.read()
-    with conn:
-        conn.executescript(schema)
-        conn.commit()
-    close()
-
-
-def connect_to_db() -> Tuple[Connection, Cursor, Callable[[], None]]:
-    """
-    Connect to the database.
+    Connect to the PostgreSQL database.
     Returning the connection, cursor, and close function.
     """
-    conn = connect(DB_PATH)
-    cursor = conn.cursor()
+    if LOCAL:
+        # Connect to the local SQLite database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+    else:
+        # Connect to the GCP SQL database
+        conn = connector.connect(
+            INSTANCE_CONNECTION_NAME,
+            "pg8000",
+            user=DB_USER,
+            password=DB_PASS,
+            db=DB_NAME,
+        )
+        cursor = conn.cursor()
 
     def close() -> None:
         cursor.close()

@@ -34,8 +34,8 @@ class Thread(TypedDict, total=False):
 
     id: Optional[int]
     started: Optional[str]  # timestamp
-    user: Optional[str]
-    character: Optional[int]
+    user_id: Optional[str]
+    char_id: Optional[int]
     phase: Optional[int]
 
 
@@ -44,7 +44,7 @@ class Message(TypedDict, total=False):
 
     id: Optional[int]
     timestamp: Optional[str]
-    thread: Optional[Thread]
+    thread_id: Optional[Thread]
     content: Optional[str]
     role: Optional[str]
 
@@ -54,7 +54,7 @@ class Event(TypedDict, total=False):
 
     id: Optional[int]
     timestamp: Optional[str]
-    character: Optional[int]
+    char_id: Optional[int]
     type: Optional[str]
     content: Optional[str]
 
@@ -64,7 +64,7 @@ class Post(TypedDict, total=False):
 
     id: Optional[int]
     timestamp: Optional[str]
-    character: Optional[int]
+    char_id: Optional[int]
     description: Optional[str]
     image_post: Optional[bool]
     prompt: Optional[str]

@@ -16,7 +16,7 @@ def get_posts() -> Response:
         chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
         if not chars:
             return make_response(jsonify([]), 200)
-        post_query["character"] = chars[0]["id"]
+        post_query["char_id"] = chars[0]["id"]
         del post_query["char_path"]
 
     posts = db.select_posts(post_query)

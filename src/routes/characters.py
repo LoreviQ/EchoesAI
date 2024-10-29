@@ -65,7 +65,7 @@ def get_posts_by_character(char_path: str) -> Response:
         character = db.select_character(char_path)
     except ValueError:
         return make_response("character not found", 404)
-    posts = db.select_posts(db.Post(character=character["id"]))
+    posts = db.select_posts(db.Post(char_id=character["id"]))
     return make_response(jsonify(posts), 200)
 
 
@@ -76,5 +76,5 @@ def get_events_by_character(char_path: str) -> Response:
         character = db.select_character(char_path)
     except ValueError:
         return make_response("character not found", 404)
-    events = db.select_events(db.Event(character=character["id"]))
+    events = db.select_events(db.Event(char_id=character["id"]))
     return make_response(jsonify(events), 200)

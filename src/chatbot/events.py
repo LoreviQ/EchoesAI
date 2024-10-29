@@ -37,7 +37,7 @@ class Events:
         # events
         self.e_bool = events
         if events:
-            self.events = db.events.select_events(db.Event(character=char_id))
+            self.events = db.events.select_events(db.Event(char_id=char_id))
         # messages
         self.m_bool = messages
         if messages:
@@ -45,7 +45,7 @@ class Events:
         # posts
         self.p_bool = posts
         if posts:
-            self.posts = db.posts.select_posts(db.Post(character=char_id))
+            self.posts = db.posts.select_posts(db.Post(char_id=char_id))
 
     def _convert_events_to_chatlog(self) -> List[StampedChatMessage]:
         """
@@ -93,27 +93,27 @@ class Events:
                     message["timestamp"],
                     message["content"],
                     message["role"],
-                    message["thread"],
-                    message["thread"]["user"],
+                    message["thread_id"],
+                    message["thread_id"]["user_id"],
                 ]
             ):
                 continue
             assert message["timestamp"]
             assert message["content"]
             assert message["role"]
-            assert message["thread"]
-            assert message["thread"]["user"]
+            assert message["thread_id"]
+            assert message["thread_id"]["user_id"]
             if message["role"] == "user":
                 content = (
                     f"At time {message['timestamp']}, "
-                    f"{message['thread']['user']} sent the message: "
+                    f"{message['thread_id']['user_id']} sent the message: "
                     f"{message['content']}"
                 )
 
             else:
                 content = (
                     f"At time {message['timestamp']}, you sent the "
-                    f"message: {message['content']} to {message['thread']['user']}"
+                    f"message: {message['content']} to {message['thread_id']['user_id']}"
                 )
 
             message_log.append(
@@ -216,7 +216,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
     event = db.Event(
-        character=character["id"],
+        char_id=character["id"],
         type=event_type,
         content=response["content"],
     )
@@ -275,7 +275,7 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
 
     # insert post into database
     post = db.Post(
-        character=character["id"],
+        char_id=character["id"],
         description=description["content"],
         image_post=True,
         prompt=prompt["content"],
@@ -310,7 +310,7 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
 
     # insert post into database
     post = db.Post(
-        character=character["id"],
+        char_id=character["id"],
         description=description["content"],
         image_post=False,
         prompt="",

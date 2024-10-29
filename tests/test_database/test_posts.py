@@ -19,7 +19,7 @@ def post_1(char_1: db.Character) -> Generator[db.Post, None, None]:
     Creates a post to be used in testing.
     """
     post = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description",
         image_post=True,
         prompt="test prompt",
@@ -35,7 +35,7 @@ def post_2(char_1: db.Character) -> Generator[db.Post, None, None]:
     Creates a post distinct from post_1 to be used in testing.
     """
     post = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description 2",
         image_post=False,
         prompt="",
@@ -50,7 +50,7 @@ def test_insert_social_media_post(db_init: str, char_1: db.Character) -> None:
     Test the insert_social_media_post function.
     """
     post = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description",
         image_post=True,
         prompt="test prompt",
@@ -66,21 +66,21 @@ def test_select_posts(db_init: str, char_1: db.Character, char_2: db.Character) 
     """
     assert char_1["id"]
     post1 = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description",
         image_post=True,
         prompt="test prompt",
         caption="test caption",
     )
     post2 = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description 2",
         image_post=True,
         prompt="test prompt 2",
         caption="test caption 2",
     )
     post3 = db.Post(
-        character=char_2["id"],
+        char_id=char_2["id"],
         description="test description 3",
         image_post=True,
         prompt="test prompt 3",
@@ -104,21 +104,21 @@ def test_select_posts_with_query(
     """
     assert char_1["id"]
     post1 = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description",
         image_post=True,
         prompt="test prompt",
         caption="test caption",
     )
     post2 = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description 2",
         image_post=True,
         prompt="test prompt 2",
         caption="test caption 2",
     )
     post3 = db.Post(
-        character=char_2["id"],
+        char_id=char_2["id"],
         description="test description 3",
         image_post=True,
         prompt="test prompt 3",
@@ -127,7 +127,7 @@ def test_select_posts_with_query(
     post1_id = db.posts.insert_social_media_post(post1)
     post2_id = db.posts.insert_social_media_post(post2)
     db.posts.insert_social_media_post(post3)
-    post_query = db.Post(character=char_1["id"])
+    post_query = db.Post(char_id=char_1["id"])
     posts = db.posts.select_posts(post_query)
     assert len(posts) == 2
     assert posts[0]["id"] == post1_id
@@ -140,7 +140,7 @@ def test_add_image_path_to_post(db_init: str, char_1: db.Character) -> None:
     """
     assert char_1["id"]
     post = db.Post(
-        character=char_1["id"],
+        char_id=char_1["id"],
         description="test description",
         image_post=True,
         prompt="test prompt",

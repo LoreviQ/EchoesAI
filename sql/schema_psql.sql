@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS characters (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     path_name TEXT NOT NULL UNIQUE,
     description TEXT,
@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS characters (
     important TEXT,
     initial_message TEXT,
     favorite_colour TEXT,
-    phases boolean DEFAULT 0,
-    img_gen boolean DEFAULT 0,
+    phases BOOLEAN DEFAULT FALSE,
+    img_gen BOOLEAN DEFAULT FALSE,
     model TEXT,
     global_positive TEXT,
     global_negative TEXT,
@@ -23,15 +23,15 @@ CREATE TABLE IF NOT EXISTS characters (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS threads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    started TEXT DEFAULT CURRENT_TIMESTAMP,
+    id SERIAL PRIMARY KEY,
+    started TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER NOT NULL,
     char_id INTEGER NOT NULL,
     phase INTEGER DEFAULT 0,
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS threads (
 );
 
 CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     thread_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     role TEXT NOT NULL,
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     char_id INTEGER NOT NULL,
     type TEXT NOT NULL,
     content TEXT NOT NULL,
@@ -58,11 +58,11 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE TABLE IF NOT EXISTS posts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     char_id INTEGER NOT NULL,
     description TEXT,
-    image_post boolean DEFAULT 0,
+    image_post BOOLEAN DEFAULT FALSE,
     prompt TEXT,
     caption TEXT,
     image_path TEXT,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE TABLE IF NOT EXISTS phases (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     stage INTEGER NOT NULL,
     char_id INTEGER NOT NULL,
     name TEXT NOT NULL,
@@ -83,4 +83,3 @@ CREATE TABLE IF NOT EXISTS phases (
     advance_conditions TEXT,
     FOREIGN KEY(char_id) REFERENCES characters(id)
 );
-

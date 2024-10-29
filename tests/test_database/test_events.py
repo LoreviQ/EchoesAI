@@ -20,7 +20,7 @@ def event_1(char_1: db.Character) -> Generator[db.Event, None, None]:
     Creates a event to be used in testing.
     """
     event = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
@@ -34,7 +34,7 @@ def event_2(char_1: db.Character) -> Generator[db.Event, None, None]:
     Creates a event distinct from event_1 to be used in testing.
     """
     event = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="thought",
         content="test thought",
     )
@@ -47,12 +47,12 @@ def test_insert_event(db_init: str, char_1: db.Character, char_2: db.Character) 
     Test the insert_event function.
     """
     event1 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        character=char_2["id"],
+        char_id=char_2["id"],
         type="thought",
         content="test thought",
     )
@@ -71,17 +71,17 @@ def test_select_events(
     assert char_1["id"]
     assert char_2["id"]
     event1 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        character=char_2["id"],
+        char_id=char_2["id"],
         type="thought",
         content="test thought",
     )
     event3 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="thought",
         content="test thought 2",
     )
@@ -104,28 +104,28 @@ def test_select_events_with_query(
     assert char_1["id"]
     assert char_2["id"]
     event1 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        character=char_2["id"],
+        char_id=char_2["id"],
         type="thought",
         content="test thought",
     )
     event3 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="thought",
         content="test thought 2",
     )
     db.events.insert_event(event1)
     db.events.insert_event(event2)
     db.events.insert_event(event3)
-    events = db.events.select_events(db.Event(character=char_1["id"]))
+    events = db.events.select_events(db.Event(char_id=char_1["id"]))
     assert len(events) == 2
     assert events[0]["type"] == "event"
     assert events[1]["type"] == "thought"
-    events = db.events.select_events(db.Event(character=char_2["id"]))
+    events = db.events.select_events(db.Event(char_id=char_2["id"]))
     assert len(events) == 1
     assert events[0]["type"] == "thought"
 
@@ -139,17 +139,17 @@ def test_select_most_recent_event(
     assert char_1["id"]
     assert char_2["id"]
     event1 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        character=char_2["id"],
+        char_id=char_2["id"],
         type="thought",
         content="test thought",
     )
     event3 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="thought",
         content="test thought 2",
     )
@@ -172,18 +172,18 @@ def test_delete_event(db_init: str, char_1: db.Character) -> None:
     """
     assert char_1["id"]
     event1 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        character=char_1["id"],
+        char_id=char_1["id"],
         type="thought",
         content="test thought",
     )
     event1_id = db.events.insert_event(event1)
     event2_id = db.events.insert_event(event2)
     db.events.delete_event(event1_id)
-    events = db.events.select_events(db.Event(character=char_1["id"]))
+    events = db.events.select_events(db.Event(char_id=char_1["id"]))
     assert len(events) == 1
     assert events[0]["id"] == event2_id

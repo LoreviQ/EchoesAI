@@ -2,7 +2,7 @@
 
 from typing import List
 
-from .main import connect_to_db, general_insert_returning_id
+from .main import _placeholder_gen, connect_to_db, general_insert_returning_id
 from .types import Character
 
 
@@ -18,8 +18,9 @@ def insert_character(character: Character) -> int:
         key: value for key, value in character.items() if key != "id"
     }
     # Prepare the SQL statement and the values
+    ph = _placeholder_gen()
     columns = ", ".join(character_without_id.keys())
-    placeholders = ", ".join(["?"] * len(character_without_id))
+    placeholders = ", ".join([next(ph)] * len(character_without_id))
     query = f"INSERT INTO characters ({columns}) VALUES ({placeholders}) RETURNING id"
     values = tuple(character_without_id.get(key) for key in character_without_id.keys())
     # Execute the query
@@ -30,14 +31,15 @@ def select_character(path_name: str) -> Character:
     """
     Select a character from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT 
             id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
             model, global_positive, global_negative, profile_path
         FROM characters
-        WHERE path_name = ?
+        WHERE path_name = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -77,14 +79,15 @@ def select_character_by_id(character_id: int) -> Character:
     """
     Select a character from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT 
             id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
             initial_message, favorite_colour, phases, img_gen, 
             model, global_positive, global_negative, profile_path
         FROM characters
-        WHERE id = ?
+        WHERE id = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -124,7 +127,7 @@ def select_characters(
     character_query: Character = Character(),
 ) -> List[Character]:
     """Select characters from db that match the query."""
-
+    ph = _placeholder_gen()
     query = """
         SELECT id, name, path_name, description, age, height, personality, 
             appearance, loves, hates, details, scenario, important, 
@@ -136,7 +139,7 @@ def select_characters(
     parameters = []
     for key, value in character_query.items():
         if value is not None and key:
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = {next(ph)}")
             parameters.append(value)
 
     if conditions:

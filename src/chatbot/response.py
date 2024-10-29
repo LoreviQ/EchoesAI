@@ -121,7 +121,7 @@ def _get_response_and_submit(
     )
     response = _generate_text(model, sys_message, chatlog)
     message = db.Message(
-        thread=thread,
+        thread_id=thread,
         content=response["content"],
         role=response["role"],
         timestamp=timestamp,

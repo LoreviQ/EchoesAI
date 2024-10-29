@@ -1,6 +1,7 @@
 """Database operations for the users table."""
 
 from .main import (
+    _placeholder_gen,
     connect_to_db,
     general_commit_returning_none,
     general_insert_returning_id,
@@ -12,9 +13,10 @@ def insert_user(user: User) -> int:
     """
     Insert a user into the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         INSERT INTO users (username, password, email) 
-        VALUES (?, ?, ?) 
+        VALUES ({next(ph)}, {next(ph)}, {next(ph)}) 
         RETURNING id
     """
     return general_insert_returning_id(
@@ -31,10 +33,11 @@ def select_user(username: str) -> User:
     """
     Select a user from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT id, username, password, email
         FROM users
-        WHERE username = ?
+        WHERE username = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -57,10 +60,11 @@ def update_user(user: User) -> None:
     """
     Update a user in the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         UPDATE users
-        SET password = ?, email = ?
-        WHERE username = ?
+        SET password = {next(ph)}, email = {next(ph)}
+        WHERE username = {next(ph)}
     """
     general_commit_returning_none(
         query,

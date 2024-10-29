@@ -97,7 +97,7 @@ def test_generate_event(model: Model, char_1: db.Character) -> None:
     """Test the generate_event function."""
 
     generate_event(model, char_1["id"], "event")
-    events = db.select_events(db.Event(character=char_1["id"]))
+    events = db.select_events(db.Event(char_id=char_1["id"]))
     assert len(events) == 1
     assert events[0]["content"] == "Mock event"
 
@@ -130,7 +130,7 @@ def test_generate_image_post(
     # assert _civitai_generate_image was called with the expected arguments
     mock_civitai_generate_image.assert_called_once_with(char_1, 1, "Mock SD prompt")
 
-    posts = db.select_posts(db.Post(character=char_1["id"]))
+    posts = db.select_posts(db.Post(char_id=char_1["id"]))
     assert len(posts) == 1
     assert posts[0]["description"] == "Mock Image Description"
     assert posts[0]["prompt"] == "Mock SD prompt"
@@ -142,7 +142,7 @@ def test_generate_text_post(model: Model, char_1: db.Character) -> None:
     """Test the _generate_text_post function."""
     _generate_text_post(model, char_1)
 
-    posts = db.select_posts(db.Post(character=char_1["id"]))
+    posts = db.select_posts(db.Post(char_id=char_1["id"]))
     assert len(posts) == 1
     assert posts[0]["description"] == "Mock response"
     assert posts[0]["prompt"] == ""

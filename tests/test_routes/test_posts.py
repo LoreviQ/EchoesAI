@@ -33,7 +33,7 @@ def test_get_posts_no_posts(client: FlaskClient) -> None:
     assert response.json == []
 
 
-def test_get_posts_by_character(
+def test_get_posts_with_query(
     client: FlaskClient, char_1: db.Character, post_1: db.Post, post_2: db.Post
 ) -> None:
     """
