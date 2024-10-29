@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 
-import database as db
 import routes
 
 
@@ -85,7 +84,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the application.")
     parser.add_argument("--test", action="store_true", help="Use a mocked model")
     args = parser.parse_args()
-    db.create_db()  # Create the database if it doesn't exist
     detached = os.getenv("DETACHED_MODE", "false").lower() == "true"
     if detached:
         print("Running in detached mode. Generative AI is disabled.")

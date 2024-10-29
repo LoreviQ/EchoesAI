@@ -3,6 +3,7 @@
 from typing import List
 
 from .main import (
+    _placeholder_gen,
     connect_to_db,
     general_commit_returning_none,
     general_insert_returning_id,
@@ -14,9 +15,10 @@ def insert_social_media_post(post: Post) -> int:
     """
     Insert a post into the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         INSERT INTO posts (character, description, image_post, prompt, caption) 
-        VALUES (?, ?, ?, ?, ?) 
+        VALUES ({next(ph)}, {next(ph)}, {next(ph)}, {next(ph)}, {next(ph)}) 
         RETURNING id
     """
     return general_insert_returning_id(
@@ -35,10 +37,11 @@ def update_post_with_image_path(post_id: int, image_path: str) -> None:
     """
     Add an image path to a post.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         UPDATE posts 
-        SET image_path = ? 
-        WHERE id = ?
+        SET image_path = {next(ph)} 
+        WHERE id = {next(ph)}
     """
     general_commit_returning_none(query, (image_path, post_id))
 
@@ -47,6 +50,7 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
     """
     Get all posts from the database based on a query.
     """
+    ph = _placeholder_gen()
     query = """
         SELECT id, timestamp, character, description, image_post, prompt, caption, image_path
         FROM posts 
@@ -55,7 +59,7 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
     parameters = []
     for key, value in post_query.items():
         if value is not None:
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = {next(ph)}")
             parameters.append(value)
     if conditions:
         query += " WHERE "

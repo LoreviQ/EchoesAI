@@ -3,6 +3,7 @@
 from typing import List, Tuple
 
 from .main import (
+    _placeholder_gen,
     connect_to_db,
     general_commit_returning_none,
     general_insert_returning_id,
@@ -37,14 +38,15 @@ def insert_message(message: Message) -> int:
     """
     Insert a message into the database.
     """
+    ph = _placeholder_gen()
     assert message["thread"]
     assert message["thread"]["id"]
     assert message["content"]
     assert message["role"]
     if "timestamp" in message:
-        query = """
+        query = f"""
             INSERT INTO messages (thread, content, role, timestamp) 
-            VALUES (?, ?, ?, ?)
+            VALUES ({next(ph)}, {next(ph)}, {next(ph)}, {next(ph)})
             returning id
         """
         return general_insert_returning_id(
@@ -56,9 +58,9 @@ def insert_message(message: Message) -> int:
                 message["timestamp"],
             ),
         )
-    query = """
+    query = f"""
         INSERT INTO messages (thread, content, role) 
-        VALUES (?, ?, ?)
+        VALUES ({next(ph)}, {next(ph)}, {next(ph)})
         returning id
     """
     return general_insert_returning_id(
@@ -70,10 +72,11 @@ def select_message(message_id: int) -> Message:
     """
     Select a message from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
-        WHERE m.id = ?
+        WHERE m.id = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -101,6 +104,7 @@ def select_messages(message_query: Message) -> List[Message]:
     """
     Select messages from the database by thread.
     """
+    ph = _placeholder_gen()
     query = """
         SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
@@ -109,7 +113,7 @@ def select_messages(message_query: Message) -> List[Message]:
     parameters = []
     for key, value in message_query.items():
         if value is not None:
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = {next(ph)}")
             parameters.append(value)
 
     if conditions:
@@ -143,10 +147,11 @@ def select_messages_by_thread(thread_id: int) -> List[Message]:
     """
     Select messages from the database by thread.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
-        WHERE thread = ?
+        WHERE thread = {next(ph)}
     """
     return _general_select_returning_messages(query, (thread_id,))
 
@@ -155,10 +160,11 @@ def select_messages_by_character(character: int) -> List[Message]:
     """
     Select messages from the database by character.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT m.id, m.content, m.role, m.timestamp, t.id, t.user, t.character 
         FROM messages as m JOIN threads as t ON m.thread = t.id 
-        WHERE t.character = ?
+        WHERE t.character = {next(ph)}
     """
     return _general_select_returning_messages(query, (character,))
 
@@ -167,20 +173,21 @@ def delete_messages_more_recent(message_id: int) -> None:
     """
     Delete selected message and all more recent messages.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         DELETE
         FROM messages 
-        WHERE id = ? 
+        WHERE id = {next(ph)} 
             OR (
                 thread = (
                     SELECT thread 
                     FROM messages 
-                    WHERE id = ?
+                    WHERE id = {next(ph)}
                 ) 
                 AND timestamp > (
                     SELECT timestamp 
                     FROM messages 
-                    WHERE id = ?
+                    WHERE id = {next(ph)}
                 )
             )
     """
@@ -191,9 +198,10 @@ def delete_scheduled_messages_from_thread(thread_id: int) -> None:
     """
     Delete all scheduled messages from a thread.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         DELETE FROM messages 
-        WHERE thread = ? 
+        WHERE thread = {next(ph)} 
             AND timestamp > CURRENT_TIMESTAMP
     """
     general_commit_returning_none(query, (thread_id,))
@@ -203,9 +211,10 @@ def select_scheduled_message_id(thread_id: int) -> int:
     """
     Checks the DB for any scheduled messages returning the message id.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT id FROM messages 
-        WHERE thread = ? 
+        WHERE thread = {next(ph)} 
             AND timestamp > CURRENT_TIMESTAMP
     """
     _, cursor, close = connect_to_db()
@@ -222,10 +231,11 @@ def update_message(message: Message) -> None:
     """
     Update a message in the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         UPDATE messages 
-        SET timestamp = ?, content = COALESCE(?, content) 
-        WHERE id = ?
+        SET timestamp = {next(ph)}, content = COALESCE({next(ph)}, content) 
+        WHERE id = {next(ph)}
     """
     params = (
         message["timestamp"],
@@ -239,8 +249,9 @@ def delete_message(message_id: int) -> None:
     """
     Delete a message from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         DELETE FROM messages 
-        WHERE id = ?
+        WHERE id = {next(ph)}
     """
     general_commit_returning_none(query, (message_id,))

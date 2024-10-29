@@ -3,6 +3,7 @@
 from typing import List
 
 from .main import (
+    _placeholder_gen,
     connect_to_db,
     general_commit_returning_none,
     general_insert_returning_id,
@@ -14,9 +15,10 @@ def insert_event(event: Event) -> int:
     """
     Insert an event into the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         INSERT INTO events (character, type, content) 
-        VALUES (?, ?, ?) 
+        VALUES ({next(ph)}, {next(ph)}, {next(ph)}) 
         RETURNING id
     """
     return general_insert_returning_id(
@@ -33,6 +35,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
     """
     Select events from the database based on a query.
     """
+    ph = _placeholder_gen()
     query = """
         SELECT id, timestamp, character, type, content 
         FROM events 
@@ -41,7 +44,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
     parameters = []
     for key, value in event_query.items():
         if value is not None:
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = {next(ph)}")
             parameters.append(value)
 
     if conditions:
@@ -70,10 +73,11 @@ def select_most_recent_event(character: int) -> Event:
     """
     Select the most recent event from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         SELECT id, timestamp, type, content 
         FROM events 
-        WHERE character = ? 
+        WHERE character = {next(ph)} 
         ORDER BY timestamp DESC LIMIT 1
     """
 
@@ -99,8 +103,9 @@ def delete_event(event_id: int) -> None:
     """
     Delete an event from the database.
     """
-    query = """
+    ph = _placeholder_gen()
+    query = f"""
         DELETE FROM events 
-        WHERE id = ?
+        WHERE id = {next(ph)}
     """
     general_commit_returning_none(query, (event_id,))

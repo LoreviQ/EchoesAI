@@ -2,7 +2,7 @@
 
 import sqlite3
 from datetime import datetime, timezone
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Generator, Tuple
 
 from google.cloud.sql.connector import Connector
 
@@ -18,6 +18,18 @@ INSTANCE_CONNECTION_NAME = "echoesai:europe-west2:echoesai-db"
 DB_NAME = "echoesai-main"
 DB_USER = "echoes-db-manager"
 DB_PASS = "fwRVZRtC5v&%Rsba"
+
+
+def _placeholder_gen() -> Generator:
+    """Returns corrrect placeholder for queries"""
+    if LOCAL:
+        while True:
+            yield "?"
+    else:
+        num = 0
+        while True:
+            num += 1
+            yield f"${num}"
 
 
 def connect_to_db() -> Tuple[Any, Any, Callable[[], None]]:
