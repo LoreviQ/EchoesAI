@@ -1,4 +1,3 @@
--- schema.sql
 CREATE TABLE IF NOT EXISTS characters (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -21,6 +20,13 @@ CREATE TABLE IF NOT EXISTS characters (
     global_positive TEXT,
     global_negative TEXT,
     profile_path TEXT
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS threads (
@@ -78,9 +84,3 @@ CREATE TABLE IF NOT EXISTS phases (
     FOREIGN KEY(character) REFERENCES characters(id)
 );
 
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE
-);

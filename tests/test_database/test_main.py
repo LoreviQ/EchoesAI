@@ -4,6 +4,7 @@ This file contains the tests for the database/main.py file.
 
 # pylint: disable=redefined-outer-name unused-argument
 import os
+from sqlite3 import connect
 from typing import Generator
 
 import pytest
@@ -18,33 +19,44 @@ def db_init(
     """
     Initialises the db for testing returning the path to the db.
     """
+    # Set the test database path
     test_name = os.environ.get("PYTEST_CURRENT_TEST")
     if test_name is None:
         test_name = "unknown"
     else:
         test_name = test_name.split(":")[-1].split(" ")[0]
     db_path = f"test_database_{test_name}.db"
-    monkeypatch.setattr("database.main.DB_PATH", db_path)
-    db.create_db()
 
+    # Create the test database
+    conn = connect(db_path)
+    with open(
+        "/home/lorevi/workspace/github.com/LoreviQ/EchoesAI/sql/schema.sql",
+        "r",
+        encoding="utf-8",
+    ) as file:
+        schema = file.read()
+    with conn:
+        conn.executescript(schema)
+        conn.commit()
+    conn.close()
+
+    # Sevars for local database
+    monkeypatch.setattr("database.main.DB_PATH", db_path)
+    monkeypatch.setattr("database.main.LOCAL", True)
+
+    # Cleanup the database after the test
     def cleanup() -> None:
         os.remove(db_path)
 
     request.addfinalizer(cleanup)
+
+    # Return the path to the database
     yield db_path
 
 
-def test_create_db(db_init: str) -> None:
+def test_connect_to_db() -> None:
     """
-    Test the create_db function.
-    """
-    db.create_db()
-    assert os.path.exists(db_init)
-
-
-def test_connect_to_db(db_init: str) -> None:
-    """
-    Test the connect_to_db function.
+    Test the connect_to_db function with GCP SQL.
     """
     conn, cursor, close = db.connect_to_db()
     assert conn
