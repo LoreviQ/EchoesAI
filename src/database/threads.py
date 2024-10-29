@@ -21,7 +21,7 @@ def insert_thread(user_id: int, char_id: int) -> int:
     """
     ph = _placeholder_gen()
     query = f"""
-        INSERT INTO threads (user, character) 
+        INSERT INTO threads (user_id, char_id) 
         VALUES ({next(ph)}, {next(ph)}) 
         RETURNING id
     """
@@ -46,7 +46,7 @@ def select_thread(thread_id: int) -> Thread:
     """
     ph = _placeholder_gen()
     query = f"""
-        SELECT id, started, user, character, phase 
+        SELECT id, started, user_id, char_id, phase 
         FROM threads 
         WHERE id = {next(ph)}
     """
@@ -75,8 +75,8 @@ def select_latest_thread(user: int, character: int) -> int:
     ph = _placeholder_gen()
     query = f"""
         SELECT MAX(id) FROM threads 
-        WHERE user = {next(ph)} 
-            AND character = {next(ph)}
+        WHERE user_id = {next(ph)} 
+            AND char_id = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(
@@ -96,9 +96,9 @@ def select_threads_by_user(user: int) -> List[Thread]:
     """
     ph = _placeholder_gen()
     query = f"""
-        SELECT id, started, user, character, phase 
+        SELECT id, started, user_id, char_id, phase 
         FROM threads 
-        WHERE user = {next(ph)}
+        WHERE user_id = {next(ph)}
     """
     _, cursor, close = connect_to_db()
     cursor.execute(

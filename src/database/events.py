@@ -17,14 +17,14 @@ def insert_event(event: Event) -> int:
     """
     ph = _placeholder_gen()
     query = f"""
-        INSERT INTO events (character, type, content) 
+        INSERT INTO events (char_id, type, content) 
         VALUES ({next(ph)}, {next(ph)}, {next(ph)}) 
         RETURNING id
     """
     return general_insert_returning_id(
         query,
         (
-            event["character"],
+            event["char_id"],
             event["type"],
             event["content"],
         ),
@@ -37,7 +37,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
     """
     ph = _placeholder_gen()
     query = """
-        SELECT id, timestamp, character, type, content 
+        SELECT id, timestamp, char_id, type, content 
         FROM events 
     """
     conditions = []
@@ -61,7 +61,7 @@ def select_events(event_query: Event = Event()) -> List[Event]:
             Event(
                 id=result[0],
                 timestamp=result[1],
-                character=result[2],
+                char_id=result[2],
                 type=result[3],
                 content=result[4],
             )
@@ -77,7 +77,7 @@ def select_most_recent_event(character: int) -> Event:
     query = f"""
         SELECT id, timestamp, type, content 
         FROM events 
-        WHERE character = {next(ph)} 
+        WHERE char_id = {next(ph)} 
         ORDER BY timestamp DESC LIMIT 1
     """
 
@@ -92,7 +92,7 @@ def select_most_recent_event(character: int) -> Event:
         return Event(
             id=result[0],
             timestamp=result[1],
-            character=character,
+            char_id=character,
             type=result[2],
             content=result[3],
         )

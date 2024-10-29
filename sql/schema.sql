@@ -32,47 +32,47 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     started TEXT DEFAULT CURRENT_TIMESTAMP,
-    user INTEGER NOT NULL,
-    character INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    char_id INTEGER NOT NULL,
     phase INTEGER DEFAULT 0,
-    FOREIGN KEY(user) REFERENCES users(id),
-    FOREIGN KEY(character) REFERENCES characters(id)
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(char_id) REFERENCES characters(id)
 );
 
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-    thread INTEGER NOT NULL,
+    thread_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     role TEXT NOT NULL,
-    FOREIGN KEY(thread) REFERENCES threads(id)
+    FOREIGN KEY(thread_id) REFERENCES threads(id)
 );
 
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-    character INTEGER NOT NULL,
+    char_id INTEGER NOT NULL,
     type TEXT NOT NULL,
     content TEXT NOT NULL,
-    FOREIGN KEY(character) REFERENCES characters(id)
+    FOREIGN KEY(char_id) REFERENCES characters(id)
 );
 
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-    character INTEGER NOT NULL,
+    char_id INTEGER NOT NULL,
     description TEXT,
     image_post boolean DEFAULT 0,
     prompt TEXT,
     caption TEXT,
     image_path TEXT,
-    FOREIGN KEY(character) REFERENCES characters(id)
+    FOREIGN KEY(char_id) REFERENCES characters(id)
 );
 
 CREATE TABLE IF NOT EXISTS phases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stage INTEGER NOT NULL,
-    character INTEGER NOT NULL,
+    char_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     response_time TEXT,
@@ -81,6 +81,6 @@ CREATE TABLE IF NOT EXISTS phases (
     names TEXT,
     events TEXT,
     advance_conditions TEXT,
-    FOREIGN KEY(character) REFERENCES characters(id)
+    FOREIGN KEY(char_id) REFERENCES characters(id)
 );
 

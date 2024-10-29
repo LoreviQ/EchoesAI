@@ -31,7 +31,7 @@ def post_message(thread_id: int) -> Response:
     if not all(key in data for key in ("content", "role")):
         return make_response("missing required fields", 400)
     message = db.Message(
-        thread=db.select_thread(thread_id),
+        thread_id=db.select_thread(thread_id),
         content=data["content"],
         role=data["role"],
     )

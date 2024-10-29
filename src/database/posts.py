@@ -17,14 +17,14 @@ def insert_social_media_post(post: Post) -> int:
     """
     ph = _placeholder_gen()
     query = f"""
-        INSERT INTO posts (character, description, image_post, prompt, caption) 
+        INSERT INTO posts (char_id, description, image_post, prompt, caption) 
         VALUES ({next(ph)}, {next(ph)}, {next(ph)}, {next(ph)}, {next(ph)}) 
         RETURNING id
     """
     return general_insert_returning_id(
         query,
         (
-            post["character"],
+            post["char_id"],
             post["description"],
             post["image_post"],
             post["prompt"],
@@ -52,7 +52,7 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
     """
     ph = _placeholder_gen()
     query = """
-        SELECT id, timestamp, character, description, image_post, prompt, caption, image_path
+        SELECT id, timestamp, char_id, description, image_post, prompt, caption, image_path
         FROM posts 
     """
     conditions = []
@@ -76,7 +76,7 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
             Post(
                 id=post[0],
                 timestamp=post[1],
-                character=post[2],
+                char_id=post[2],
                 description=post[3],
                 image_post=post[4],
                 prompt=post[5],
