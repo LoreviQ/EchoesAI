@@ -31,7 +31,7 @@ def insert_thread(user_id: int, char_id: int) -> int:
     now = convert_dt_ts(datetime.now(timezone.utc))
     if character["initial_message"]:
         message = Message(
-            thread=thread,
+            thread_id=thread,
             content=character["initial_message"],
             role="assistant",
             timestamp=now,
@@ -61,8 +61,8 @@ def select_thread(thread_id: int) -> Thread:
         return Thread(
             id=result[0],
             started=result[1],
-            user=result[2],
-            character=result[3],
+            user_id=result[2],
+            char_id=result[3],
             phase=result[4],
         )
     raise ValueError("Thread not found")
@@ -113,8 +113,8 @@ def select_threads_by_user(user: int) -> List[Thread]:
             Thread(
                 id=thread[0],
                 started=thread[1],
-                user=thread[2],
-                character=thread[3],
+                user_id=thread[2],
+                char_id=thread[3],
                 phase=thread[4],
             )
         )

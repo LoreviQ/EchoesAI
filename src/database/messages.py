@@ -131,10 +131,10 @@ def select_messages(message_query: Message) -> List[Message]:
             Message(
                 id=message[0],
                 timestamp=message[3],
-                thread=Thread(
+                thread_id=Thread(
                     id=message[4],
-                    user=message[5],
-                    character=message[6],
+                    user_id=message[5],
+                    char_id=message[6],
                 ),
                 content=message[1],
                 role=message[2],

@@ -74,8 +74,8 @@ def test_get_system_message_invalid_thread(model: Model) -> None:
     """
     fake_thread = db.Thread(
         id=0,
-        user=0,
-        character=0,
+        user_id=0,
+        char_id=0,
         started="2021-01-01 00:00:00",
         phase=0,
     )
@@ -89,8 +89,8 @@ def test_get_system_message_invalid_character(model: Model) -> None:
     """
     fake_thread = db.Thread(
         id=0,
-        user=0,
-        character=5,
+        user_id=0,
+        char_id=5,
         started="2021-01-01 00:00:00",
         phase=0,
     )

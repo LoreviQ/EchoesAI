@@ -43,7 +43,7 @@ class Messages:
                 StampedChatMessage(
                     role=message["role"],
                     content=content,
-                    timestamp=message["timestamp"],
+                    timestamp=db.convert_ts_dt(message["timestamp"]),
                 )
             )
         return message_log
@@ -92,7 +92,7 @@ def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     content = (
         f"The time is currently {now}. How long until you next send a "
-        f"message to {thread['user']}?"
+        f"message to {thread['user_id']}?"
     )
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
@@ -109,8 +109,8 @@ def _get_response_and_submit(
     chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     content = (
-        f"The time is currently {now}, and you have decided to send {thread['user']} "
-        f"another message. Please write your message to {thread['user']}.\n"
+        f"The time is currently {now}, and you have decided to send {thread['user_id']} "
+        f"another message. Please write your message to {thread['user_id']}.\n"
         "Do not include anything except for the message content, such as time or message recipient."
     )
     chatlog.append(
@@ -124,6 +124,6 @@ def _get_response_and_submit(
         thread_id=thread,
         content=response["content"],
         role=response["role"],
-        timestamp=timestamp,
+        timestamp=db.convert_dt_ts(timestamp),
     )
     db.insert_message(message)

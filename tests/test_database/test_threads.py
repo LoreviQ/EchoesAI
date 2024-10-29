@@ -63,7 +63,7 @@ def test_select_thread(db_init: str, user_1: db.User, char_1: db.Character) -> N
     assert user_1["id"]
     thread_id = db.insert_thread(user_1["id"], char_1["id"])
     thread = db.select_thread(thread_id)
-    assert thread["user"] == user_1["id"]
+    assert thread["user_id"] == user_1["id"]
 
 
 def test_select_latest_thread(

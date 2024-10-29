@@ -68,7 +68,7 @@ def get_response_now(thread_id: int) -> Response:
     if message_id:
         message_patch = db.Message(
             id=message_id,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
         )
         db.update_message(message_patch)
         return make_response("", 200)

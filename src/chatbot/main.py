@@ -41,8 +41,8 @@ def _get_system_message(
         # TypedDicts apparently don't support type checking.
         # Almost makes you wonder wtf the point of them is.
         thread = cast(db.Thread, data)
-        assert thread["character"]
-        character = db.select_character_by_id(thread["character"])
+        assert thread["char_id"]
+        character = db.select_character_by_id(thread["char_id"])
     else:
         character = cast(db.Character, data)
         thread = None
@@ -63,7 +63,7 @@ def _get_system_message(
         "photo_description": photo_description,
     }
     if thread:
-        context["user"] = thread["user"]
+        context["user"] = thread["user_id"]
         # TODO: Phase-specific messages
 
     # Render the template until no more changes are detected

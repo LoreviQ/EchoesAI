@@ -4,6 +4,7 @@
 
 import importlib
 from io import BytesIO
+from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -31,7 +32,7 @@ _upload_image_to_gcs = getattr(events_module, "_upload_image_to_gcs")
 
 
 @pytest.fixture
-def image_stream():
+def image_stream() -> Generator[BytesIO, None, None]:
     """Return a BytesIO image stream."""
     with open("tests/test_chatbot/test_image.jpg", "rb") as image_file:
         image_stream = BytesIO(image_file.read())
@@ -49,7 +50,7 @@ def test_events_class_sorted(
     post_2: db.Post,
     event_1: db.Event,
     event_2: db.Event,
-):
+) -> None:
     """Test the Events class sorted method"""
     events = Events(char_1["id"], True, True, True)
     chatlog = events.sorted(model=model)
@@ -95,7 +96,7 @@ def test_events_class_convert_posts_to_chatlog(
 
 def test_generate_event(model: Model, char_1: db.Character) -> None:
     """Test the generate_event function."""
-
+    assert char_1["id"]
     generate_event(model, char_1["id"], "event")
     events = db.select_events(db.Event(char_id=char_1["id"]))
     assert len(events) == 1
@@ -154,6 +155,8 @@ def test_generate_social_media_post_text(
     monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character
 ) -> None:
     """Test the generate_social_media_post function for text post generation."""
+    assert char_1["id"]
+    assert char_1["path_name"]
     character_full = db.select_character(char_1["path_name"])
     mock_generate_text_post = MagicMock()
     mock_generate_image_post = MagicMock()
@@ -171,6 +174,8 @@ def test_generate_social_media_post_image(
     monkeypatch: pytest.MonkeyPatch, model: Model, char_1: db.Character
 ) -> None:
     """Test the generate_social_media_post function for image post generation."""
+    assert char_1["id"]
+    assert char_1["path_name"]
     character_full = db.select_character(char_1["path_name"])
     mock_generate_text_post = MagicMock()
     mock_generate_image_post = MagicMock()
@@ -184,7 +189,9 @@ def test_generate_social_media_post_image(
     mock_generate_image_post.assert_called_once_with(model, character_full)
 
 
-def test_upload_image_to_gcs(monkeypatch: pytest.MonkeyPatch, image_stream):
+def test_upload_image_to_gcs(
+    monkeypatch: pytest.MonkeyPatch, image_stream: BytesIO
+) -> None:
     """Test the _upload_image_to_gcs function."""
     monkeypatch.setenv(
         "GOOGLE_APPLICATION_CREDENTIALS",

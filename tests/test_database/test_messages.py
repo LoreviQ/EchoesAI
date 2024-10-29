@@ -26,7 +26,7 @@ def message_1(thread_1: db.Thread) -> Generator[db.Message, None, None]:
         thread_id=thread_1,
         content="test message",
         role="user",
-        timestamp=datetime.now(timezone.utc) - timedelta(hours=1),
+        timestamp=db.convert_dt_ts(datetime.now(timezone.utc) - timedelta(hours=1)),
     )
     message_id = db.insert_message(message)
     yield db.select_message(message_id)
@@ -51,7 +51,7 @@ def scheduled_message(thread_1: db.Thread) -> Generator[db.Message, None, None]:
         thread_id=thread_1,
         content="delayed response",
         role="assistant",
-        timestamp=datetime.now(timezone.utc) + timedelta(days=1),
+        timestamp=db.convert_dt_ts(datetime.now(timezone.utc) + timedelta(days=1)),
     )
     message_id = db.insert_message(message)
     yield db.select_message(message_id)
@@ -65,7 +65,7 @@ def test_insert_message(db_init: str, thread_1: db.Thread) -> None:
     message_id = db.insert_message(message)
     assert message_id == 1
     message = db.Message(
-        timestamp=datetime.now() + timedelta(days=1),
+        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
         thread_id=thread_1,
         content="test message 2",
         role="assistant",
@@ -108,8 +108,8 @@ def test_select_messages_by_character(
     """
     Test the select_messages_by_character function.
     """
-    assert thread_1["character"]
-    assert thread_2["character"]
+    assert thread_1["char_id"]
+    assert thread_2["char_id"]
     message1 = db.Message(thread_id=thread_1, content="test message", role="user")
     message2 = db.Message(
         thread_id=thread_1, content="test message 2", role="assistant"
@@ -118,13 +118,13 @@ def test_select_messages_by_character(
     message1_id = db.insert_message(message1)
     message2_id = db.insert_message(message2)
     message3_id = db.insert_message(message3)
-    messages = db.select_messages_by_character(thread_1["character"])
+    messages = db.select_messages_by_character(thread_1["char_id"])
     assert len(messages) == 2
     assert messages[0]["id"] == message1_id
     assert messages[0]["content"] == "test message"
     assert messages[1]["id"] == message2_id
     assert messages[1]["content"] == "test message 2"
-    messages = db.select_messages_by_character(thread_2["character"])
+    messages = db.select_messages_by_character(thread_2["char_id"])
     assert len(messages) == 1
     assert messages[0]["id"] == message3_id
     assert messages[0]["content"] == "test message 3"
@@ -176,7 +176,7 @@ def test_delete_scheduled_messages_from_thread(
         thread_id=thread_1,
         content="test message 3",
         role="user",
-        timestamp=datetime.now() + timedelta(days=1),
+        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
     )
     message4 = db.Message(thread_id=thread_2, content="test message 4", role="user")
     message1_id = db.insert_message(message1)
@@ -205,7 +205,7 @@ def test_select_scheduled_message_id(
         thread_id=thread_1,
         content="test message 2",
         role="assistant",
-        timestamp=datetime.now() + timedelta(days=1),
+        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
     )
     message3 = db.Message(thread_id=thread_2, content="test message 3", role="user")
     db.insert_message(message1)
@@ -226,7 +226,7 @@ def test_update_message(db_init: str, thread_1: db.Thread, thread_2: db.Thread) 
         thread_id=thread_1,
         content="test message 2",
         role="assistant",
-        timestamp=datetime.now() + timedelta(days=1),
+        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
     )
     message3 = db.Message(thread_id=thread_2, content="test message 3", role="user")
     message1_id = db.insert_message(message1)
@@ -235,7 +235,7 @@ def test_update_message(db_init: str, thread_1: db.Thread, thread_2: db.Thread) 
     message_patch = db.Message(
         id=message2_id,
         content="test message patched",
-        timestamp=datetime.now(),
+        timestamp=db.convert_dt_ts(datetime.now()),
     )
     db.update_message(message_patch)
     messages = db.select_messages_by_thread(thread_1["id"])

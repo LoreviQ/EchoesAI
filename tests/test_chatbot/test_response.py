@@ -24,7 +24,7 @@ _get_response_and_submit = getattr(response_module, "_get_response_and_submit")
 
 def test_messages_class(
     model: Model, thread_1: db.Thread, message_1: db.Message, message_2: db.Message
-):
+) -> None:
     """Test the Messages class."""
     messages = Messages(thread_id=thread_1["id"])
     chatlog = messages.sorted(model=model)
@@ -44,12 +44,14 @@ def test_get_response_time(model: Model, thread_1: db.Thread) -> None:
 def test_get_response_and_submit(model: Model, thread_1: db.Thread) -> None:
     """Test the _get_response_and_submit function."""
     _get_response_and_submit(model, thread_1, datetime.now(timezone.utc))
+    assert thread_1["id"]
     messages = db.select_messages_by_thread(thread_1["id"])
     assert len(messages) == 1
 
 
 def test_response_cycle(model: Model, thread_1: db.Thread) -> None:
     """Test the response_cycle function."""
+    assert thread_1["id"]
     response_cycle(model, thread_1["id"])
     messages = db.select_messages_by_thread(thread_1["id"])
     assert len(messages) == 1

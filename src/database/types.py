@@ -34,7 +34,7 @@ class Thread(TypedDict, total=False):
 
     id: Optional[int]
     started: Optional[str]  # timestamp
-    user_id: Optional[str]
+    user_id: Optional[int]
     char_id: Optional[int]
     phase: Optional[int]
 

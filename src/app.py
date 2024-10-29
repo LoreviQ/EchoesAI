@@ -19,8 +19,8 @@ class App:
     Class to manage the Flask app.
     """
 
-    def __init__(self, mocked: bool = False, detached=False) -> None:
-        self.port = os.getenv("PORT", "5000")
+    def __init__(self, mocked: bool = False, detached: bool = False) -> None:
+        self.port = int(os.getenv("PORT", "5000"))
         self.app = Flask(__name__)
         self.detached = detached
         CORS(self.app)
@@ -32,6 +32,8 @@ class App:
         self.schedule_events = None
         if not self.detached:
             self._import_functions()
+            assert self.new_model is not None
+            assert self.schedule_events is not None
             self.model = self.new_model(mocked=mocked)
             self.schedule_events(self.model)
 

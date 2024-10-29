@@ -77,7 +77,9 @@ class Events:
                     )
             event_log.append(
                 StampedChatMessage(
-                    role="system", content=content, timestamp=event["timestamp"]
+                    role="system",
+                    content=content,
+                    timestamp=db.convert_ts_dt(event["timestamp"]),
                 )
             )
         return event_log
@@ -120,7 +122,7 @@ class Events:
                 StampedChatMessage(
                     role="system",
                     content=content,
-                    timestamp=message["timestamp"],
+                    timestamp=db.convert_ts_dt(message["timestamp"]),
                 )
             )
         return message_log
@@ -164,7 +166,9 @@ class Events:
                 )
             post_log.append(
                 StampedChatMessage(
-                    role="system", content=content, timestamp=post["timestamp"]
+                    role="system",
+                    content=content,
+                    timestamp=db.convert_ts_dt(post["timestamp"]),
                 )
             )
         return post_log
@@ -384,7 +388,7 @@ def _check_civitai_for_image(token: str, char_name: str, post_id: int) -> bool:
     return True
 
 
-def _upload_image_to_gcs(image_stream, destination_blob_name):
+def _upload_image_to_gcs(image_stream: io.BytesIO, destination_blob_name: str) -> None:
     """Uploads an image to a GCS bucket."""
     storage_client = storage.Client()
     bucket = storage_client.bucket("echoesai-public-images")
