@@ -75,6 +75,8 @@ def get_threads_by_user(username: str) -> Response:
                 "id": thread["id"],
                 "started": thread["started"],
                 "character": character["name"],
+                "char_path": character["path_name"],
+                "profile_path": character["profile_path"],
                 "recent_message": "",
             }
         )
