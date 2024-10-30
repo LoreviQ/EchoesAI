@@ -1,6 +1,6 @@
 """Routes for threads."""
 
-from flask import Response, make_response, request
+from flask import Response, jsonify, make_response, request
 
 import database as db
 
@@ -27,3 +27,35 @@ def new_thread() -> Response:
     assert character["id"]
     thread_id = db.insert_thread(user["id"], character["id"])
     return make_response(str(thread_id), 200)
+
+
+@bp.route("/v1/threads", methods=["GET"])
+def get_threads() -> Response:
+    """Get threads, optionally with a query."""
+    query_params = request.args.to_dict()
+    # build query
+    thread_query = db.Thread(
+        id=query_params.get("id"),
+        user_id=query_params.get("user_id"),
+        char_id=query_params.get("char_id"),
+        phase=query_params.get("phase"),
+    )
+    if "char_path" in query_params:
+        chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
+        if not chars:
+            return make_response(jsonify([]), 200)
+        thread_query["char_id"] = chars[0]["id"]
+    if "username" in query_params:
+        try:
+            user = db.select_user(query_params["username"])
+        except ValueError:
+            return make_response(jsonify([]), 200)
+        thread_query["user_id"] = user["id"]
+
+    options = db.QueryOptions(
+        limit=query_params.get("limit"),
+        orderby=query_params.get("orderby"),
+        order=query_params.get("order"),
+    )
+    threads = db.select_threads(thread_query, options)
+    return make_response(jsonify(threads), 200)

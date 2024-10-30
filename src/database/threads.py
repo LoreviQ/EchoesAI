@@ -11,7 +11,7 @@ from .main import (
     general_insert_returning_id,
 )
 from .messages import insert_message
-from .types import Message, Thread
+from .types import Message, QueryOptions, Thread
 
 
 def insert_thread(user_id: int, char_id: int) -> int:
@@ -66,6 +66,51 @@ def select_thread(thread_id: int) -> Thread:
             phase=result[4],
         )
     raise ValueError("Thread not found")
+
+
+def select_threads(thread_query: Thread, options: QueryOptions) -> List[Thread]:
+    """
+    General query for threads.
+    """
+    ph = _placeholder_gen()
+    query = """
+        SELECT id, started, user_id, char_id, phase 
+        FROM threads 
+    """
+    conditions = []
+    parameters = []
+    for key, value in thread_query.items():
+        if value is not None:
+            conditions.append(f"{key} = {next(ph)}")
+            parameters.append(value)
+
+    if conditions:
+        query += " WHERE "
+        query += " AND ".join(conditions)
+
+    if options.get("orderby"):
+        query += f" ORDER BY {options['orderby']}"
+        if options.get("order"):
+            query += f" {options['order']}"
+    if options.get("limit"):
+        query += f" LIMIT {options['limit']}"
+
+    _, cursor, close = connect_to_db()
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
+    close()
+    events: List[Thread] = []
+    for result in results:
+        events.append(
+            Thread(
+                id=result[0],
+                started=result[1],
+                user_id=result[2],
+                char_id=result[3],
+                phase=result[4],
+            )
+        )
+    return events
 
 
 def select_latest_thread(user: int, character: int) -> int:

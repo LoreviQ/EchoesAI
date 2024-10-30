@@ -32,7 +32,8 @@ from .threads import (
     select_latest_thread,
     select_latest_thread_by_user,
     select_thread,
+    select_threads,
     select_threads_by_user,
 )
-from .types import Character, Event, Message, Post, Thread, User
+from .types import Character, Event, Message, Post, QueryOptions, Thread, User
 from .users import insert_user, select_user, update_user

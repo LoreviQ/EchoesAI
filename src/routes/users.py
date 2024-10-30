@@ -54,7 +54,7 @@ def get_threads_by_user(username: str) -> Response:
 
 @bp.route("/v1/users/<string:username>/threads/latest", methods=["GET"])
 def get_latest_thread_by_user(username: str) -> Response:
-    """Gets latest thread for a user."""
+    """Gets latest thread for a user and character."""
     try:
         user_id = db.select_user(username)
     except ValueError:

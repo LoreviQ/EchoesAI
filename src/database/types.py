@@ -79,3 +79,11 @@ class User(TypedDict, total=False):
     username: Optional[str]
     password: Optional[str]
     email: Optional[str]
+
+
+class QueryOptions(TypedDict, total=False):
+    """Type for query options"""
+
+    limit: Optional[int]
+    orderby: Optional[str]
+    order: Optional[str]
