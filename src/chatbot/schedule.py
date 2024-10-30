@@ -7,8 +7,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 import database as db
 
-from .events import generate_event, generate_social_media_post
+from .events import generate_event
 from .model import Model
+from .posts import generate_social_media_post
 
 
 def schedule_events(model: Model) -> None:
