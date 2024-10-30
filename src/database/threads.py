@@ -4,12 +4,7 @@ from datetime import datetime, timezone
 from typing import List
 
 from .characters import select_character_by_id
-from .main import (
-    _placeholder_gen,
-    connect_to_db,
-    convert_dt_ts,
-    general_insert_returning_id,
-)
+from .main import _placeholder_gen, connect_to_db, convert_dt_ts
 from .messages import insert_message
 from .types import Message, QueryOptions, Thread
 
@@ -25,7 +20,11 @@ def insert_thread(user_id: int, char_id: int) -> int:
         VALUES ({next(ph)}, {next(ph)}) 
         RETURNING id
     """
-    thread_id = general_insert_returning_id(query, (user_id, char_id))
+    conn, cursor, close = connect_to_db()
+    cursor.execute(query, (user_id, char_id))
+    thread_id = int(cursor.fetchone()[0])
+    conn.commit()
+    close()
     thread = select_thread(thread_id)
     character = select_character_by_id(char_id)
     now = convert_dt_ts(datetime.now(timezone.utc))

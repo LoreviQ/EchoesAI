@@ -43,13 +43,42 @@ def login() -> Response:
 @bp.route("/v1/users/<string:username>/threads", methods=["GET"])
 def get_threads_by_user(username: str) -> Response:
     """Gets all threads for a user."""
+    # build query
     try:
         user_id = db.select_user(username)
     except ValueError:
         return make_response("user not found", 400)
     assert user_id["id"]
-    threads = db.select_threads_by_user(user_id["id"])
-    return make_response(jsonify(threads), 200)
+    query_params = request.args.to_dict()
+    thread_query = db.Thread(
+        id=query_params.get("id"),
+        user_id=user_id["id"],
+        char_id=query_params.get("char_id"),
+        phase=query_params.get("phase"),
+    )
+    if "char_path" in query_params:
+        chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
+        if not chars:
+            return make_response(jsonify([]), 200)
+        thread_query["char_id"] = chars[0]["id"]
+    options = db.QueryOptions(
+        limit=query_params.get("limit"),
+        orderby=query_params.get("orderby"),
+        order=query_params.get("order"),
+    )
+    threads = db.select_threads(thread_query, options)
+    response = []
+    for thread in threads:
+        character = db.select_character_by_id(thread["char_id"])
+        response.append(
+            {
+                "id": thread["id"],
+                "started": thread["started"],
+                "character": character["name"],
+                "recent_message": "",
+            }
+        )
+    return make_response(jsonify(response), 200)
 
 
 @bp.route("/v1/users/<string:username>/threads/latest", methods=["GET"])

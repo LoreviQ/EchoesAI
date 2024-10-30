@@ -51,7 +51,6 @@ def get_threads() -> Response:
         except ValueError:
             return make_response(jsonify([]), 200)
         thread_query["user_id"] = user["id"]
-
     options = db.QueryOptions(
         limit=query_params.get("limit"),
         orderby=query_params.get("orderby"),
