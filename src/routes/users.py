@@ -50,3 +50,15 @@ def get_threads_by_user(username: str) -> Response:
     assert user_id["id"]
     threads = db.select_threads_by_user(user_id["id"])
     return make_response(jsonify(threads), 200)
+
+
+@bp.route("/v1/users/<string:username>/threads/latest", methods=["GET"])
+def get_latest_thread_by_user(username: str) -> Response:
+    """Gets latest thread for a user."""
+    try:
+        user_id = db.select_user(username)
+    except ValueError:
+        return make_response("user not found", 400)
+    assert user_id["id"]
+    thread = db.select_latest_thread_by_user(user_id["id"])
+    return make_response(jsonify(thread), 200)

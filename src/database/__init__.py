@@ -30,6 +30,7 @@ from .posts import insert_social_media_post, select_posts, update_post_with_imag
 from .threads import (
     insert_thread,
     select_latest_thread,
+    select_latest_thread_by_user,
     select_thread,
     select_threads_by_user,
 )

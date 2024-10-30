@@ -102,3 +102,22 @@ def test_select_threads_by_user(
     assert len(threads) == 1
     threads = db.select_threads_by_user(0)
     assert len(threads) == 0
+
+
+def test_select_latest_thread_by_user(
+    db_init: str, user_1: db.User, char_1: db.Character
+) -> None:
+    """Test the select_latest_thread_by_user function."""
+    assert char_1["id"]
+    assert user_1["id"]
+    thread_id_1 = db.insert_thread(user_1["id"], char_1["id"])
+    thread_id_2 = db.insert_thread(user_1["id"], char_1["id"])
+    db.insert_message(db.Message(thread_id=thread_id_1, content="Test", role="user"))
+    time.sleep(1)
+    db.insert_message(db.Message(thread_id=thread_id_2, content="Test", role="user"))
+    latest_thread = db.select_latest_thread_by_user(user_1["id"])
+    assert latest_thread["id"] == thread_id_2
+    time.sleep(1)
+    db.insert_message(db.Message(thread_id=thread_id_1, content="Test", role="user"))
+    latest_thread = db.select_latest_thread_by_user(user_1["id"])
+    assert latest_thread["id"] == thread_id_1

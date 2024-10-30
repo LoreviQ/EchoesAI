@@ -119,3 +119,38 @@ def select_threads_by_user(user: int) -> List[Thread]:
             )
         )
     return threads
+
+
+def select_latest_thread_by_user(user: int) -> Thread:
+    """
+    Select the latest thread for a user.
+    """
+    ph = _placeholder_gen()
+    query = f"""
+        SELECT t.id, t.started, t.user_id, t.char_id, t.phase
+        FROM threads t
+        JOIN (
+            SELECT thread_id, MAX(timestamp) AS latest_message
+            FROM messages
+            GROUP BY thread_id
+        ) m ON t.id = m.thread_id
+        WHERE t.user_id = {next(ph)}
+        ORDER BY m.latest_message DESC
+        LIMIT 1;
+    """
+    _, cursor, close = connect_to_db()
+    cursor.execute(
+        query,
+        (user,),
+    )
+    result = cursor.fetchone()
+    close()
+    if result:
+        return Thread(
+            id=result[0],
+            started=result[1],
+            user_id=result[2],
+            char_id=result[3],
+            phase=result[4],
+        )
+    raise ValueError("Thread not found")
