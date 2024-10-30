@@ -14,7 +14,7 @@ from google.cloud import storage
 
 import database as db
 
-from .events import Events
+from .events import _create_complete_event_log
 from .main import _generate_text, _get_system_message
 from .model import Model
 from .types import ChatMessage, ImageGenerationFailedException
@@ -43,9 +43,7 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     # generate image description
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     sys_message = _get_system_message("photo", character)
-    chatlog = Events(character["id"], True, True, True).sorted(
-        truncate=True, model=model
-    )
+    chatlog = _create_complete_event_log(character["id"], model=model)
     content = (
         f"The time is currently {now}. Please describe "
         "the photo you are about to post.\n"
@@ -93,9 +91,7 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
     # generate description
     sys_message = _get_system_message("text_post", character)
     now = db.convert_dt_ts(datetime.now(timezone.utc))
-    chatlog = Events(character["id"], True, True, True).sorted(
-        truncate=True, model=model
-    )
+    chatlog = _create_complete_event_log(character["id"], model=model)
     content = (
         f"The time is currently {now}. Please write "
         "the post you are about to make.\n"

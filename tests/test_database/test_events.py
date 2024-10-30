@@ -5,6 +5,7 @@ This file contains the tests for the database/events.py file.
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 import time
+from datetime import datetime, timezone
 from typing import Generator
 
 import pytest
@@ -23,6 +24,7 @@ def event_1(char_1: db.Character) -> Generator[db.Event, None, None]:
         char_id=char_1["id"],
         type="event",
         content="test event",
+        timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
     )
     event["id"] = db.events.insert_event(event)
     yield event

@@ -74,3 +74,30 @@ def update_user(user: User) -> None:
             user["username"],
         ),
     )
+
+
+def select_user_by_id(user_id: int) -> User:
+    """
+    Select a user from the database by id.
+    """
+    ph = _placeholder_gen()
+    query = f"""
+        SELECT id, username, password, email
+        FROM users
+        WHERE id = {next(ph)}
+    """
+    _, cursor, close = connect_to_db()
+    cursor.execute(
+        query,
+        (user_id,),
+    )
+    result = cursor.fetchone()
+    close()
+    if result:
+        return User(
+            id=result[0],
+            username=result[1],
+            password=result[2],
+            email=result[3],
+        )
+    raise ValueError("User not found")

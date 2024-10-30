@@ -36,4 +36,4 @@ from .threads import (
     select_threads_by_user,
 )
 from .types import Character, Event, Message, Post, QueryOptions, Thread, User
-from .users import insert_user, select_user, update_user
+from .users import insert_user, select_user, select_user_by_id, update_user

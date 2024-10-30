@@ -4,6 +4,7 @@ This file contains the tests for the database/posts.py file.
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
+from datetime import datetime, timezone
 from typing import Generator
 
 import pytest
@@ -24,6 +25,7 @@ def post_1(char_1: db.Character) -> Generator[db.Post, None, None]:
         image_post=True,
         prompt="test prompt",
         caption="test caption",
+        timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
     )
     post["id"] = db.posts.insert_social_media_post(post)
     yield post
