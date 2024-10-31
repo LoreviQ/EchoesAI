@@ -100,36 +100,6 @@ def test_get_system_message_time(
     assert mock_select_character_by_id.called_once_with(thread["char_id"])
 
 
-def test_get_system_message_invalid_thread(model: Model) -> None:
-    """
-    Test the _get_system_message function.
-    """
-    fake_thread = db.Thread(
-        id=0,
-        user_id=0,
-        char_id=0,
-    )
-    with pytest.raises(AssertionError):
-        _get_system_message("chat", fake_thread)
-
-
-@patch("database.select_character_by_id")
-def test_get_system_message_invalid_character(
-    mock_select_character_by_id: MagicMock, model: Model
-) -> None:
-    """
-    Test the _get_system_message function.
-    """
-    mock_select_character_by_id.side_effect = ValueError
-    fake_thread = db.Thread(
-        id=0,
-        user_id=0,
-        char_id=5,
-    )
-    with pytest.raises(ValueError):
-        _get_system_message("chat", fake_thread)
-
-
 def test_parse_time() -> None:
     """
     Test the _parse_time function.

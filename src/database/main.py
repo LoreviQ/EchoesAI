@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from google.cloud.sql.connector import Connector
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 
 from .db_types import metadata_obj
 
@@ -15,6 +15,7 @@ DB_NAME = "echoesai-new"
 DB_USER = "echoes-db-manager"
 DB_PASS = "fwRVZRtC5v&%Rsba"
 LOCAL_DB = os.getenv("LOCAL_DB", "false").lower() == "true"
+ENGINE: Engine
 
 
 def getconn() -> Any:
@@ -33,17 +34,19 @@ def getconn() -> Any:
 
 
 if LOCAL_DB:
-    engine = create_engine(
+    ENGINE = create_engine(
         "sqlite+pysqlite:///:memory:",
         echo=True,
     )
 else:
-    engine = create_engine(
+    ENGINE = create_engine(
         "postgresql+pg8000://",
         creator=getconn,
     )
 
 
-def create_db() -> None:
+def create_db(engine: Engine | None = None) -> None:
     """Create the database."""
-    metadata_obj.create_all(engine)
+    if not engine:
+        engine = ENGINE
+    metadata_obj.create_all(ENGINE)

@@ -6,7 +6,7 @@ from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
 from .db_types import QueryOptions, Thread, threads_table
-from .main import engine
+from .main import ENGINE
 
 
 def _row_to_thread(row: Row[Any]) -> Thread:
@@ -22,7 +22,7 @@ def _row_to_thread(row: Row[Any]) -> Thread:
 def insert_thread(values: Thread) -> int:
     """Insert a thread into the database."""
     stmt = insert(threads_table).values(values)
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         result = conn.execute(stmt)
         return result.inserted_primary_key[0]
 
@@ -30,7 +30,7 @@ def insert_thread(values: Thread) -> int:
 def select_thread(thread_id: int) -> Thread:
     """Select a thread from the database."""
     stmt = select(threads_table).where(threads_table.c.id == thread_id)
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
         if thread is None:
@@ -53,7 +53,7 @@ def select_threads(
             stmt = stmt.order_by(getattr(threads_table.c, options["orderby"]).desc())
         else:
             stmt = stmt.order_by(getattr(threads_table.c, options["orderby"]).asc())
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_thread(row) for row in result]
 
@@ -67,7 +67,7 @@ def select_latest_thread(user_id: int, char_id: int) -> Thread:
         .order_by(threads_table.c.started.desc())
         .limit(1)
     )
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
         if thread is None:

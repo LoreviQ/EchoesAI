@@ -6,7 +6,7 @@ from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import Row
 
 from .db_types import Message, QueryOptions, messages_table, threads_table
-from .main import engine
+from .main import ENGINE
 
 
 def _row_to_message(row: Row[Any]) -> Message:
@@ -23,7 +23,7 @@ def _row_to_message(row: Row[Any]) -> Message:
 def insert_message(values: Message) -> int:
     """Insert a message into the database."""
     stmt = insert(messages_table).values(values)
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         result = conn.execute(stmt)
         return result.inserted_primary_key[0]
 
@@ -31,7 +31,7 @@ def insert_message(values: Message) -> int:
 def select_message(message_id: int) -> Message:
     """Select a message from the database."""
     stmt = select(messages_table).where(messages_table.c.id == message_id)
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         message = result.fetchone()
         if message is None:
@@ -54,7 +54,7 @@ def select_messages(
             stmt = stmt.order_by(getattr(messages_table.c, options["orderby"]).desc())
         else:
             stmt = stmt.order_by(getattr(messages_table.c, options["orderby"]).asc())
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_message(row) for row in result]
 
@@ -68,7 +68,7 @@ def select_scheduled_message(thread_id: int) -> Message:
         .order_by(messages_table.c.timestamp.asc())
         .limit(1)
     )
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         message = result.fetchone()
         if message is None:
@@ -87,7 +87,7 @@ def select_messages_by_character(char_id: int) -> List[Message]:
         )
         .where(threads_table.c.char_id == char_id)
     )
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_message(row) for row in result]
 
@@ -95,7 +95,7 @@ def select_messages_by_character(char_id: int) -> List[Message]:
 def delete_message(message_id: int) -> None:
     """Delete a message from the database."""
     stmt = delete(messages_table).where(messages_table.c.id == message_id)
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         conn.execute(stmt)
 
 
@@ -120,7 +120,7 @@ def delete_messages_more_recent(message_id: int) -> None:
         )
     )
 
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         conn.execute(stmt)
 
 
@@ -130,7 +130,7 @@ def delete_scheduled_messages(thread_id: int) -> None:
         (messages_table.c.thread_id == thread_id)
         & (messages_table.c.timestamp > func.now())  # pylint: disable=not-callable
     )
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         conn.execute(stmt)
 
 
@@ -141,5 +141,5 @@ def update_message(message: Message) -> None:
         .where(messages_table.c.id == message["id"])
         .values(message)
     )
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         conn.execute(stmt)

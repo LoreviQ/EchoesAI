@@ -7,7 +7,16 @@ from .characters import (
     select_character_ids,
     select_characters,
 )
-from .db_types import Character, Event, Message, Post, QueryOptions, Thread, User
+from .db_types import (
+    Character,
+    Event,
+    Message,
+    Post,
+    QueryOptions,
+    Thread,
+    User,
+    metadata_obj,
+)
 from .events import delete_event, insert_event, select_events, select_most_recent_event
 from .main import create_db
 from .messages import (

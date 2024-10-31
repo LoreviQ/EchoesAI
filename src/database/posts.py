@@ -6,7 +6,7 @@ from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
 from .db_types import Post, posts_table
-from .main import engine
+from .main import ENGINE
 
 
 def _row_to_post(row: Row[Any]) -> Post:
@@ -26,7 +26,7 @@ def _row_to_post(row: Row[Any]) -> Post:
 def insert_post(values: Post) -> int:
     """Insert a post into the database."""
     stmt = insert(posts_table).values(values)
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         result = conn.execute(stmt)
         return result.inserted_primary_key[0]
 
@@ -34,7 +34,7 @@ def insert_post(values: Post) -> int:
 def select_post(post_id: int) -> Post:
     """Select a post from the database."""
     stmt = select(posts_table).where(posts_table.c.id == post_id)
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         post = result.fetchone()
         if post is None:
@@ -49,7 +49,7 @@ def update_post_with_image_path(post_id: int, image_path: str) -> None:
         .where(posts_table.c.id == post_id)
         .values(image_path=image_path)
     )
-    with engine.begin() as conn:
+    with ENGINE.begin() as conn:
         conn.execute(stmt)
 
 
@@ -59,6 +59,6 @@ def select_posts(post_query: Post = Post()) -> List[Post]:
     for key, value in post_query.items():
         conditions.append(getattr(posts_table.c, key) == value)
     stmt = select(posts_table).where(*conditions)
-    with engine.connect() as conn:
+    with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_post(row) for row in result]
