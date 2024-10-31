@@ -6,7 +6,7 @@ I.E. Events between a user and a character
 from datetime import datetime, timedelta, timezone
 from typing import List, cast
 
-import database_old as db
+import database as db
 
 from .events import _turn_message_into_chatmessage
 from .main import _generate_text, _get_system_message, _parse_time

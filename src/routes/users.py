@@ -3,7 +3,7 @@
 from flask import Response, jsonify, make_response, request
 
 import auth
-import database_old as db
+import database as db
 
 from .main import bp
 

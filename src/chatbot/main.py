@@ -6,7 +6,7 @@ from typing import List, cast
 
 from jinja2 import Template
 
-import database_old as db
+import database as db
 
 from .model import Model
 from .types import MAX_NEW_TOKENS, ChatMessage

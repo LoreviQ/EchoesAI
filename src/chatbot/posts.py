@@ -12,7 +12,7 @@ import civitai
 import requests
 from google.cloud import storage
 
-import database_old as db
+import database as db
 
 from .events import _create_complete_event_log
 from .main import _generate_text, _get_system_message

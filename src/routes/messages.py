@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Response, g, jsonify, make_response, request
 
-import database_old as db
+import database as db
 
 from .main import bp
 

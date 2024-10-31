@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 from typing import List, cast
 
-import database_old as db
+import database as db
 
 from .main import _generate_text, _get_system_message
 from .model import Model

@@ -8,10 +8,10 @@ This file contains the tests for the routes/users.py file.
 from flask.testing import FlaskClient
 
 import auth
-import database_old as db
+import database as db
 from tests.test_app import app, client
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_users import user_1, user_2
+from tests.test_database.test_main import db_init
+from tests.test_database.test_users import user_1, user_2
 
 
 def test_new_user(client: FlaskClient) -> None:

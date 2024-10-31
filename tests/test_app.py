@@ -11,7 +11,7 @@ from flask.testing import FlaskClient
 
 from app import App
 from chatbot import new_model
-from tests.test_database_old.test_main import db_init
+from tests.test_database.test_main import db_init
 
 # Shared counter for port numbers
 port_counter = Value("i", 5000)
