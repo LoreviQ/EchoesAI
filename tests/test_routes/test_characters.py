@@ -5,19 +5,19 @@ This file contains the tests for the routes/characters.py file.
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 
+from unittest.mock import MagicMock, patch
+
 from flask.testing import FlaskClient
 
 import database as db
-from tests.test_app import app, client
-from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_events import event_1, event_2
-from tests.test_database.test_main import test_db
-from tests.test_database.test_posts import post_1, post_2
+
+from .fixtures import app, client
 
 
-def test_new_character(client: FlaskClient) -> None:
+@patch("database.insert_character")
+def test_post_character(mock_insert_character: MagicMock, client: FlaskClient) -> None:
     """
-    Test the new character route.
+    Test the post character route.
     """
     character_payload = {
         "name": "Test Character",
@@ -29,11 +29,12 @@ def test_new_character(client: FlaskClient) -> None:
     assert response.data
     char_path = response.data.decode("utf-8")
     assert char_path == character_payload["path_name"]
+    mock_insert_character.assert_called_once_with(character_payload)
 
 
-def test_new_character_missing_required_fields(client: FlaskClient) -> None:
+def test_post_character_missing_required_fields(client: FlaskClient) -> None:
     """
-    Test the new character route with missing required fields.
+    Test the npost character route with missing required fields.
     """
     character_payload = {
         "name": "Test Character",
@@ -44,32 +45,46 @@ def test_new_character_missing_required_fields(client: FlaskClient) -> None:
     assert response.data == b"Missing required fields"
 
 
-def test_get_character(client: FlaskClient, char_1: db.Character) -> None:
+@patch("database.select_character")
+def test_get_character(mock_select_character: MagicMock, client: FlaskClient) -> None:
     """
     Test the get character by Path route.
     """
-    response = client.get(f"/v1/characters/{char_1['path_name']}")
+    char_1 = db.Character(id=1, name="Test Character", path_name="test_character")
+    mock_select_character.return_value = char_1
+    response = client.get("/v1/characters/test_character")
     assert response.status_code == 200
     assert response.json
     assert response.json["id"] == char_1["id"]
     assert response.json["name"] == char_1["name"]
+    assert mock_select_character.called_once_with(char_1["path_name"])
 
 
-def test_get_character_fail(client: FlaskClient) -> None:
+@patch("database.select_character")
+def test_get_character_fail(
+    mock_select_character: MagicMock, client: FlaskClient
+) -> None:
     """
     Test the get character by ID route.
     """
+    mock_select_character.side_effect = ValueError
     response = client.get("/v1/characters/not_a_character")
     assert response.status_code == 404
     assert response.data == b"character not found"
+    assert mock_select_character.called_once_with("not_a_character")
 
 
-def test_get_characters(
-    client: FlaskClient, char_1: db.Character, char_2: db.Character
-) -> None:
+@patch("database.select_characters")
+def test_get_characters(mock_select_characters: MagicMock, client: FlaskClient) -> None:
     """
     Test the get characters route without a query.
     """
+    char_1 = db.Character(id=1, name="Test Character 1", path_name="test_character_1")
+    char_2 = db.Character(id=2, name="Test Character 2", path_name="test_character_2")
+    mock_select_characters.return_value = [
+        char_1,
+        char_2,
+    ]
     response = client.get("/v1/characters?")
     assert response.status_code == 200
     assert response.json
@@ -77,96 +92,114 @@ def test_get_characters(
     assert response.json[0]["name"] == char_1["name"]
     assert response.json[1]["id"] == char_2["id"]
     assert response.json[1]["name"] == char_2["name"]
+    assert mock_select_characters.called_once_with({})
 
 
+@patch("database.select_characters")
 def test_get_characters_query(
-    client: FlaskClient, char_1: db.Character, char_2: db.Character
+    mock_select_characters: MagicMock, client: FlaskClient
 ) -> None:
     """
     Test the get characters route with a query.
     """
-    query = f"?name={char_1['name']}"
+    char = db.Character(id=1, name="TestCharacter1", path_name="test_character_1")
+    mock_select_characters.return_value = [
+        char,
+    ]
+    query = "?name=TestCharacter1"
     response = client.get(f"/v1/characters{query}")
     assert response.status_code == 200
     assert response.json
     assert len(response.json) == 1
-    assert response.json[0]["id"] == char_1["id"]
-    assert response.json[0]["name"] == char_1["name"]
+    assert response.json[0]["id"] == char["id"]
+    assert response.json[0]["name"] == char["name"]
+    assert mock_select_characters.called_once_with({"name": char["name"]})
 
 
+@patch("database.select_characters")
 def test_get_characters_query_no_matching(
-    client: FlaskClient, char_1: db.Character, char_2: db.Character
+    mock_select_characters: MagicMock, client: FlaskClient
 ) -> None:
     """
     Test the get characters route with a query that doesn't match any characters.
     """
+    mock_select_characters.return_value = []
     query = "?name=not_a_character"
     response = client.get("/v1/characters" + query)
     assert response.status_code == 200
     assert not response.json
+    assert mock_select_characters.called_once_with({"name": "not_a_character"})
 
 
+@patch("database.select_character")
+@patch("database.select_posts")
 def test_get_posts_by_character(
-    client: FlaskClient, char_1: db.Character, post_1: db.Post, post_2: db.Post
+    mock_select_posts: MagicMock, mock_select_character: MagicMock, client: FlaskClient
 ) -> None:
     """
     Test the get characters posts.
     """
-    response = client.get(f"/v1/characters/{char_1['path_name']}/posts")
+    post_1 = db.Post(id=1, title="Test Post 1", content="Test content 1")
+    post_2 = db.Post(id=2, title="Test Post 2", content="Test content 2")
+    mock_select_character.return_value = db.Character(
+        id=1, name="Test Character", path_name="test_character"
+    )
+    mock_select_posts.return_value = [post_1, post_2]
+    response = client.get("/v1/characters/test_character/posts")
     assert response.status_code == 200
     assert response.json
     assert response.json[0]["id"] == post_1["id"]
     assert response.json[1]["id"] == post_2["id"]
+    assert mock_select_character.called_once_with("test_character")
+    assert mock_select_posts.called_once_with(db.Post(char_id=1))
 
 
+@patch("database.select_character")
+@patch("database.select_posts")
 def test_get_posts_by_character_no_posts(
-    client: FlaskClient, char_1: db.Character
+    mock_select_posts: MagicMock, mock_select_character: MagicMock, client: FlaskClient
 ) -> None:
     """
     Test the get posts by character route with no posts.
     """
-    response = client.get(f"/v1/characters/{char_1['path_name']}/posts")
+    char = db.Character(id=1, name="Test Character", path_name="test_character")
+    mock_select_character.return_value = char
+    mock_select_posts.return_value = []
+    response = client.get("/v1/characters/test_character/posts")
     assert response.status_code == 200
     assert response.json == []
+    assert mock_select_character.called_once_with("test_character")
+    assert mock_select_posts.called_once_with(db.Post(char_id=char["id"]))
 
 
-def test_get_posts_by_character_invalid_character(client: FlaskClient) -> None:
+@patch("database.select_character")
+def test_get_posts_by_character_invalid_character(
+    mock_select_character: MagicMock, client: FlaskClient
+) -> None:
     """
     Test the get posts by character route with an invalid character.
     """
+    mock_select_character.side_effect = ValueError
     response = client.get("/v1/characters/not_a_character/posts")
     assert response.status_code == 404
     assert response.data == b"character not found"
 
 
+@patch("database.select_character")
+@patch("database.select_events")
 def test_get_events_by_character(
-    client: FlaskClient, char_1: db.Character, event_1: db.Event, event_2: db.Event
+    mock_select_events: MagicMock, mock_select_character: MagicMock, client: FlaskClient
 ) -> None:
     """
     Test the get characters events.
     """
-    response = client.get(f"/v1/characters/{char_1['path_name']}/events")
+    event_1 = db.Event(id=1, char_id=1, type="event", content="Test content 1")
+    event_2 = db.Event(id=2, char_id=1, type="event", content="Test content 2")
+    char = db.Character(id=1, name="Test Character", path_name="test_character")
+    mock_select_character.return_value = char
+    mock_select_events.return_value = [event_1, event_2]
+    response = client.get(f"/v1/characters/{char['path_name']}/events")
     assert response.status_code == 200
     assert response.json
     assert response.json[0]["id"] == event_1["id"]
     assert response.json[1]["id"] == event_2["id"]
-
-
-def test_get_events_by_character_no_events(
-    client: FlaskClient, char_1: db.Character
-) -> None:
-    """
-    Test the get events by character route with no events.
-    """
-    response = client.get(f"/v1/characters/{char_1['path_name']}/events")
-    assert response.status_code == 200
-    assert response.json == []
-
-
-def test_get_events_by_character_invalid_character(client: FlaskClient) -> None:
-    """
-    Test the get posts by character route with an invalid character.
-    """
-    response = client.get("/v1/characters/not_a_character/events")
-    assert response.status_code == 404
-    assert response.data == b"character not found"

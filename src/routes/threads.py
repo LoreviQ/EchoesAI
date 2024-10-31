@@ -17,12 +17,9 @@ def new_thread() -> Response:
     character_path = data["character"]
     try:
         user = db.select_user(username)
+        character = db.select_character(character_path)
     except ValueError:
-        return make_response("user not found", 400)
-    try:
-        character = db.select_characters(db.Character(path_name=character_path))[0]
-    except IndexError:
-        return make_response("character not found", 400)
+        return make_response("invalid payload", 400)
     assert user["id"]
     assert character["id"]
     thread_id = db.insert_thread(db.Thread(user_id=user["id"], char_id=character["id"]))
