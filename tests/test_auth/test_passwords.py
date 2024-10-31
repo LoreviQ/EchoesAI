@@ -1,0 +1,43 @@
+"""
+This file contains the tests for the auth/passwords.py file.
+"""
+
+# pylint: disable=redefined-outer-name unused-argument unused-import
+
+import pytest
+
+import auth
+import database_old as db
+from tests.test_database_old.test_main import db_init
+from tests.test_database_old.test_users import user_1
+
+
+def test_insert_user(db_init: str) -> None:
+    """
+    Test the insert_user function.
+    """
+    unhashed_password = "password"
+    user = db.User(
+        username="test_user", password=unhashed_password, email="test@test.com"
+    )
+    user_id = auth.insert_user(user)
+    assert user_id == 1
+    user_db = db.select_user("test_user")
+    assert user_db["username"] == user["username"]
+    assert user_db["email"] == user["email"]
+    assert user_db["password"] != unhashed_password
+
+
+def test_authenticate_user(db_init: str) -> None:
+    """
+    Test the authenticate_user function.
+    """
+    unhashed_password = "password"
+    user = db.User(
+        username="test_user", password=unhashed_password, email="test@test.com"
+    )
+    auth.insert_user(user)
+    assert auth.authenticate_user("test_user", unhashed_password)
+    assert not auth.authenticate_user("test_user", "wrong_password")
+    with pytest.raises(ValueError):
+        auth.authenticate_user("unknown_user", unhashed_password)
