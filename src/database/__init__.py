@@ -8,4 +8,5 @@ from .characters import (
     select_characters,
 )
 from .db_types import Character, Event, Message, Post, Thread, User
+from .events import delete_event, insert_event, select_events, select_most_recent_event
 from .main import create_db

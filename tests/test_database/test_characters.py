@@ -1,3 +1,5 @@
+"""Tests for the characters module in the database package."""
+
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 import database as db
