@@ -2,7 +2,7 @@
 
 import bcrypt
 
-import database as db
+import database_old as db
 
 
 def _hash_password(password: str) -> str:

@@ -12,7 +12,7 @@ import civitai
 import requests
 from google.cloud import storage
 
-import database as db
+import database_old as db
 
 from .events import _create_complete_event_log
 from .main import _generate_text, _get_system_message
@@ -44,11 +44,7 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     sys_message = _get_system_message("photo", character)
     chatlog = _create_complete_event_log(character["id"], model=model)
-    content = (
-        f"The time is currently {now}. Please describe "
-        "the photo you are about to post.\n"
-        "Do not include anything except for the image description."
-    )
+    content = f"The time is currently {now}. Generate an image post."
     chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
 
@@ -56,14 +52,6 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     sys_message = _get_system_message("sd-prompt", character)
     prompt_chatlog = [ChatMessage(role="user", content=description["content"])]
     prompt = _generate_text(model, sys_message, prompt_chatlog)
-
-    # generate caption
-    sys_message = _get_system_message("caption", character, description["content"])
-    content = (
-        f"The time is currently {now}. The photo description is "
-        f"{description['content']}. Please write a caption for the photo.\n"
-        "Do not include anything except for the caption."
-    )
 
     chatlog[-1] = ChatMessage(role="user", content=content)
     caption = _generate_text(model, sys_message, chatlog)
@@ -92,12 +80,7 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
     sys_message = _get_system_message("text_post", character)
     now = db.convert_dt_ts(datetime.now(timezone.utc))
     chatlog = _create_complete_event_log(character["id"], model=model)
-    content = (
-        f"The time is currently {now}. Please write "
-        "the post you are about to make.\n"
-        "Reminder: It is a text only post. "
-        "Do not include anything except for the post content."
-    )
+    content = f"The time is currently {now}. Generate a text post."
     chatlog.append(ChatMessage(role="user", content=content))
     description = _generate_text(model, sys_message, chatlog)
 

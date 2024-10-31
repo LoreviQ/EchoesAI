@@ -5,7 +5,7 @@ import random
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-import database as db
+import database_old as db
 
 from .events import generate_event
 from .model import Model

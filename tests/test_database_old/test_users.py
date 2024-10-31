@@ -9,8 +9,8 @@ from typing import Generator
 import pytest
 
 import auth
-import database as db
-from tests.test_database.test_main import db_init
+import database_old as db
+from tests.test_database_old.test_main import db_init
 
 
 @pytest.fixture

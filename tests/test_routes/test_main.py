@@ -11,10 +11,10 @@ from typing import Generator, Tuple
 import pytest
 from flask.testing import FlaskClient
 
-import database as db
+import database_old as db
 from app import App
 from tests.test_app import app, client
-from tests.test_database.test_main import db_init
+from tests.test_database_old.test_main import db_init
 
 
 @pytest.fixture

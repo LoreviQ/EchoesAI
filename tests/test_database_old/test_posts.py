@@ -9,9 +9,9 @@ from typing import Generator
 
 import pytest
 
-import database as db
-from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_main import db_init
+import database_old as db
+from tests.test_database_old.test_characters import char_1, char_2
+from tests.test_database_old.test_main import db_init
 
 
 @pytest.fixture

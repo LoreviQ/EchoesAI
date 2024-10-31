@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 from typing import List, cast
 
-import database as db
+import database_old as db
 
 from .main import _generate_text, _get_system_message
 from .model import Model
@@ -63,9 +63,11 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     thread = db.select_thread(message["thread_id"])
     char = db.select_character_by_id(thread["char_id"])
     user = db.select_user_by_id(thread["user_id"])
+    timestamp_str: str = message["timestamp"]
+    timestamp_dt = db.convert_ts_dt(timestamp_str)
     content = {
         "type": "message",
-        "time_message_was_sent": message["timestamp"],
+        "time_message_was_sent": timestamp_str,
         "message": message["content"],
     }
     if message["role"] == "user":
@@ -77,7 +79,7 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     chatmessage = StampedChatMessage(
         role=message["role"],
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(message["timestamp"]),
+        timestamp=db.convert_ts_dt(timestamp_dt),
     )
     return chatmessage
 
@@ -89,15 +91,17 @@ def _add_events_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None
 
 
 def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
+    timestamp_str: str = event["timestamp"]
+    timestamp_dt = db.convert_ts_dt(timestamp_str)
     content = {
         "type": event["type"],
-        "time_event_occurred": event["timestamp"],
+        "time_event_occurred": timestamp_str,
         "event": event["content"],
     }
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(event["timestamp"]),
+        timestamp=timestamp_dt,
     )
     return chatmessage
 
@@ -109,17 +113,19 @@ def _add_posts_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
 
 
 def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
+    timestamp_str: str = post["timestamp"]
+    timestamp_dt = db.convert_ts_dt(timestamp_str)
     if post["image_post"]:
         content = {
             "type": "image_post",
-            "time_post_was_made": post["timestamp"],
+            "time_post_was_made": timestamp_str,
             "image_description": post["description"],
             "caption": post["caption"],
         }
     else:
         content = {
             "type": "text_post",
-            "time_post_was_made": post["timestamp"],
+            "time_post_was_made": timestamp_str,
             "post": post["description"],
         }
     if post["image_post"]:
@@ -127,7 +133,7 @@ def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(post["timestamp"]),
+        timestamp=timestamp_dt,
     )
     return chatmessage
 

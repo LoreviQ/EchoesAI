@@ -6,7 +6,7 @@ from typing import List, cast
 
 from jinja2 import Template
 
-import database as db
+import database_old as db
 
 from .model import Model
 from .types import MAX_NEW_TOKENS, ChatMessage
@@ -63,7 +63,8 @@ def _get_system_message(
         "photo_description": photo_description,
     }
     if thread:
-        context["user"] = thread["user_id"]
+        user = db.select_user_by_id(thread["user_id"])
+        context["user"] = user["username"]
         # TODO: Phase-specific messages
 
     # Render the template until no more changes are detected

@@ -9,7 +9,7 @@ from typing import Generator
 
 import pytest
 
-import database as db
+import database_old as db
 
 
 @pytest.fixture

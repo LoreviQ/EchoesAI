@@ -6,66 +6,39 @@ I.E. Events between a user and a character
 from datetime import datetime, timedelta, timezone
 from typing import List, cast
 
-import database as db
+import database_old as db
 
+from .events import _turn_message_into_chatmessage
 from .main import _generate_text, _get_system_message, _parse_time
 from .model import Model
 from .types import MAX_TOKENS, ChatMessage, StampedChatMessage
 
 
-class Messages:
-    """
-    Class to manage messages related to a particular thread.
-    """
-
-    def __init__(self, thread_id: int) -> None:
-        self.messages = db.select_messages_by_thread(thread_id)
-
-    def _convert_messages_to_chatlog(self) -> List[StampedChatMessage]:
-        """
-        Convert messages into chatlog messages.
-        """
-        message_log: List[StampedChatMessage] = []
-        for message in self.messages:
-            if not all(
-                [
-                    message["timestamp"],
-                    message["content"],
-                    message["role"],
-                ]
-            ):
-                continue
-            assert message["timestamp"]
-            assert message["content"]
-            assert message["role"]
-            content = f"---{message['timestamp']}---\n{message['content']}"
-            message_log.append(
-                StampedChatMessage(
-                    role=message["role"],
-                    content=content,
-                    timestamp=db.convert_ts_dt(message["timestamp"]),
-                )
-            )
-        return message_log
-
-    def sorted(
-        self, truncate: bool = False, model: Model | None = None
-    ) -> List[ChatMessage]:
-        """
-        Return a sorted log of messages, optionally truncated.
-        """
-        sorter = self._convert_messages_to_chatlog()
-        sorter = sorted(sorter, key=lambda x: x["timestamp"])
-        chatlog = [cast(ChatMessage, x) for x in sorter]
-        if not truncate:
-            return chatlog
-        if not model:
-            raise ValueError("Model must be provided to truncate chatlog.")
-        # truncate chatlog to max tokens
-        truncated_log = chatlog[:]
-        while model.token_count(truncated_log) > MAX_TOKENS:
-            truncated_log.pop(0)
-        return truncated_log
+def _create_message_log(
+    thread_id: int, model: Model | None = None
+) -> List[ChatMessage]:
+    chatlog: List[StampedChatMessage] = []
+    messages = db.select_messages_by_thread(thread_id)
+    for message in messages:
+        if not all(
+            [
+                message["timestamp"],
+                message["content"],
+                message["role"],
+                message["thread_id"],
+            ]
+        ):
+            continue
+        chatlog.append(_turn_message_into_chatmessage(message))
+    chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
+    chatlog = [cast(ChatMessage, x) for x in chatlog]
+    if not model:
+        # if no model is provided, don't truncate and return early
+        return chatlog
+    truncated_log = chatlog[:]
+    while model.token_count(truncated_log) > MAX_TOKENS:
+        truncated_log.pop(0)
+    return truncated_log
 
 
 def response_cycle(
@@ -88,11 +61,13 @@ def response_cycle(
 def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
     assert thread["id"]
     sys_message = _get_system_message("time", thread)
-    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
+    chatlog = _create_message_log(thread["id"], model=model)
     now = db.convert_dt_ts(datetime.now(timezone.utc))
+    user = db.select_user_by_id(thread["user_id"])
     content = (
         f"The time is currently {now}. How long until you next send a "
-        f"message to {thread['user_id']}?"
+        f"message to {user['username']}?\n "
+        "Reminder to write the time in the format 'nd nh nm ns'."
     )
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
@@ -106,12 +81,12 @@ def _get_response_and_submit(
 ) -> None:
     assert thread["id"]
     sys_message = _get_system_message("chat", thread)
-    chatlog = Messages(thread["id"]).sorted(truncate=True, model=model)
+    chatlog = _create_message_log(thread["id"], model=model)
     now = db.convert_dt_ts(datetime.now(timezone.utc))
+    user = db.select_user_by_id(thread["user_id"])
     content = (
-        f"The time is currently {now}, and you have decided to send {thread['user_id']} "
-        f"another message. Please write your message to {thread['user_id']}.\n"
-        "Do not include anything except for the message content, such as time or message recipient."
+        f"The time is currently {now}, and you have decided to send {user['username']} "
+        f"another message. Please generate message to {user['username']}.\n"
     )
     chatlog.append(
         {

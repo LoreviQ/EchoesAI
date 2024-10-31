@@ -14,15 +14,14 @@ def insert_character(character: Character) -> int:
     if not character.get("name"):
         raise ValueError("The 'name' field is required.")
     # Remove 'id' from the character dictionary to allow auto-increment
-    character_without_id = {
-        key: value for key, value in character.items() if key != "id"
+    parsed_character = {
+        key: value for key, value in character.items() if key != "id" and value
     }
     # Prepare the SQL statement and the values
-    ph = _placeholder_gen()
-    columns = ", ".join(character_without_id.keys())
-    placeholders = ", ".join([next(ph)] * len(character_without_id))
+    columns = ", ".join(parsed_character.keys())
+    placeholders = ", ".join("%s" for _ in parsed_character.keys())
     query = f"INSERT INTO characters ({columns}) VALUES ({placeholders}) RETURNING id"
-    values = tuple(character_without_id.get(key) for key in character_without_id.keys())
+    values = tuple(parsed_character.get(key) for key in parsed_character.keys())
     # Execute the query
     return general_insert_returning_id(query, values)
 
