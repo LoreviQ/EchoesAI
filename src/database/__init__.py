@@ -7,8 +7,9 @@ from .characters import (
     select_character_ids,
     select_characters,
 )
-from .db_types import Character, Event, Message, Post, Thread, User
+from .db_types import Character, Event, Message, Post, QueryOptions, Thread, User
 from .events import delete_event, insert_event, select_events, select_most_recent_event
 from .main import create_db
 from .posts import insert_post, select_post, select_posts, update_post_with_image_path
+from .threads import insert_thread, select_latest_thread, select_thread, select_threads
 from .users import insert_user, select_user, select_user_by_id, update_user

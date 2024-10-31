@@ -1,4 +1,4 @@
-"""Database operations for the posts table."""
+"""Database operations for the users table."""
 
 from typing import Any
 

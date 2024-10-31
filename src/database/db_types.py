@@ -147,7 +147,6 @@ class Thread(TypedDict, total=False):
     started: NotRequired[datetime]
     user_id: NotRequired[int]
     char_id: NotRequired[int]
-    phase: NotRequired[int]
 
 
 threads_table = Table(
@@ -179,3 +178,11 @@ messages_table = Table(
     Column("content", String, nullable=False),
     Column("role", String, nullable=False),
 )
+
+
+class QueryOptions(TypedDict, total=False):
+    """Type for query options"""
+
+    limit: NotRequired[int]
+    orderby: NotRequired[str]
+    order: NotRequired[str]

@@ -13,9 +13,7 @@ from .test_main import test_db
 
 @pytest.fixture
 def character(test_db) -> Generator[db.Character, None, None]:
-    """
-    Creates a single character to be used in testing.
-    """
+    """Creates a single character to be used in testing."""
     char_id = db.insert_character(
         db.Character(
             name="test character",
@@ -32,9 +30,7 @@ def character(test_db) -> Generator[db.Character, None, None]:
 
 @pytest.fixture
 def characters(test_db) -> Generator[List[db.Character], None, None]:
-    """
-    Creates a number of characters to be used in testing.
-    """
+    """Creates a number of characters to be used in testing."""
     db.insert_character(
         db.Character(
             name="test character",
@@ -61,3 +57,15 @@ def characters(test_db) -> Generator[List[db.Character], None, None]:
         )
     )
     yield db.select_characters()
+
+
+@pytest.fixture
+def user(test_db) -> Generator[db.User, None, None]:
+    """Creates a single user to be used in testing."""
+    user = db.User(
+        username="test",
+        password="test",
+        email="test@test.com",
+    )
+    db.insert_user(user)
+    yield db.select_user("test")
