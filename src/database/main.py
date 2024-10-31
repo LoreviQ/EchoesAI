@@ -1,5 +1,7 @@
 """Miscellaneous database functions."""
 
+import os
+
 from google.cloud.sql.connector import Connector
 from sqlalchemy import create_engine
 
@@ -11,6 +13,7 @@ INSTANCE_CONNECTION_NAME = "echoesai:europe-west2:echoesai-db"
 DB_NAME = "echoesai-new"
 DB_USER = "echoes-db-manager"
 DB_PASS = "fwRVZRtC5v&%Rsba"
+LOCAL_DB = os.getenv("LOCAL_DB", "false").lower() == "true"
 
 
 def getconn():
@@ -28,10 +31,16 @@ def getconn():
     return conn
 
 
-engine = create_engine(
-    "postgresql+pg8000://",
-    creator=getconn,
-)
+if LOCAL_DB:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        echo=True,
+    )
+else:
+    engine = create_engine(
+        "postgresql+pg8000://",
+        creator=getconn,
+    )
 
 
 def create_db():
