@@ -4,12 +4,13 @@
 
 
 from datetime import datetime, timedelta, timezone
+from typing import List
 
 import pytest
 
 import database as db
 
-from .fixtures import character, characters, thread, user
+from .fixtures import character, characters, thread, threads, user
 from .test_main import test_db
 
 
@@ -119,6 +120,40 @@ def test_select_scheduled_message_none_scheduled(thread: db.Thread) -> None:
     db.insert_message(message)
     with pytest.raises(ValueError):
         db.select_scheduled_message(thread["id"])
+
+
+def test_select_messages_by_character(
+    characters: List[db.Character], threads: List[db.Thread]
+) -> None:
+    """Test the select_messages_by_character function."""
+    # Messages belonging to characters[0]
+    message = db.Message(
+        thread_id=threads[0]["id"],
+        content="test message",
+        role="user",
+    )
+    message2 = db.Message(
+        thread_id=threads[2]["id"],
+        content="test message 2",
+        role="user",
+    )
+    message3 = db.Message(
+        thread_id=threads[0]["id"],
+        content="test message 3",
+        role="assistant",
+    )
+    # Messages belonging to characters[1]
+    message4 = db.Message(
+        thread_id=threads[1]["id"],
+        content="test message 4",
+        role="user",
+    )
+    db.insert_message(message)
+    db.insert_message(message2)
+    db.insert_message(message3)
+    db.insert_message(message4)
+    result = db.select_messages_by_character(characters[0]["id"])
+    assert len(result) == 3
 
 
 def test_delete_message(thread: db.Thread) -> None:

@@ -18,7 +18,7 @@ def _create_message_log(
     thread_id: int, model: Model | None = None
 ) -> List[ChatMessage]:
     chatlog: List[StampedChatMessage] = []
-    messages = db.select_messages_by_thread(thread_id)
+    messages = db.select_messages(db.Message(thread_id=thread_id))
     for message in messages:
         if not all(
             [
@@ -31,11 +31,11 @@ def _create_message_log(
             continue
         chatlog.append(_turn_message_into_chatmessage(message))
     chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
-    chatlog = [cast(ChatMessage, x) for x in chatlog]
+    sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
     if not model:
         # if no model is provided, don't truncate and return early
-        return chatlog
-    truncated_log = chatlog[:]
+        return sorted_chatlog
+    truncated_log = sorted_chatlog[:]
     while model.token_count(truncated_log) > MAX_TOKENS:
         truncated_log.pop(0)
     return truncated_log
@@ -49,7 +49,7 @@ def response_cycle(
     """
     # delete previous scheduled messages
     thread = db.select_thread(thread_id)
-    db.delete_scheduled_messages_from_thread(thread_id)
+    db.delete_scheduled_messages(thread_id)
     # get response time
     if duration is None:
         duration = _get_response_time(model, thread)
@@ -62,7 +62,7 @@ def _get_response_time(model: Model, thread: db.Thread) -> timedelta:
     assert thread["id"]
     sys_message = _get_system_message("time", thread)
     chatlog = _create_message_log(thread["id"], model=model)
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     user = db.select_user_by_id(thread["user_id"])
     content = (
         f"The time is currently {now}. How long until you next send a "
@@ -82,7 +82,7 @@ def _get_response_and_submit(
     assert thread["id"]
     sys_message = _get_system_message("chat", thread)
     chatlog = _create_message_log(thread["id"], model=model)
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     user = db.select_user_by_id(thread["user_id"])
     content = (
         f"The time is currently {now}, and you have decided to send {user['username']} "
@@ -99,6 +99,6 @@ def _get_response_and_submit(
         thread_id=thread["id"],
         content=response["content"],
         role=response["role"],
-        timestamp=db.convert_dt_ts(timestamp),
+        timestamp=timestamp,
     )
     db.insert_message(message)

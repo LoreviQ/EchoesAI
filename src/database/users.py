@@ -33,6 +33,8 @@ def select_user(username: str) -> User:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         user = result.fetchone()
+        if user is None:
+            raise ValueError(f"no user found with username: {username}")
         return _row_to_user(user)
 
 
@@ -42,6 +44,8 @@ def select_user_by_id(user_id: int) -> User:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         user = result.fetchone()
+        if user is None:
+            raise ValueError(f"no user found with id: {user_id}")
         return _row_to_user(user)
 
 

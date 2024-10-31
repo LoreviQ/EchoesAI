@@ -10,7 +10,7 @@ from flask.testing import FlaskClient
 import database as db
 from tests.test_app import app, client
 from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 from tests.test_database.test_messages import message_1
 from tests.test_database.test_threads import many_threads, thread_1
 from tests.test_database.test_users import user_1, user_2

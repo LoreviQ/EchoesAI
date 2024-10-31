@@ -22,7 +22,7 @@ def test_db(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("database.main.getconn", None)
 
 
-def test_create_db(test_db) -> None:
+def test_create_db(test_db: None) -> None:
     """Test the create_db function."""
 
     create_db()

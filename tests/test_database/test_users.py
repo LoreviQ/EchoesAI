@@ -7,7 +7,7 @@ import database as db
 from .test_main import test_db
 
 
-def test_insert_user(test_db):
+def test_insert_user(test_db: None) -> None:
     """Test the insert_user function."""
     user = db.User(
         username="test",
@@ -18,7 +18,7 @@ def test_insert_user(test_db):
     assert result == 1
 
 
-def test_select_user(test_db):
+def test_select_user(test_db: None) -> None:
     """Test the select_user function."""
     user = db.User(
         username="test",
@@ -30,7 +30,7 @@ def test_select_user(test_db):
     assert result["username"] == "test"
 
 
-def test_select_user_by_id(test_db):
+def test_select_user_by_id(test_db: None) -> None:
     """Test the select_user_by_id function."""
     user = db.User(
         username="test",
@@ -42,7 +42,7 @@ def test_select_user_by_id(test_db):
     assert result["username"] == "test"
 
 
-def test_update_user(test_db):
+def test_update_user(test_db: None) -> None:
     """Test the update_user function."""
     user = db.User(
         username="test",

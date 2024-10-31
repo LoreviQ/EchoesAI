@@ -9,7 +9,7 @@ import pytest
 from transformers import Pipeline
 
 from chatbot import Model, new_model
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 
 types_module = importlib.import_module("chatbot.types")
 ChatMessage = getattr(types_module, "ChatMessage")
@@ -19,7 +19,7 @@ ModelActual = getattr(model_module, "ModelActual")
 
 
 @pytest.fixture
-def model(db_init: str) -> Generator[Model, None, None]:
+def model(test_db: str) -> Generator[Model, None, None]:
     """Yields a Model object for testing."""
     model = new_model(mocked=True)
     yield model

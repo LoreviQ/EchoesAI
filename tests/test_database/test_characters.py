@@ -7,7 +7,7 @@ import database as db
 from .test_main import test_db
 
 
-def test_insert_character(test_db):
+def test_insert_character(test_db: None) -> None:
     """Test the insert_character function."""
     char = db.Character(
         name="test",
@@ -17,7 +17,7 @@ def test_insert_character(test_db):
     assert result == 1
 
 
-def test_select_character(test_db):
+def test_select_character(test_db: None) -> None:
     """Test the select_character function."""
     char = db.Character(
         name="test",
@@ -29,7 +29,7 @@ def test_select_character(test_db):
     assert result["path_name"] == "test"
 
 
-def test_select_character_by_id(test_db):
+def test_select_character_by_id(test_db: None) -> None:
     """Test the select_character_by_id function."""
     char = db.Character(
         name="test",
@@ -41,7 +41,7 @@ def test_select_character_by_id(test_db):
     assert result["path_name"] == "test"
 
 
-def test_select_characters_without_query(test_db):
+def test_select_characters_without_query(test_db: None) -> None:
     """Test the select_characters function without a query."""
     char = db.Character(
         name="test",
@@ -61,7 +61,7 @@ def test_select_characters_without_query(test_db):
     assert result[1]["path_name"] == "test2"
 
 
-def test_select_characters_with_query(test_db):
+def test_select_characters_with_query(test_db: None) -> None:
     """Test the select_characters function with a query."""
     char = db.Character(
         name="test",
@@ -79,7 +79,7 @@ def test_select_characters_with_query(test_db):
     assert result[0]["path_name"] == "test"
 
 
-def test_select_characters_with_query_no_matching(test_db):
+def test_select_characters_with_query_no_matching(test_db: None) -> None:
     """Test the select_characters function with a query that doesn't match any characters."""
     char = db.Character(
         name="test",
@@ -95,7 +95,7 @@ def test_select_characters_with_query_no_matching(test_db):
     assert not result
 
 
-def test_select_character_ids(test_db):
+def test_select_character_ids(test_db: None) -> None:
     """Test the select_character_ids function."""
     char = db.Character(
         name="test",

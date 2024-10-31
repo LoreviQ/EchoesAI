@@ -49,7 +49,10 @@ def select_most_recent_event(char_id: int) -> Event:
     )
     with engine.connect() as conn:
         result = conn.execute(stmt)
-        return _row_to_event(result.fetchone())
+        event = result.fetchone()
+        if event is None:
+            raise ValueError(f"no event found for character: {char_id}")
+        return _row_to_event(event)
 
 
 def delete_event(event_id: int) -> None:

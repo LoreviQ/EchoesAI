@@ -34,11 +34,11 @@ def _create_complete_event_log(
     if posts:
         _add_posts_to_log(char_id, chatlog)
     chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
-    chatlog = [cast(ChatMessage, x) for x in chatlog]
+    sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
     if not model:
         # if no model is provided, don't truncate and return early
-        return chatlog
-    truncated_log = chatlog[:]
+        return sorted_chatlog
+    truncated_log = sorted_chatlog[:]
     while model.token_count(truncated_log) > MAX_TOKENS:
         truncated_log.pop(0)
     return truncated_log
@@ -63,11 +63,9 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     thread = db.select_thread(message["thread_id"])
     char = db.select_character_by_id(thread["char_id"])
     user = db.select_user_by_id(thread["user_id"])
-    timestamp_str: str = message["timestamp"]
-    timestamp_dt = db.convert_ts_dt(timestamp_str)
     content = {
         "type": "message",
-        "time_message_was_sent": timestamp_str,
+        "time_message_was_sent": message["timestamp"].isoformat(),
         "message": message["content"],
     }
     if message["role"] == "user":
@@ -79,7 +77,7 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     chatmessage = StampedChatMessage(
         role=message["role"],
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(timestamp_dt),
+        timestamp=message["timestamp"],
     )
     return chatmessage
 
@@ -91,17 +89,15 @@ def _add_events_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None
 
 
 def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
-    timestamp_str: str = event["timestamp"]
-    timestamp_dt = db.convert_ts_dt(timestamp_str)
     content = {
         "type": event["type"],
-        "time_event_occurred": timestamp_str,
+        "time_event_occurred": event["timestamp"].isoformat(),
         "event": event["content"],
     }
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=timestamp_dt,
+        timestamp=event["timestamp"],
     )
     return chatmessage
 
@@ -113,27 +109,23 @@ def _add_posts_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
 
 
 def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
-    timestamp_str: str = post["timestamp"]
-    timestamp_dt = db.convert_ts_dt(timestamp_str)
     if post["image_post"]:
         content = {
             "type": "image_post",
-            "time_post_was_made": timestamp_str,
-            "image_description": post["description"],
-            "caption": post["caption"],
+            "time_post_was_made": post["timestamp"].isoformat(),
+            "image_description": post["image_description"],
+            "caption": post["content"],
         }
     else:
         content = {
             "type": "text_post",
-            "time_post_was_made": timestamp_str,
-            "post": post["description"],
+            "time_post_was_made": post["timestamp"].isoformat(),
+            "post": post["content"],
         }
-    if post["image_post"]:
-        content["caption"] = post["caption"]
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=timestamp_dt,
+        timestamp=post["timestamp"],
     )
     return chatmessage
 
@@ -145,12 +137,12 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     character = db.select_character_by_id(character_id)
     sys_message = _get_system_message("event", character)
     chatlog = _create_complete_event_log(character_id, model=model)
-    timestamp = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     match event_type:
         case "thought":
-            content = f"The time is currently {timestamp}. Generate a thought"
+            content = f"The time is currently {now}. Generate a thought"
         case "event":
-            content = f"The time is currently {timestamp}. Generate an event"
+            content = f"The time is currently {now}. Generate an event"
 
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)

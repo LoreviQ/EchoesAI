@@ -33,6 +33,8 @@ def select_thread(thread_id: int) -> Thread:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
+        if thread is None:
+            raise ValueError(f"no thread found with id: {thread_id}")
         return _row_to_thread(thread)
 
 
@@ -68,4 +70,6 @@ def select_latest_thread(user_id: int, char_id: int) -> Thread:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
+        if thread is None:
+            raise ValueError(f"no thread found for user: {user_id} and char: {char_id}")
         return _row_to_thread(thread)

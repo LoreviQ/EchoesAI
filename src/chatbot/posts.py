@@ -41,16 +41,16 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     assert character["id"]
 
     # generate image description
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     sys_message = _get_system_message("photo", character)
     chatlog = _create_complete_event_log(character["id"], model=model)
     content = f"The time is currently {now}. Generate an image post."
     chatlog.append(ChatMessage(role="user", content=content))
-    description = _generate_text(model, sys_message, chatlog)
+    image_description = _generate_text(model, sys_message, chatlog)
 
     # generate stable diffusion prompt
     sys_message = _get_system_message("sd-prompt", character)
-    prompt_chatlog = [ChatMessage(role="user", content=description["content"])]
+    prompt_chatlog = [ChatMessage(role="user", content=image_description["content"])]
     prompt = _generate_text(model, sys_message, prompt_chatlog)
 
     chatlog[-1] = ChatMessage(role="user", content=content)
@@ -59,12 +59,12 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     # insert post into database
     post = db.Post(
         char_id=character["id"],
-        description=description["content"],
+        content=caption["content"],
         image_post=True,
+        image_description=image_description["content"],
         prompt=prompt["content"],
-        caption=caption["content"],
     )
-    post_id = db.posts.insert_social_media_post(post)
+    post_id = db.posts.insert_post(post)
 
     # use prompt to generate image
     _civitai_generate_image(character, post_id, prompt["content"])
@@ -78,21 +78,19 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
 
     # generate description
     sys_message = _get_system_message("text_post", character)
-    now = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     chatlog = _create_complete_event_log(character["id"], model=model)
     content = f"The time is currently {now}. Generate a text post."
     chatlog.append(ChatMessage(role="user", content=content))
-    description = _generate_text(model, sys_message, chatlog)
+    post_content = _generate_text(model, sys_message, chatlog)
 
     # insert post into database
     post = db.Post(
         char_id=character["id"],
-        description=description["content"],
+        content=post_content["content"],
         image_post=False,
-        prompt="",
-        caption="",
     )
-    db.posts.insert_social_media_post(post)
+    db.posts.insert_post(post)
 
 
 def _civitai_generate_image(character: db.Character, post_id: int, prompt: str) -> None:

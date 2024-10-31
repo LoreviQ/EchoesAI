@@ -50,6 +50,8 @@ def select_character(path_name: str) -> Character:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         character = result.fetchone()
+        if character is None:
+            raise ValueError(f"no character found with path_name: {path_name}")
         return _row_to_character(character)
 
 
@@ -59,6 +61,8 @@ def select_character_by_id(character_id: int) -> Character:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         character = result.fetchone()
+        if character is None:
+            raise ValueError(f"no character found with id: {character_id}")
         return _row_to_character(character)
 
 

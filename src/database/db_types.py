@@ -1,7 +1,7 @@
 """Database types."""
 
 from datetime import datetime
-from typing import Callable, TypedDict
+from typing import TypedDict
 
 from sqlalchemy import (
     Boolean,
@@ -17,7 +17,6 @@ from sqlalchemy import (
 from typing_extensions import NotRequired
 
 metadata_obj = MetaData()
-func: Callable
 
 
 class Character(TypedDict, total=False):
@@ -87,7 +86,7 @@ events_table = Table(
     "events",
     metadata_obj,
     Column("id", Integer, primary_key=True),
-    Column("timestamp", DateTime, default=func.now()),
+    Column("timestamp", DateTime, default=func.now()),  # pylint: disable=not-callable
     Column("char_id", ForeignKey("characters.id"), nullable=False),
     Column("type", String, nullable=False),
     Column("content", String, nullable=False),
@@ -111,7 +110,7 @@ posts_table = Table(
     "posts",
     metadata_obj,
     Column("id", Integer, primary_key=True),
-    Column("timestamp", DateTime, default=func.now()),
+    Column("timestamp", DateTime, default=func.now()),  # pylint: disable=not-callable
     Column("char_id", ForeignKey("characters.id"), nullable=False),
     Column("content", String),
     Column("image_post", Boolean, default=False),
@@ -153,7 +152,7 @@ threads_table = Table(
     "threads",
     metadata_obj,
     Column("id", Integer, primary_key=True),
-    Column("started", DateTime, default=func.now()),
+    Column("started", DateTime, default=func.now()),  # pylint: disable=not-callable
     Column("user_id", ForeignKey("users.id"), nullable=False),
     Column("char_id", ForeignKey("characters.id"), nullable=False),
 )
@@ -173,7 +172,7 @@ messages_table = Table(
     "messages",
     metadata_obj,
     Column("id", Integer, primary_key=True),
-    Column("timestamp", DateTime, default=func.now()),
+    Column("timestamp", DateTime, default=func.now()),  # pylint: disable=not-callable
     Column("thread_id", ForeignKey("threads.id"), nullable=False),
     Column("content", String, nullable=False),
     Column("role", String, nullable=False),

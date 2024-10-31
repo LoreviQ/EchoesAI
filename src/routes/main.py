@@ -2,6 +2,8 @@
 
 from flask import Blueprint, Response, g, make_response, send_from_directory
 
+import database as db
+
 bp = Blueprint("routes", __name__)
 
 
@@ -23,3 +25,14 @@ def detached() -> Response:
     if g.detached:
         return make_response("True", 200)
     return make_response("False", 200)
+
+
+def _create_query_params(query_params: dict[str, str]) -> db.QueryOptions:
+    options = db.QueryOptions()
+    if "limit" in query_params:
+        options["limit"] = int(query_params["limit"])
+    if "orderby" in query_params:
+        options["orderby"] = query_params["orderby"]
+    if "order" in query_params:
+        options["order"] = query_params["order"]
+    return options

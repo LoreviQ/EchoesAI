@@ -1,6 +1,7 @@
 """Miscellaneous database functions."""
 
 import os
+from typing import Any
 
 from google.cloud.sql.connector import Connector
 from sqlalchemy import create_engine
@@ -16,7 +17,7 @@ DB_PASS = "fwRVZRtC5v&%Rsba"
 LOCAL_DB = os.getenv("LOCAL_DB", "false").lower() == "true"
 
 
-def getconn():
+def getconn() -> Any:
     """
     Connect to the PostgreSQL database.
     Returning the connection.
@@ -43,6 +44,6 @@ else:
     )
 
 
-def create_db():
+def create_db() -> None:
     """Create the database."""
     metadata_obj.create_all(engine)

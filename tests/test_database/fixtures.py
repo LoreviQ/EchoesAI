@@ -12,7 +12,7 @@ from .test_main import test_db
 
 
 @pytest.fixture
-def character(test_db) -> Generator[db.Character, None, None]:
+def character(test_db: None) -> Generator[db.Character, None, None]:
     """Creates a single character to be used in testing."""
     char_id = db.insert_character(
         db.Character(
@@ -29,7 +29,7 @@ def character(test_db) -> Generator[db.Character, None, None]:
 
 
 @pytest.fixture
-def characters(test_db) -> Generator[List[db.Character], None, None]:
+def characters(test_db: None) -> Generator[List[db.Character], None, None]:
     """Creates a number of characters to be used in testing."""
     db.insert_character(
         db.Character(
@@ -60,7 +60,7 @@ def characters(test_db) -> Generator[List[db.Character], None, None]:
 
 
 @pytest.fixture
-def user(test_db) -> Generator[db.User, None, None]:
+def user(test_db: None) -> Generator[db.User, None, None]:
     """Creates a single user to be used in testing."""
     user = db.User(
         username="test",
@@ -80,3 +80,26 @@ def thread(user: db.User, character: db.Character) -> Generator[db.Thread, None,
     )
     thread_id = db.insert_thread(thread)
     yield db.select_thread(thread_id)
+
+
+@pytest.fixture
+def threads(
+    user: db.User, characters: List[db.Character]
+) -> Generator[List[db.Thread], None, None]:
+    """Creates a number of threads to be used in testing."""
+    thread = db.Thread(
+        user_id=user["id"],
+        char_id=characters[0]["id"],
+    )
+    thread2 = db.Thread(
+        user_id=user["id"],
+        char_id=characters[1]["id"],
+    )
+    thread3 = db.Thread(
+        user_id=user["id"],
+        char_id=characters[0]["id"],
+    )
+    db.insert_thread(thread)
+    db.insert_thread(thread2)
+    db.insert_thread(thread3)
+    yield db.select_threads()

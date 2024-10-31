@@ -11,7 +11,7 @@ import database as db
 from chatbot import Model
 from tests.test_chatbot.test_model import model
 from tests.test_database.test_characters import char_1
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 from tests.test_database.test_threads import thread_1
 from tests.test_database.test_users import user_1
 

@@ -17,6 +17,7 @@ from .messages import (
     insert_message,
     select_message,
     select_messages,
+    select_messages_by_character,
     select_scheduled_message,
     update_message,
 )

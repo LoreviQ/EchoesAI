@@ -11,14 +11,14 @@ from flask.testing import FlaskClient
 
 from app import App
 from chatbot import new_model
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 
 # Shared counter for port numbers
 port_counter = Value("i", 5000)
 
 
 @pytest.fixture
-def app(db_init: str, monkeypatch: pytest.MonkeyPatch) -> Generator[App, None, None]:
+def app(test_db: str, monkeypatch: pytest.MonkeyPatch) -> Generator[App, None, None]:
     """
     Create an App object for testing and teardown after testing.
     """

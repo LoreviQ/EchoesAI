@@ -15,7 +15,7 @@ from chatbot import Model, generate_social_media_post
 from tests.test_chatbot.test_model import model
 from tests.test_database.test_characters import char_1
 from tests.test_database.test_events import event_1, event_2
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 from tests.test_database.test_messages import message_1, message_2
 from tests.test_database.test_posts import post_1, post_2
 from tests.test_database.test_threads import thread_1

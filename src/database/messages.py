@@ -1,14 +1,12 @@
 """Database operations for the messages table."""
 
-from typing import Any, Callable, List
+from typing import Any, List
 
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import Row
 
-from .db_types import Message, QueryOptions, messages_table
+from .db_types import Message, QueryOptions, messages_table, threads_table
 from .main import engine
-
-func: Callable
 
 
 def _row_to_message(row: Row[Any]) -> Message:
@@ -36,6 +34,8 @@ def select_message(message_id: int) -> Message:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         message = result.fetchone()
+        if message is None:
+            raise ValueError(f"no message found with id: {message_id}")
         return _row_to_message(message)
 
 
@@ -64,7 +64,7 @@ def select_scheduled_message(thread_id: int) -> Message:
     stmt = (
         select(messages_table)
         .where(messages_table.c.thread_id == thread_id)
-        .where(messages_table.c.timestamp > func.now())
+        .where(messages_table.c.timestamp > func.now())  # pylint: disable=not-callable
         .order_by(messages_table.c.timestamp.asc())
         .limit(1)
     )
@@ -74,6 +74,22 @@ def select_scheduled_message(thread_id: int) -> Message:
         if message is None:
             raise ValueError("No scheduled messages found.")
         return _row_to_message(message)
+
+
+def select_messages_by_character(char_id: int) -> List[Message]:
+    """Select messages from the database by character."""
+    stmt = (
+        select(messages_table)
+        .select_from(
+            messages_table.join(
+                threads_table, messages_table.c.thread_id == threads_table.c.id
+            )
+        )
+        .where(threads_table.c.char_id == char_id)
+    )
+    with engine.connect() as conn:
+        result = conn.execute(stmt)
+        return [_row_to_message(row) for row in result]
 
 
 def delete_message(message_id: int) -> None:
@@ -112,7 +128,7 @@ def delete_scheduled_messages(thread_id: int) -> None:
     """Delete all scheduled messages for a thread."""
     stmt = delete(messages_table).where(
         (messages_table.c.thread_id == thread_id)
-        & (messages_table.c.timestamp > func.now())
+        & (messages_table.c.timestamp > func.now())  # pylint: disable=not-callable
     )
     with engine.begin() as conn:
         conn.execute(stmt)

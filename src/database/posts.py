@@ -37,6 +37,8 @@ def select_post(post_id: int) -> Post:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         post = result.fetchone()
+        if post is None:
+            raise ValueError(f"no post found with id: {post_id}")
         return _row_to_post(post)
 
 
