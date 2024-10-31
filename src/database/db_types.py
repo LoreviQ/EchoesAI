@@ -46,7 +46,7 @@ class Character(TypedDict, total=False):
     profile_path: NotRequired[str]
 
 
-character_table = Table(
+characters_table = Table(
     "characters",
     metadata_obj,
     Column("id", Integer, primary_key=True),
@@ -83,7 +83,7 @@ class Event(TypedDict, total=False):
     content: NotRequired[str]
 
 
-event_table = Table(
+events_table = Table(
     "events",
     metadata_obj,
     Column("id", Integer, primary_key=True),

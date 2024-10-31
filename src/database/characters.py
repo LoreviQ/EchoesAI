@@ -5,7 +5,7 @@ from typing import Any, List
 from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
-from .db_types import Character, character_table
+from .db_types import Character, characters_table
 from .main import engine
 
 
@@ -38,7 +38,7 @@ def _row_to_character(row: Row[Any]) -> Character:
 
 def insert_character(values: Character) -> int:
     """Insert a character into the database."""
-    stmt = insert(character_table).values(values)
+    stmt = insert(characters_table).values(values)
     with engine.begin() as conn:
         result = conn.execute(stmt)
         return result.inserted_primary_key[0]
@@ -46,7 +46,7 @@ def insert_character(values: Character) -> int:
 
 def select_character(path_name: str) -> Character:
     """Select a character from the database."""
-    stmt = select(character_table).where(character_table.c.path_name == path_name)
+    stmt = select(characters_table).where(characters_table.c.path_name == path_name)
     with engine.connect() as conn:
         result = conn.execute(stmt)
         character = result.fetchone()
@@ -55,7 +55,7 @@ def select_character(path_name: str) -> Character:
 
 def select_character_by_id(character_id: int) -> Character:
     """Select a character from the database."""
-    stmt = select(character_table).where(character_table.c.id == character_id)
+    stmt = select(characters_table).where(characters_table.c.id == character_id)
     with engine.connect() as conn:
         result = conn.execute(stmt)
         character = result.fetchone()
@@ -66,8 +66,8 @@ def select_characters(character_query: Character = Character()) -> List[Characte
     """Select characters from the database, optionally with a query."""
     conditions = []
     for key, value in character_query.items():
-        conditions.append(getattr(character_table.c, key) == value)
-    stmt = select(character_table).where(*conditions)
+        conditions.append(getattr(characters_table.c, key) == value)
+    stmt = select(characters_table).where(*conditions)
     with engine.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_character(row) for row in result]
@@ -75,7 +75,7 @@ def select_characters(character_query: Character = Character()) -> List[Characte
 
 def select_character_ids() -> List[int]:
     """Select all character ids from the database."""
-    stmt = select(character_table.c.id)
+    stmt = select(characters_table.c.id)
     with engine.connect() as conn:
         result = conn.execute(stmt)
         return [row.id for row in result]
