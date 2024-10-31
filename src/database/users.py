@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Row
 
 from .db_types import User, users_table
@@ -47,14 +47,6 @@ def select_user_by_id(user_id: int) -> User:
 
 def update_user(user: User) -> None:
     """Update a user in the database."""
-    stmt = (
-        users_table.update()
-        .where(users_table.c.id == user["id"])
-        .values(
-            username=user["username"],
-            password=user["password"],
-            email=user["email"],
-        )
-    )
+    stmt = update(users_table).where(users_table.c.id == user["id"]).values(user)
     with engine.begin() as conn:
         conn.execute(stmt)

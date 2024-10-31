@@ -9,7 +9,7 @@ from .db_types import QueryOptions, Thread, threads_table
 from .main import engine
 
 
-def _row_to_threads(row: Row[Any]) -> Thread:
+def _row_to_thread(row: Row[Any]) -> Thread:
     """Convert a row to a threads."""
     return Thread(
         id=row.id,
@@ -33,7 +33,7 @@ def select_thread(thread_id: int) -> Thread:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
-        return _row_to_threads(thread)
+        return _row_to_thread(thread)
 
 
 def select_threads(
@@ -53,7 +53,7 @@ def select_threads(
             stmt = stmt.order_by(getattr(threads_table.c, options["orderby"]).asc())
     with engine.connect() as conn:
         result = conn.execute(stmt)
-        return [_row_to_threads(row) for row in result]
+        return [_row_to_thread(row) for row in result]
 
 
 def select_latest_thread(user_id: int, char_id: int) -> Thread:
@@ -68,4 +68,4 @@ def select_latest_thread(user_id: int, char_id: int) -> Thread:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         thread = result.fetchone()
-        return _row_to_threads(thread)
+        return _row_to_thread(thread)
