@@ -71,3 +71,11 @@ def select_characters(character_query: Character = Character()) -> List[Characte
     with engine.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_character(row) for row in result]
+
+
+def select_character_ids() -> List[int]:
+    """Select all character ids from the database."""
+    stmt = select(character_table.c.id)
+    with engine.connect() as conn:
+        result = conn.execute(stmt)
+        return [row.id for row in result]
