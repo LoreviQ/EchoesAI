@@ -139,8 +139,8 @@ def test_get_posts_by_character(
     """
     Test the get characters posts.
     """
-    post_1 = db.Post(id=1, title="Test Post 1", content="Test content 1")
-    post_2 = db.Post(id=2, title="Test Post 2", content="Test content 2")
+    post_1 = db.Post(id=1, content="Test content 1")
+    post_2 = db.Post(id=2, content="Test content 2")
     mock_select_character.return_value = db.Character(
         id=1, name="Test Character", path_name="test_character"
     )
