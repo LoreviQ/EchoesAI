@@ -9,7 +9,7 @@ import pytest
 from transformers import Pipeline
 
 from chatbot import Model, new_model
-from tests.test_database_old.test_main import db_init
+from not_t.test_database_old.test_main import db_init
 
 types_module = importlib.import_module("chatbot.types")
 ChatMessage = getattr(types_module, "ChatMessage")

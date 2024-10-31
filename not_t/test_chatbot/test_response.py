@@ -7,12 +7,12 @@ from datetime import datetime, timedelta, timezone
 
 import database_old as db
 from chatbot import Model, new_model, response_cycle
-from tests.test_chatbot.test_model import model
-from tests.test_database_old.test_characters import char_1
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_messages import message_1, message_2
-from tests.test_database_old.test_threads import thread_1
-from tests.test_database_old.test_users import user_1
+from not_t.test_chatbot.test_model import model
+from not_t.test_database_old.test_characters import char_1
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_messages import message_1, message_2
+from not_t.test_database_old.test_threads import thread_1
+from not_t.test_database_old.test_users import user_1
 
 types_module = importlib.import_module("chatbot.types")
 ChatMessage = getattr(types_module, "ChatMessage")

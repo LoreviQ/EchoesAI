@@ -8,11 +8,11 @@ This file contains the tests for the routes/characters.py file.
 from flask.testing import FlaskClient
 
 import database_old as db
-from tests.test_app import app, client
-from tests.test_database_old.test_characters import char_1, char_2
-from tests.test_database_old.test_events import event_1, event_2
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_posts import post_1, post_2
+from not_t.test_app import app, client
+from not_t.test_database_old.test_characters import char_1, char_2
+from not_t.test_database_old.test_events import event_1, event_2
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_posts import post_1, post_2
 
 
 def test_new_character(client: FlaskClient) -> None:

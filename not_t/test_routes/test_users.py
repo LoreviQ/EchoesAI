@@ -9,9 +9,9 @@ from flask.testing import FlaskClient
 
 import auth
 import database_old as db
-from tests.test_app import app, client
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_users import user_1, user_2
+from not_t.test_app import app, client
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_users import user_1, user_2
 
 
 def test_new_user(client: FlaskClient) -> None:

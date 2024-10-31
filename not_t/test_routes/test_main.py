@@ -13,8 +13,8 @@ from flask.testing import FlaskClient
 
 import database_old as db
 from app import App
-from tests.test_app import app, client
-from tests.test_database_old.test_main import db_init
+from not_t.test_app import app, client
+from not_t.test_database_old.test_main import db_init
 
 
 @pytest.fixture

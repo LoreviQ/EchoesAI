@@ -10,7 +10,7 @@ import pytest
 
 import auth
 import database_old as db
-from tests.test_database_old.test_main import db_init
+from not_t.test_database_old.test_main import db_init
 
 
 @pytest.fixture

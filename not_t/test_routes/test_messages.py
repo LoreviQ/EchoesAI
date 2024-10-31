@@ -11,16 +11,16 @@ import pytest
 from flask.testing import FlaskClient
 
 import database_old as db
-from tests.test_app import app, client
-from tests.test_database_old.test_characters import char_1
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_messages import (
+from not_t.test_app import app, client
+from not_t.test_database_old.test_characters import char_1
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_messages import (
     message_1,
     message_2,
     scheduled_message,
 )
-from tests.test_database_old.test_threads import thread_1
-from tests.test_database_old.test_users import user_1
+from not_t.test_database_old.test_threads import thread_1
+from not_t.test_database_old.test_users import user_1
 
 
 def test_get_messages_by_thread(

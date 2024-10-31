@@ -8,10 +8,10 @@ This file contains the tests for the routes/events.py file.
 from flask.testing import FlaskClient
 
 import database_old as db
-from tests.test_app import app, client
-from tests.test_database_old.test_characters import char_1
-from tests.test_database_old.test_events import event_1, event_2
-from tests.test_database_old.test_main import db_init
+from not_t.test_app import app, client
+from not_t.test_database_old.test_characters import char_1
+from not_t.test_database_old.test_events import event_1, event_2
+from not_t.test_database_old.test_main import db_init
 
 
 def test_get_events(client: FlaskClient, event_1: db.Event, event_2: db.Event) -> None:

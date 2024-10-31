@@ -8,12 +8,12 @@ This file contains the tests for the routes/threads.py file.
 from flask.testing import FlaskClient
 
 import database_old as db
-from tests.test_app import app, client
-from tests.test_database_old.test_characters import char_1, char_2
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_messages import message_1
-from tests.test_database_old.test_threads import many_threads, thread_1
-from tests.test_database_old.test_users import user_1, user_2
+from not_t.test_app import app, client
+from not_t.test_database_old.test_characters import char_1, char_2
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_messages import message_1
+from not_t.test_database_old.test_threads import many_threads, thread_1
+from not_t.test_database_old.test_users import user_1, user_2
 
 
 def test_new_thread(client: FlaskClient, user_1: db.User, char_1: db.Character) -> None:

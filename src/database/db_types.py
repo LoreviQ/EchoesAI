@@ -1,6 +1,7 @@
 """Database types."""
 
-from typing import Callable
+from datetime import datetime
+from typing import Callable, TypedDict
 
 from sqlalchemy import (
     Boolean,
@@ -13,9 +14,37 @@ from sqlalchemy import (
     Table,
     func,
 )
+from typing_extensions import NotRequired
 
 metadata_obj = MetaData()
 func: Callable
+
+
+class Character(TypedDict, total=False):
+    """Character type."""
+
+    id: NotRequired[int]
+    name: NotRequired[str]
+    path_name: NotRequired[str]
+    description: NotRequired[str]
+    age: NotRequired[int]
+    height: NotRequired[str]
+    personality: NotRequired[str]
+    appearance: NotRequired[str]
+    loves: NotRequired[str]
+    hates: NotRequired[str]
+    details: NotRequired[str]
+    scenario: NotRequired[str]
+    important: NotRequired[str]
+    initial_message: NotRequired[str]
+    favorite_colour: NotRequired[str]
+    phases: NotRequired[bool]
+    img_gen: NotRequired[bool]
+    model: NotRequired[str]
+    global_positive: NotRequired[str]
+    global_negative: NotRequired[str]
+    profile_path: NotRequired[str]
+
 
 character_table = Table(
     "characters",
@@ -43,6 +72,17 @@ character_table = Table(
     Column("profile_path", String),
 )
 
+
+class Event(TypedDict, total=False):
+    """Event type."""
+
+    id: NotRequired[int]
+    timestamp: NotRequired[datetime]
+    char_id: NotRequired[int]
+    type: NotRequired[str]
+    content: NotRequired[str]
+
+
 event_table = Table(
     "events",
     metadata_obj,
@@ -52,6 +92,20 @@ event_table = Table(
     Column("type", String, nullable=False),
     Column("content", String, nullable=False),
 )
+
+
+class Post(TypedDict, total=False):
+    """Post type."""
+
+    id: NotRequired[int]
+    timestamp: NotRequired[datetime]
+    char_id: NotRequired[int]
+    content: NotRequired[str]
+    image_post: NotRequired[bool]
+    image_description: NotRequired[str]
+    prompt: NotRequired[str]
+    image_path: NotRequired[str]
+
 
 posts_table = Table(
     "posts",
@@ -66,6 +120,16 @@ posts_table = Table(
     Column("image_path", String, default=""),
 )
 
+
+class User(TypedDict, total=False):
+    """User type."""
+
+    id: NotRequired[int]
+    username: NotRequired[str]
+    password: NotRequired[str]
+    email: NotRequired[str]
+
+
 users_table = Table(
     "users",
     metadata_obj,
@@ -75,6 +139,17 @@ users_table = Table(
     Column("email", String, nullable=False),
 )
 
+
+class Thread(TypedDict, total=False):
+    """Thread type."""
+
+    id: NotRequired[int]
+    started: NotRequired[datetime]
+    user_id: NotRequired[int]
+    char_id: NotRequired[int]
+    phase: NotRequired[int]
+
+
 threads_table = Table(
     "threads",
     metadata_obj,
@@ -83,6 +158,17 @@ threads_table = Table(
     Column("user_id", ForeignKey("users.id"), nullable=False),
     Column("char_id", ForeignKey("characters.id"), nullable=False),
 )
+
+
+class Message(TypedDict, total=False):
+    """Message type."""
+
+    id: NotRequired[int]
+    timestamp: NotRequired[datetime]
+    thread_id: NotRequired[int]
+    content: NotRequired[str]
+    role: NotRequired[str]
+
 
 messages_table = Table(
     "messages",

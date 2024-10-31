@@ -8,8 +8,8 @@ import pytest
 
 import auth
 import database_old as db
-from tests.test_database_old.test_main import db_init
-from tests.test_database_old.test_users import user_1
+from not_t.test_database_old.test_main import db_init
+from not_t.test_database_old.test_users import user_1
 
 
 def test_insert_user(db_init: str) -> None:
