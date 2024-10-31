@@ -69,3 +69,14 @@ def user(test_db) -> Generator[db.User, None, None]:
     )
     db.insert_user(user)
     yield db.select_user("test")
+
+
+@pytest.fixture
+def thread(user: db.User, character: db.Character) -> Generator[db.Thread, None, None]:
+    """Creates a single thread to be used in testing."""
+    thread = db.Thread(
+        user_id=user["id"],
+        char_id=character["id"],
+    )
+    thread_id = db.insert_thread(thread)
+    yield db.select_thread(thread_id)

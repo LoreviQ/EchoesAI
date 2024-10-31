@@ -10,6 +10,16 @@ from .characters import (
 from .db_types import Character, Event, Message, Post, QueryOptions, Thread, User
 from .events import delete_event, insert_event, select_events, select_most_recent_event
 from .main import create_db
+from .messages import (
+    delete_message,
+    delete_messages_more_recent,
+    delete_scheduled_messages,
+    insert_message,
+    select_message,
+    select_messages,
+    select_scheduled_message,
+    update_message,
+)
 from .posts import insert_post, select_post, select_posts, update_post_with_image_path
 from .threads import insert_thread, select_latest_thread, select_thread, select_threads
 from .users import insert_user, select_user, select_user_by_id, update_user

@@ -71,6 +71,8 @@ def select_scheduled_message(thread_id: int) -> Message:
     with engine.connect() as conn:
         result = conn.execute(stmt)
         message = result.fetchone()
+        if message is None:
+            raise ValueError("No scheduled messages found.")
         return _row_to_message(message)
 
 
