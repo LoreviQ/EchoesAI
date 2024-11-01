@@ -44,3 +44,27 @@ def test_detached_true() -> None:
         response = client.get("/v1/detached")
         assert response.status_code == 200
         assert response.data == b"True"
+
+
+def test_get_signed_url(client: FlaskClient) -> None:
+    """
+    Test the get signed url route.
+    """
+    response = client.post(
+        "/v1/get-signed-url", json={"file_name": "test", "file_type": "jpg"}
+    )
+    assert response.status_code == 200
+    assert response.data
+
+
+def test_get_signed_url_invalid_file_type(client: FlaskClient) -> None:
+    """
+    Test the get signed url route with an invalid file type.
+    """
+    response = client.post(
+        "/v1/get-signed-url", json={"file_name": "test", "file_type": "invalid"}
+    )
+    assert response.status_code == 400
+    assert (
+        response.data == b"Invalid file type. Must be one of 'jpg', 'jpeg', or 'png'."
+    )
