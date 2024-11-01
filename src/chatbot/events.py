@@ -146,9 +146,24 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
 
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
+    content = _parse_response_event(response["content"], event_type)
     event = db.Event(
         char_id=character["id"],
         type=event_type,
         content=response["content"],
     )
     db.events.insert_event(event)
+
+
+def _parse_response_event(response_json: str, event_type: str) -> str:
+    """
+    Parses the JSON string from the model response and returns the 'event' component.
+    Checking the type is the called type.
+    """
+    try:
+        response_data = json.loads(response_json)
+        if response_data.get("type", "") != event_type:
+            raise ValueError("Event type does not match expected type")
+        return response_data.get("event", "")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON: {e}") from e

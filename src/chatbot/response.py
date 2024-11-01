@@ -95,15 +95,35 @@ def _get_response_and_submit(
             "content": content,
         }
     )
-    response = _generate_text(model, sys_message, chatlog)
-    content = _parse_response_message(response["content"])
+    response = _prompt_model_for_message_response(model, sys_message, chatlog)
     message = db.Message(
         thread_id=thread["id"],
-        content=content,
-        role=response["role"],
+        content=response,
+        role="assistant",
         timestamp=timestamp,
     )
     db.insert_message(message)
+
+
+def _prompt_model_for_message_response(
+    model: Model, sys_message: ChatMessage, chatlog: List[ChatMessage]
+) -> str:
+    """
+    Continue to prompt the model to generate a response until a
+    valid response is received or the retry limit is reached
+    """
+    max_retries = 5
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = _generate_text(model, sys_message, chatlog)
+            content = _parse_response_message(response["content"])
+            break  # Break out of the retry loop if the response is valid
+        except ValueError as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                raise e  # Re-raise the last exception if the retry limit is reached
+    return content
 
 
 def _parse_response_message(response_json: str) -> str:
@@ -114,5 +134,4 @@ def _parse_response_message(response_json: str) -> str:
         response_data = json.loads(response_json)
         return response_data.get("message", "")
     except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return ""
+        raise ValueError(f"Error decoding JSON: {e}") from e
