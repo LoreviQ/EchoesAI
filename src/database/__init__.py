@@ -6,6 +6,7 @@ from .characters import (
     select_character_by_id,
     select_character_ids,
     select_characters,
+    update_character,
 )
 from .db_types import (
     Character,

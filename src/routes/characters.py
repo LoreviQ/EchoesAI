@@ -62,6 +62,19 @@ def get_events_by_character(char_path: str) -> Response:
     return make_response(jsonify(events), 200)
 
 
+@bp.route("/v1/characters/<string:char_path>", methods=["PATCH"])
+def update_character(char_path: str) -> Response:
+    """Updates a character."""
+    try:
+        character = db.select_character(char_path)
+    except ValueError:
+        return make_response("character not found", 404)
+    character_patch = _create_character_query_params(request.get_json())
+    character_patch["id"] = character["id"]
+    db.update_character(character_patch)
+    return make_response("", 200)
+
+
 def _create_character_query_params(query_params: dict[str, str]) -> db.Character:
     character_query = db.Character()
     # basic params

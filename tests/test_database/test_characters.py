@@ -111,3 +111,17 @@ def test_select_character_ids(test_db: None) -> None:
     assert len(result) == 2
     assert char_id in result
     assert char2_id in result
+
+
+def test_update_character(test_db: None) -> None:
+    """Test the update_character function."""
+    char = db.Character(
+        name="test",
+        path_name="test",
+    )
+    char_id = db.insert_character(char)
+    char_patch = db.Character(id=char_id, name="Test Character 2")
+    db.update_character(char_patch)
+    result = db.select_character_by_id(char_id)
+    assert result["name"] == "Test Character 2"
+    assert result["path_name"] == "test"

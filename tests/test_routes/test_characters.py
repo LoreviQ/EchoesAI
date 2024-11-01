@@ -203,3 +203,29 @@ def test_get_events_by_character(
     assert response.json
     assert response.json[0]["id"] == event_1["id"]
     assert response.json[1]["id"] == event_2["id"]
+
+
+@patch("database.select_character")
+@patch("database.update_character")
+def test_update_character(
+    mock_update_character: MagicMock,
+    mock_select_character: MagicMock,
+    client: FlaskClient,
+) -> None:
+    """
+    Test the update character route.
+    """
+    char = db.Character(id=1, name="Test Character", path_name="test_character")
+    mock_select_character.return_value = char
+    character_payload = {
+        "name": "Test Character 2",
+    }
+    response = client.patch(
+        f"/v1/characters/{char['path_name']}", json=character_payload
+    )
+    assert response.status_code == 200
+    assert response.data == b""
+    assert mock_select_character.called_once_with(char["path_name"])
+    assert mock_update_character.called_once_with(
+        db.Character(id=char["id"], name="Test Character 2")
+    )

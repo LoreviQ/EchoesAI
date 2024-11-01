@@ -83,3 +83,14 @@ def select_character_ids() -> List[int]:
     with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [row.id for row in result]
+
+
+def update_character(values: Character) -> None:
+    """Update a character in the database."""
+    stmt = (
+        characters_table.update()
+        .where(characters_table.c.id == values["id"])
+        .values(values)
+    )
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)
