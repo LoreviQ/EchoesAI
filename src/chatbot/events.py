@@ -150,7 +150,7 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     event = db.Event(
         char_id=character["id"],
         type=event_type,
-        content=response["content"],
+        content=content,
     )
     db.events.insert_event(event)
 
