@@ -3,6 +3,7 @@ This module contains functions for generating social media posts.
 """
 
 import io
+import json
 import os
 import random
 import time
@@ -46,28 +47,26 @@ def _generate_image_post(model: Model, character: db.Character) -> None:
     chatlog = _create_complete_event_log(character["id"], model=model)
     content = f"The time is currently {now}. Generate an image post."
     chatlog.append(ChatMessage(role="user", content=content))
-    image_description = _generate_text(model, sys_message, chatlog)
+    generated_image = _generate_text(model, sys_message, chatlog)
+    description, caption = _parse_response_image_post(generated_image["content"])
 
     # generate stable diffusion prompt
     sys_message = _get_system_message("sd-prompt", character)
-    prompt_chatlog = [ChatMessage(role="user", content=image_description["content"])]
-    prompt = _generate_text(model, sys_message, prompt_chatlog)
-
-    chatlog[-1] = ChatMessage(role="user", content=content)
-    caption = _generate_text(model, sys_message, chatlog)
+    prompt_chatlog = [ChatMessage(role="user", content=description)]
+    prompt = _generate_text(model, sys_message, prompt_chatlog)["content"]
 
     # insert post into database
     post = db.Post(
         char_id=character["id"],
-        content=caption["content"],
+        content=caption,
         image_post=True,
-        image_description=image_description["content"],
-        prompt=prompt["content"],
+        image_description=description,
+        prompt=prompt,
     )
     post_id = db.posts.insert_post(post)
 
     # use prompt to generate image
-    _civitai_generate_image(character, post_id, prompt["content"])
+    _civitai_generate_image(character, post_id, prompt)
 
 
 def _generate_text_post(model: Model, character: db.Character) -> None:
@@ -82,12 +81,13 @@ def _generate_text_post(model: Model, character: db.Character) -> None:
     chatlog = _create_complete_event_log(character["id"], model=model)
     content = f"The time is currently {now}. Generate a text post."
     chatlog.append(ChatMessage(role="user", content=content))
-    post_content = _generate_text(model, sys_message, chatlog)
+    post_content = _generate_text(model, sys_message, chatlog)["content"]
+    post_content = _parse_response_test_post(post_content)
 
     # insert post into database
     post = db.Post(
         char_id=character["id"],
-        content=post_content["content"],
+        content=post_content,
         image_post=False,
     )
     db.posts.insert_post(post)
@@ -164,3 +164,28 @@ def _upload_image_to_gcs(image_stream: io.BytesIO, destination_blob_name: str) -
     bucket = storage_client.bucket("echoesai-public-images")
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_file(image_stream, rewind=True)
+
+
+def _parse_response_image_post(response_json: str) -> tuple[str, str]:
+    """
+    Parses the JSON string from the model response and
+    returns the 'image_description' and 'caption' components.
+    """
+    try:
+        response_data = json.loads(response_json)
+        return response_data.get("image_description", ""), response_data.get(
+            "caption", ""
+        )
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON: {e}") from e
+
+
+def _parse_response_test_post(response_json: str) -> str:
+    """
+    Parses the JSON string from the model response and returns the 'post' component.
+    """
+    try:
+        response_data = json.loads(response_json)
+        return response_data.get("post", "")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON: {e}") from e
