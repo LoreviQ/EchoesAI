@@ -3,6 +3,7 @@ Handles the functions required to generate a response from the chatbot.
 I.E. Events between a user and a character
 """
 
+import json
 from datetime import datetime, timedelta, timezone
 from typing import List, cast
 
@@ -95,10 +96,23 @@ def _get_response_and_submit(
         }
     )
     response = _generate_text(model, sys_message, chatlog)
+    content = _parse_response_message(response["content"])
     message = db.Message(
         thread_id=thread["id"],
-        content=response["content"],
+        content=content,
         role=response["role"],
         timestamp=timestamp,
     )
     db.insert_message(message)
+
+
+def _parse_response_message(response_json: str) -> str:
+    """
+    Parses the JSON string from the model response and returns the 'message' component.
+    """
+    try:
+        response_data = json.loads(response_json)
+        return response_data.get("message", "")
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+        return ""
