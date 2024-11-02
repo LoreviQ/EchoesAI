@@ -1,151 +1,127 @@
-"""
-This file contains the tests for the database/characters.py file.
-"""
+"""Tests for the characters module in the database package."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-from typing import Generator
-
-import pytest
-
 import database as db
-from tests.test_database.test_main import db_init
+
+from .test_main import test_db
 
 
-@pytest.fixture
-def char_1() -> Generator[db.Character, None, None]:
-    """
-    Creates a character to be used in testing.
-    """
+def test_insert_character(test_db: None) -> None:
+    """Test the insert_character function."""
     char = db.Character(
-        name="test character",
-        path_name="test_character",
-        img_gen=True,
-        model="urn:air:sdxl:checkpoint:civitai:811067@907264",
-        appearance="beep boop, robot, test, mechanical, cute, funny,",
-        global_positive="best quality, amazing quality, very aesthetic,",
-        global_negative="lowres, worst quality, low quality, bad anatomy, multiple views",
+        name="test",
+        path_name="test",
     )
-    char["id"] = db.insert_character(char)
-    yield char
+    result = db.insert_character(char)
+    assert result == 1
 
 
-@pytest.fixture
-def char_2() -> Generator[db.Character, None, None]:
-    """
-    Creates a character distinct from char_1 to be used in testing.
-    """
-    char = db.Character(name="test character 2", path_name="test_character_2")
-    char["id"] = db.insert_character(char)
-    yield char
-
-
-def test_insert_character(db_init: str) -> None:
-    """
-    Test the insert_character function.
-    """
-    char_1 = db.Character(name="test character", path_name="test_character")
-    char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    character_id = db.insert_character(char_1)
-    assert character_id == 1
-    character_id = db.insert_character(char_2)
-    assert character_id == 2
-
-
-def test_select_character(db_init: str) -> None:
-    """
-    Test the select_character function.
-    """
-    char_1 = db.Character(name="test character", path_name="test_character")
-    char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    db.insert_character(char_1)
-    db.insert_character(char_2)
-    assert char_1["path_name"]
-    assert char_2["path_name"]
-    character_1 = db.select_character(char_1["path_name"])
-    character_2 = db.select_character(char_2["path_name"])
-    assert character_1["name"] == char_1["name"]
-    assert character_2["name"] == char_2["name"]
-
-
-def test_select_character_by_id(db_init: str) -> None:
-    """
-    Test the select_character_by_id function.
-    """
-    char_1 = db.Character(name="test character", path_name="test_character")
-    char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    character_1_id = db.insert_character(char_1)
-    character_2_id = db.insert_character(char_2)
-    character_1 = db.select_character_by_id(character_1_id)
-    character_2 = db.select_character_by_id(character_2_id)
-    assert character_1["name"] == char_1["name"]
-    assert character_2["name"] == char_2["name"]
-
-
-def test_select_characters(db_init: str) -> None:
-    """
-    Test the select_characters function.
-    """
-    char_1 = db.Character(name="test character", path_name="test_character")
-    char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    db.insert_character(char_1)
-    db.insert_character(char_2)
-    characters = db.select_characters()
-    assert len(characters) == 2
-    assert characters[0]["name"] == char_1["name"]
-    assert characters[1]["name"] == char_2["name"]
-
-
-def test_select_characters_by_query_path(db_init: str) -> None:
-    """
-    Test the select_characters function with a query specifying path.
-    """
-    char_1 = db.Character(name="test character", path_name="test_character")
-    char_2 = db.Character(name="test character 2", path_name="test_character_2")
-    character_1_id = db.insert_character(char_1)
-    character_2_id = db.insert_character(char_2)
-    character_1_query = db.Character(path_name=char_1["path_name"])
-    character_2_query = db.Character(path_name=char_2["path_name"])
-    character_1 = db.select_characters(character_1_query)[0]
-    character_2 = db.select_characters(character_2_query)[0]
-    assert character_1["id"] == character_1_id
-    assert character_1["name"] == char_1["name"]
-    assert character_2["id"] == character_2_id
-    assert character_2["name"] == char_2["name"]
-
-
-def test_select_characters_by_query_multiple(db_init: str) -> None:
-    """
-    Test the select_characters function with a query that returns multiple characters.
-    """
-    char_1 = db.Character(
-        name="test character", path_name="test_character", img_gen=True
+def test_select_character(test_db: None) -> None:
+    """Test the select_character function."""
+    char = db.Character(
+        name="test",
+        path_name="test",
     )
-    char_2 = db.Character(
-        name="test character 2", path_name="test_character_2", img_gen=True
-    )
-    character_1_id = db.insert_character(char_1)
-    character_2_id = db.insert_character(char_2)
-    character_query = db.Character(img_gen=True)
-    characters = db.select_characters(character_query)
-    assert characters[0]["id"] == character_1_id
-    assert characters[0]["name"] == char_1["name"]
-    assert characters[1]["id"] == character_2_id
-    assert characters[1]["name"] == char_2["name"]
+    db.insert_character(char)
+    result = db.select_character("test")
+    assert result["name"] == "test"
+    assert result["path_name"] == "test"
 
 
-def test_select_characters_by_query_none(db_init: str) -> None:
-    """
-    Test the select_characters function with a query that returns no characters.
-    """
-    char_1 = db.Character(
-        name="test character", path_name="test_character", img_gen=True
+def test_select_character_by_id(test_db: None) -> None:
+    """Test the select_character_by_id function."""
+    char = db.Character(
+        name="test",
+        path_name="test",
     )
-    char_2 = db.Character(
-        name="test character 2", path_name="test_character_2", img_gen=True
+    char_id = db.insert_character(char)
+    result = db.select_character_by_id(char_id)
+    assert result["name"] == "test"
+    assert result["path_name"] == "test"
+
+
+def test_select_characters_without_query(test_db: None) -> None:
+    """Test the select_characters function without a query."""
+    char = db.Character(
+        name="test",
+        path_name="test",
     )
-    db.insert_character(char_1)
-    db.insert_character(char_2)
-    character_query = db.Character(img_gen=False)
-    characters = db.select_characters(character_query)
-    assert len(characters) == 0
+    char2 = db.Character(
+        name="test2",
+        path_name="test2",
+    )
+    db.insert_character(char)
+    db.insert_character(char2)
+    result = db.select_characters()
+    assert len(result) == 2
+    assert result[0]["name"] == "test"
+    assert result[0]["path_name"] == "test"
+    assert result[1]["name"] == "test2"
+    assert result[1]["path_name"] == "test2"
+
+
+def test_select_characters_with_query(test_db: None) -> None:
+    """Test the select_characters function with a query."""
+    char = db.Character(
+        name="test",
+        path_name="test",
+    )
+    char2 = db.Character(
+        name="test2",
+        path_name="test2",
+    )
+    db.insert_character(char)
+    db.insert_character(char2)
+    result = db.select_characters(db.Character(name="test"))
+    assert len(result) == 1
+    assert result[0]["name"] == "test"
+    assert result[0]["path_name"] == "test"
+
+
+def test_select_characters_with_query_no_matching(test_db: None) -> None:
+    """Test the select_characters function with a query that doesn't match any characters."""
+    char = db.Character(
+        name="test",
+        path_name="test",
+    )
+    char2 = db.Character(
+        name="test2",
+        path_name="test2",
+    )
+    db.insert_character(char)
+    db.insert_character(char2)
+    result = db.select_characters(db.Character(name="not_a_character"))
+    assert not result
+
+
+def test_select_character_ids(test_db: None) -> None:
+    """Test the select_character_ids function."""
+    char = db.Character(
+        name="test",
+        path_name="test",
+    )
+    char2 = db.Character(
+        name="test2",
+        path_name="test2",
+    )
+    char_id = db.insert_character(char)
+    char2_id = db.insert_character(char2)
+    result = db.select_character_ids()
+    assert len(result) == 2
+    assert char_id in result
+    assert char2_id in result
+
+
+def test_update_character(test_db: None) -> None:
+    """Test the update_character function."""
+    char = db.Character(
+        name="test",
+        path_name="test",
+    )
+    char_id = db.insert_character(char)
+    char_patch = db.Character(id=char_id, name="Test Character 2")
+    db.update_character(char_patch)
+    result = db.select_character_by_id(char_id)
+    assert result["name"] == "Test Character 2"
+    assert result["path_name"] == "test"

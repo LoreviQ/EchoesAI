@@ -1,276 +1,242 @@
-"""
-This file contains the tests for the database/dbpy file.
-"""
+"""Tests for the threads module in the database package."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-import time
+
 from datetime import datetime, timedelta, timezone
-from typing import Generator
+from typing import List
 
 import pytest
 
 import database as db
-from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_main import db_init
-from tests.test_database.test_threads import thread_1, thread_2
-from tests.test_database.test_users import user_1, user_2
+
+from .fixtures import character, characters, thread, threads, user
+from .test_main import test_db
 
 
-@pytest.fixture
-def message_1(thread_1: db.Thread) -> Generator[db.Message, None, None]:
-    """
-    Creates a message to be used in testing.
-    """
+def test_insert_message(thread: db.Thread) -> None:
+    """Test the insert_message function."""
     message = db.Message(
-        thread_id=thread_1["id"],
+        thread_id=thread["id"],
         content="test message",
         role="user",
-        timestamp=db.convert_dt_ts(datetime.now(timezone.utc) - timedelta(hours=1)),
     )
-    message_id = db.insert_message(message)
-    yield db.select_message(message_id)
+    result = db.insert_message(message)
+    assert result == 1
 
 
-@pytest.fixture
-def message_2(thread_1: db.Thread) -> Generator[db.Message, None, None]:
-    """
-    Creates a message distinct from message_1 to be used in testing.
-    """
+def test_select_message(thread: db.Thread) -> None:
+    """Test the select_message function."""
     message = db.Message(
-        thread_id=thread_1["id"], content="test response", role="assistant"
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
     )
     message_id = db.insert_message(message)
-    yield db.select_message(message_id)
+    result = db.select_message(message_id)
+    assert result["thread_id"] == thread["id"]
+    assert result["content"] == "test message"
+    assert result["role"] == "user"
 
 
-@pytest.fixture
-def scheduled_message(thread_1: db.Thread) -> Generator[db.Message, None, None]:
-    """
-    Creates a message scheduled for the future to be used in testing.
-    """
+def test_select_messages_without_query(thread: db.Thread) -> None:
+    """Test the select messages function without a query."""
     message = db.Message(
-        thread_id=thread_1["id"],
-        content="delayed response",
-        role="assistant",
-        timestamp=db.convert_dt_ts(datetime.now(timezone.utc) + timedelta(days=1)),
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
     )
-    message_id = db.insert_message(message)
-    yield db.select_message(message_id)
-
-
-def test_insert_message(db_init: str, thread_1: db.Thread) -> None:
-    """
-    Test the insert_message function.
-    """
-    message = db.Message(thread_id=thread_1["id"], content="test message", role="user")
-    message_id = db.insert_message(message)
-    assert message_id == 1
-    message = db.Message(
-        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
-        thread_id=thread_1["id"],
-        content="test message 2",
-        role="assistant",
-    )
-    message_id = db.insert_message(message)
-    assert message_id == 2
-
-
-def test_select_messages_by_thread(
-    db_init: str, thread_1: db.Thread, thread_2: db.Thread
-) -> None:
-    """
-    Test the select_messages_by_thread function.
-    """
-    assert thread_1["id"]
-    assert thread_2["id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
     message2 = db.Message(
-        thread_id=thread_1["id"], content="test message 2", role="assistant"
+        thread_id=thread["id"],
+        content="test message 2",
+        role="user",
+    )
+    db.insert_message(message)
+    db.insert_message(message2)
+    result = db.select_messages()
+    assert len(result) == 2
+    assert result[0]["thread_id"] == thread["id"]
+    assert result[0]["content"] == "test message"
+    assert result[0]["role"] == "user"
+    assert result[1]["thread_id"] == thread["id"]
+    assert result[1]["content"] == "test message 2"
+    assert result[1]["role"] == "user"
+
+
+def test_select_messages_with_query(thread: db.Thread) -> None:
+    """Test the select messages function with a query."""
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
+    message2 = db.Message(
+        thread_id=thread["id"],
+        content="test message 2",
+        role="user",
     )
     message3 = db.Message(
-        thread_id=thread_2["id"], content="test message 3", role="user"
+        thread_id=thread["id"],
+        content="test message 3",
+        role="assistant",
     )
-    message1_id = db.insert_message(message1)
-    message2_id = db.insert_message(message2)
-    message3_id = db.insert_message(message3)
-    messages = db.select_messages_by_thread(thread_1["id"])
-    assert len(messages) == 2
-    assert messages[0]["id"] == message1_id
-    assert messages[0]["content"] == "test message"
-    assert messages[1]["id"] == message2_id
-    assert messages[1]["content"] == "test message 2"
-    messages = db.select_messages_by_thread(thread_2["id"])
-    assert len(messages) == 1
-    assert messages[0]["id"] == message3_id
-    assert messages[0]["content"] == "test message 3"
+    db.insert_message(message)
+    db.insert_message(message2)
+    db.insert_message(message3)
+    query = db.Message(role="user")
+    result = db.select_messages(query)
+    assert len(result) == 2
+    assert result[0]["content"] == "test message"
+    assert result[1]["content"] == "test message 2"
+
+
+def test_select_scheduled_message(thread: db.Thread) -> None:
+    """Test the select_scheduled_message function."""
+    now = datetime.now(timezone.utc)
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
+    message2 = db.Message(
+        thread_id=thread["id"],
+        content="test message 2",
+        role="user",
+        timestamp=now + timedelta(days=1),
+    )
+    db.insert_message(message)
+    db.insert_message(message2)
+    result = db.select_scheduled_message(thread["id"])
+    assert result["content"] == "test message 2"
+
+
+def test_select_scheduled_message_none_scheduled(thread: db.Thread) -> None:
+    """Test the select_scheduled_message function when no messages are scheduled."""
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
+    db.insert_message(message)
+    with pytest.raises(ValueError):
+        db.select_scheduled_message(thread["id"])
 
 
 def test_select_messages_by_character(
-    db_init: str, thread_1: db.Thread, thread_2: db.Thread
+    characters: List[db.Character], threads: List[db.Thread]
 ) -> None:
-    """
-    Test the select_messages_by_character function.
-    """
-    assert thread_1["char_id"]
-    assert thread_2["char_id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
-    message2 = db.Message(
-        thread_id=thread_1["id"], content="test message 2", role="assistant"
-    )
-    message3 = db.Message(
-        thread_id=thread_2["id"], content="test message 3", role="user"
-    )
-    message1_id = db.insert_message(message1)
-    message2_id = db.insert_message(message2)
-    message3_id = db.insert_message(message3)
-    messages = db.select_messages_by_character(thread_1["char_id"])
-    assert len(messages) == 2
-    assert messages[0]["id"] == message1_id
-    assert messages[0]["content"] == "test message"
-    assert messages[1]["id"] == message2_id
-    assert messages[1]["content"] == "test message 2"
-    messages = db.select_messages_by_character(thread_2["char_id"])
-    assert len(messages) == 1
-    assert messages[0]["id"] == message3_id
-    assert messages[0]["content"] == "test message 3"
-
-
-def test_delete_messages_more_recent_db(
-    db_init: str, thread_1: db.Thread, thread_2: db.Thread
-) -> None:
-    """
-    Test the delete_messages_more_recent function.
-    """
-    assert thread_1["id"]
-    assert thread_2["id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
-    message2 = db.Message(
-        thread_id=thread_1["id"], content="test message 2", role="assistant"
-    )
-    message3 = db.Message(
-        thread_id=thread_1["id"], content="test message 3", role="user"
-    )
-    message4 = db.Message(
-        thread_id=thread_2["id"], content="test message 4", role="user"
-    )
-    message1_id = db.insert_message(message1)
-    time.sleep(1)
-    message2_id = db.insert_message(message2)
-    time.sleep(1)
-    db.insert_message(message3)
-    time.sleep(1)
-    message4_id = db.insert_message(message4)
-    db.delete_messages_more_recent(message2_id)
-    messages = db.select_messages_by_thread(thread_1["id"])
-    assert len(messages) == 1
-    assert messages[0]["id"] == message1_id
-    messages = db.select_messages_by_thread(thread_2["id"])
-    assert len(messages) == 1
-    assert messages[0]["id"] == message4_id
-
-
-def test_delete_scheduled_messages_from_thread(
-    db_init: str, thread_1: db.Thread, thread_2: db.Thread
-) -> None:
-    """
-    Test the delete_scheduled_messages_from_thread function.
-    """
-    assert thread_1["id"]
-    assert thread_2["id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
-    message2 = db.Message(
-        thread_id=thread_1["id"], content="test message 2", role="assistant"
-    )
-    message3 = db.Message(
-        thread_id=thread_1["id"],
-        content="test message 3",
+    """Test the select_messages_by_character function."""
+    # Messages belonging to characters[0]
+    message = db.Message(
+        thread_id=threads[0]["id"],
+        content="test message",
         role="user",
-        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
     )
+    message2 = db.Message(
+        thread_id=threads[2]["id"],
+        content="test message 2",
+        role="user",
+    )
+    message3 = db.Message(
+        thread_id=threads[0]["id"],
+        content="test message 3",
+        role="assistant",
+    )
+    # Messages belonging to characters[1]
     message4 = db.Message(
-        thread_id=thread_2["id"], content="test message 4", role="user"
+        thread_id=threads[1]["id"],
+        content="test message 4",
+        role="user",
     )
-    message1_id = db.insert_message(message1)
-    message2_id = db.insert_message(message2)
+    db.insert_message(message)
+    db.insert_message(message2)
     db.insert_message(message3)
-    message4_id = db.insert_message(message4)
-    db.delete_scheduled_messages_from_thread(thread_1["id"])
-    messages = db.select_messages_by_thread(thread_1["id"])
-    assert len(messages) == 2
-    assert messages[0]["id"] == message1_id
-    assert messages[1]["id"] == message2_id
-    messages = db.select_messages_by_thread(thread_2["id"])
-    assert len(messages) == 1
-    assert messages[0]["id"] == message4_id
+    db.insert_message(message4)
+    result = db.select_messages_by_character(characters[0]["id"])
+    assert len(result) == 3
 
 
-def test_select_scheduled_message_id(
-    db_init: str, thread_1: db.Thread, thread_2: db.Thread
-) -> None:
-    """
-    Test the select_scheduled_message_id function.
-    """
-    assert thread_1["id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
+def test_delete_message(thread: db.Thread) -> None:
+    """Test the delete_message function."""
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
+    message_id = db.insert_message(message)
+    db.delete_message(message_id)
+    messages = db.select_messages()
+    assert len(messages) == 0
+
+
+def test_delete_messages_more_recent(thread: db.Thread) -> None:
+    """Test the delete_messages_more_recent function."""
+    now = datetime.now(timezone.utc)
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
     message2 = db.Message(
-        thread_id=thread_1["id"],
+        thread_id=thread["id"],
         content="test message 2",
-        role="assistant",
-        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
+        role="user",
+        timestamp=now + timedelta(days=1),
     )
     message3 = db.Message(
-        thread_id=thread_2["id"], content="test message 3", role="user"
+        thread_id=thread["id"],
+        content="test message 3",
+        role="assistant",
+        timestamp=now + timedelta(days=2),
     )
-    db.insert_message(message1)
+    message_id = db.insert_message(message)
     message2_id = db.insert_message(message2)
     db.insert_message(message3)
-    message_id = db.select_scheduled_message_id(thread_1["id"])
-    assert message_id == message2_id
+    db.delete_messages_more_recent(message2_id)
+    messages = db.select_messages()
+    assert len(messages) == 1
+    assert messages[0]["id"] == message_id
 
 
-def test_update_message(db_init: str, thread_1: db.Thread, thread_2: db.Thread) -> None:
-    """
-    Test the update_message function.
-    """
-    assert thread_1["id"]
-    assert thread_2["id"]
-    message1 = db.Message(thread_id=thread_1["id"], content="test message", role="user")
+def test_delete_scheduled_messages(thread: db.Thread) -> None:
+    """Test the delete_scheduled_messages function."""
+    now = datetime.now(timezone.utc)
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
     message2 = db.Message(
-        thread_id=thread_1["id"],
+        thread_id=thread["id"],
         content="test message 2",
-        role="assistant",
-        timestamp=db.convert_dt_ts(datetime.now() + timedelta(days=1)),
+        role="user",
+        timestamp=now + timedelta(days=1),
     )
     message3 = db.Message(
-        thread_id=thread_2["id"], content="test message 3", role="user"
+        thread_id=thread["id"],
+        content="test message 3",
+        role="assistant",
+        timestamp=now + timedelta(days=2),
     )
-    message1_id = db.insert_message(message1)
-    message2_id = db.insert_message(message2)
-    message3_id = db.insert_message(message3)
-    message_patch = db.Message(
-        id=message2_id,
-        content="test message patched",
-        timestamp=db.convert_dt_ts(datetime.now()),
-    )
-    db.update_message(message_patch)
-    messages = db.select_messages_by_thread(thread_1["id"])
-    assert len(messages) == 2
-    assert messages[0]["id"] == message1_id
-    assert messages[0]["content"] == "test message"
-    assert messages[1]["id"] == message2_id
-    assert messages[1]["content"] == "test message patched"
-    messages = db.select_messages_by_thread(thread_2["id"])
+    message_id = db.insert_message(message)
+    db.insert_message(message2)
+    db.insert_message(message3)
+    db.delete_scheduled_messages(thread["id"])
+    messages = db.select_messages()
     assert len(messages) == 1
-    assert messages[0]["id"] == message3_id
-    assert messages[0]["content"] == "test message 3"
+    assert messages[0]["id"] == message_id
 
 
-def test_delete_message_db(db_init: str, message_1: db.Message) -> None:
-    """
-    Test the delete_message function.
-    """
-    assert message_1["id"]
-    db.delete_message(message_1["id"])
-    with pytest.raises(ValueError):
-        db.select_message(message_1["id"])
+def test_update_message(thread: db.Thread) -> None:
+    """Test the update_message function."""
+    message = db.Message(
+        thread_id=thread["id"],
+        content="test message",
+        role="user",
+    )
+    message_id = db.insert_message(message)
+    message = db.select_message(message_id)
+    message["content"] = "updated message"
+    db.update_message(message)
+    result = db.select_message(message_id)
+    assert result["content"] == "updated message"

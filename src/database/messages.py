@@ -1,244 +1,145 @@
 """Database operations for the messages table."""
 
-from typing import List, Tuple
+from typing import Any, List
 
-from .main import (
-    _placeholder_gen,
-    connect_to_db,
-    general_commit_returning_none,
-    general_insert_returning_id,
-)
-from .types import Message
+from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy.engine import Row
+
+from .db_types import Message, QueryOptions, messages_table, threads_table
+from .main import ENGINE
 
 
-def _general_select_returning_messages(query: str, params: Tuple = ()) -> List[Message]:
-    _, cursor, close = connect_to_db()
-    cursor.execute(query, params)
-    result = cursor.fetchall()
-    close()
-    messages: List[Message] = []
-    for message in result:
-        messages.append(
-            Message(
-                id=message[0],
-                timestamp=message[1],
-                thread_id=message[2],
-                content=message[3],
-                role=message[4],
-            )
-        )
-    return messages
-
-
-def insert_message(message: Message) -> int:
-    """
-    Insert a message into the database.
-    """
-    ph = _placeholder_gen()
-    assert message["thread_id"]
-    assert message["content"]
-    assert message["role"]
-    if "timestamp" in message:
-        query = f"""
-            INSERT INTO messages (thread_id, timestamp, content, role ) 
-            VALUES ({next(ph)}, {next(ph)}, {next(ph)}, {next(ph)})
-            returning id
-        """
-        return general_insert_returning_id(
-            query,
-            (
-                message["thread_id"],
-                message["timestamp"],
-                message["content"],
-                message["role"],
-            ),
-        )
-    query = f"""
-        INSERT INTO messages (thread_id, content, role) 
-        VALUES ({next(ph)}, {next(ph)}, {next(ph)})
-        returning id
-    """
-    return general_insert_returning_id(
-        query, (message["thread_id"], message["content"], message["role"])
+def _row_to_message(row: Row[Any]) -> Message:
+    """Convert a row to a message."""
+    return Message(
+        id=row.id,
+        timestamp=row.timestamp,
+        thread_id=row.thread_id,
+        content=row.content,
+        role=row.role,
     )
+
+
+def insert_message(values: Message) -> int:
+    """Insert a message into the database."""
+    stmt = insert(messages_table).values(values)
+    with ENGINE.begin() as conn:
+        result = conn.execute(stmt)
+        return result.inserted_primary_key[0]
 
 
 def select_message(message_id: int) -> Message:
-    """
-    Select a message from the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id, timestamp, thread_id, content, role
-        FROM messages
-        WHERE id = {next(ph)}
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (message_id,),
-    )
-    result = cursor.fetchone()
-    close()
-    if result:
-        return Message(
-            id=result[0],
-            timestamp=result[1],
-            thread_id=result[2],
-            content=result[3],
-            role=result[4],
-        )
-    raise ValueError("Message not found")
+    """Select a message from the database."""
+    stmt = select(messages_table).where(messages_table.c.id == message_id)
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        message = result.fetchone()
+        if message is None:
+            raise ValueError(f"no message found with id: {message_id}")
+        return _row_to_message(message)
 
 
-def select_messages(message_query: Message) -> List[Message]:
-    """
-    Select messages from the database by thread.
-    """
-    ph = _placeholder_gen()
-    query = """
-        SELECT id, timestamp, thread_id, content, role
-        FROM messages
-    """
+def select_messages(
+    message_query: Message = Message(), options: QueryOptions = QueryOptions()
+) -> List[Message]:
+    """Select messages from the database."""
     conditions = []
-    parameters = []
     for key, value in message_query.items():
-        if value is not None:
-            conditions.append(f"{key} = {next(ph)}")
-            parameters.append(value)
+        conditions.append(getattr(messages_table.c, key) == value)
+    stmt = select(messages_table).where(*conditions)
+    if options.get("limit"):
+        stmt = stmt.limit(options["limit"])
+    if options.get("orderby"):
+        if options.get("order") == "desc":
+            stmt = stmt.order_by(getattr(messages_table.c, options["orderby"]).desc())
+        else:
+            stmt = stmt.order_by(getattr(messages_table.c, options["orderby"]).asc())
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        return [_row_to_message(row) for row in result]
 
-    if conditions:
-        query += " WHERE "
-        query += " AND ".join(conditions)
 
-    _, cursor, close = connect_to_db()
-    cursor.execute(query, parameters)
-    results = cursor.fetchall()
-    close()
+def select_scheduled_message(thread_id: int) -> Message:
+    """Select the next scheduled message for a thread."""
+    stmt = (
+        select(messages_table)
+        .where(messages_table.c.thread_id == thread_id)
+        .where(messages_table.c.timestamp > func.now())  # pylint: disable=not-callable
+        .order_by(messages_table.c.timestamp.asc())
+        .limit(1)
+    )
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        message = result.fetchone()
+        if message is None:
+            raise ValueError("No scheduled messages found.")
+        return _row_to_message(message)
 
-    messages: List[Message] = []
-    for message in results:
-        messages.append(
-            Message(
-                id=message[0],
-                timestamp=message[1],
-                thread_id=message[2],
-                content=message[3],
-                role=message[4],
+
+def select_messages_by_character(char_id: int) -> List[Message]:
+    """Select messages from the database by character."""
+    stmt = (
+        select(messages_table)
+        .select_from(
+            messages_table.join(
+                threads_table, messages_table.c.thread_id == threads_table.c.id
             )
         )
-    return messages
-
-
-def select_messages_by_thread(thread_id: int) -> List[Message]:
-    """
-    Select messages from the database by thread.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id, timestamp, thread_id, content, role
-        FROM messages
-        WHERE thread_id = {next(ph)}
-    """
-    return _general_select_returning_messages(query, (thread_id,))
-
-
-def select_messages_by_character(character: int) -> List[Message]:
-    """
-    Select messages from the database by character.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT m.id, m.timestamp, m.thread_id, m.content, m.role
-        FROM messages as m JOIN threads as t ON m.thread_id = t.id 
-        WHERE t.char_id = {next(ph)}
-    """
-    return _general_select_returning_messages(query, (character,))
-
-
-def delete_messages_more_recent(message_id: int) -> None:
-    """
-    Delete selected message and all more recent messages.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        DELETE
-        FROM messages 
-        WHERE id = {next(ph)} 
-            OR (
-                thread_id = (
-                    SELECT thread_id 
-                    FROM messages 
-                    WHERE id = {next(ph)}
-                ) 
-                AND timestamp > (
-                    SELECT timestamp 
-                    FROM messages 
-                    WHERE id = {next(ph)}
-                )
-            )
-    """
-    general_commit_returning_none(query, (message_id, message_id, message_id))
-
-
-def delete_scheduled_messages_from_thread(thread_id: int) -> None:
-    """
-    Delete all scheduled messages from a thread.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        DELETE FROM messages 
-        WHERE thread_id = {next(ph)} 
-            AND timestamp > CURRENT_TIMESTAMP
-    """
-    general_commit_returning_none(query, (thread_id,))
-
-
-def select_scheduled_message_id(thread_id: int) -> int:
-    """
-    Checks the DB for any scheduled messages returning the message id.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id FROM messages 
-        WHERE thread_id = {next(ph)} 
-            AND timestamp > CURRENT_TIMESTAMP
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (thread_id,),
+        .where(threads_table.c.char_id == char_id)
     )
-    result = cursor.fetchone()
-    close()
-    return result[0] if result else 0
-
-
-def update_message(message: Message) -> None:
-    """
-    Update a message in the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        UPDATE messages 
-        SET timestamp = {next(ph)}, content = COALESCE({next(ph)}, content) 
-        WHERE id = {next(ph)}
-    """
-    params = (
-        message["timestamp"],
-        message.get("content", None),
-        message["id"],
-    )
-    general_commit_returning_none(query, params)
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        return [_row_to_message(row) for row in result]
 
 
 def delete_message(message_id: int) -> None:
-    """
-    Delete a message from the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        DELETE FROM messages 
-        WHERE id = {next(ph)}
-    """
-    general_commit_returning_none(query, (message_id,))
+    """Delete a message from the database."""
+    stmt = delete(messages_table).where(messages_table.c.id == message_id)
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)
+
+
+def delete_messages_more_recent(message_id: int) -> None:
+    """Deletes the given message and all messages more recent than it in the same thread."""
+    subquery_thread_id = (
+        select(messages_table.c.thread_id)
+        .where(messages_table.c.id == message_id)
+        .scalar_subquery()
+    )
+    subquery_timestamp = (
+        select(messages_table.c.timestamp)
+        .where(messages_table.c.id == message_id)
+        .scalar_subquery()
+    )
+
+    stmt = delete(messages_table).where(
+        (messages_table.c.id == message_id)
+        | (
+            (messages_table.c.thread_id == subquery_thread_id)
+            & (messages_table.c.timestamp > subquery_timestamp)
+        )
+    )
+
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)
+
+
+def delete_scheduled_messages(thread_id: int) -> None:
+    """Delete all scheduled messages for a thread."""
+    stmt = delete(messages_table).where(
+        (messages_table.c.thread_id == thread_id)
+        & (messages_table.c.timestamp > func.now())  # pylint: disable=not-callable
+    )
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)
+
+
+def update_message(message: Message) -> None:
+    """Update a message in the database."""
+    stmt = (
+        update(messages_table)
+        .where(messages_table.c.id == message["id"])
+        .values(message)
+    )
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)

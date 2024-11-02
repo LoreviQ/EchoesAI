@@ -8,11 +8,10 @@ import pytest
 
 import auth
 import database as db
-from tests.test_database.test_main import db_init
-from tests.test_database.test_users import user_1
+from tests.test_database.test_main import test_db
 
 
-def test_insert_user(db_init: str) -> None:
+def test_insert_user(test_db: str) -> None:
     """
     Test the insert_user function.
     """
@@ -28,7 +27,7 @@ def test_insert_user(db_init: str) -> None:
     assert user_db["password"] != unhashed_password
 
 
-def test_authenticate_user(db_init: str) -> None:
+def test_authenticate_user(test_db: str) -> None:
     """
     Test the authenticate_user function.
     """

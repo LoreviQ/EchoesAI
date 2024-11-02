@@ -34,11 +34,11 @@ def _create_complete_event_log(
     if posts:
         _add_posts_to_log(char_id, chatlog)
     chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
-    chatlog = [cast(ChatMessage, x) for x in chatlog]
+    sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
     if not model:
         # if no model is provided, don't truncate and return early
-        return chatlog
-    truncated_log = chatlog[:]
+        return sorted_chatlog
+    truncated_log = sorted_chatlog[:]
     while model.token_count(truncated_log) > MAX_TOKENS:
         truncated_log.pop(0)
     return truncated_log
@@ -65,7 +65,7 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     user = db.select_user_by_id(thread["user_id"])
     content = {
         "type": "message",
-        "time_message_was_sent": message["timestamp"],
+        "time_message_was_sent": message["timestamp"].isoformat(),
         "message": message["content"],
     }
     if message["role"] == "user":
@@ -77,7 +77,7 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
     chatmessage = StampedChatMessage(
         role=message["role"],
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(message["timestamp"]),
+        timestamp=message["timestamp"],
     )
     return chatmessage
 
@@ -91,13 +91,13 @@ def _add_events_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None
 def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
     content = {
         "type": event["type"],
-        "time_event_occurred": event["timestamp"],
+        "time_event_occurred": event["timestamp"].isoformat(),
         "event": event["content"],
     }
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(event["timestamp"]),
+        timestamp=event["timestamp"],
     )
     return chatmessage
 
@@ -112,22 +112,20 @@ def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
     if post["image_post"]:
         content = {
             "type": "image_post",
-            "time_post_was_made": post["timestamp"],
-            "image_description": post["description"],
-            "caption": post["caption"],
+            "time_post_was_made": post["timestamp"].isoformat(),
+            "image_description": post["image_description"],
+            "caption": post["content"],
         }
     else:
         content = {
             "type": "text_post",
-            "time_post_was_made": post["timestamp"],
-            "post": post["description"],
+            "time_post_was_made": post["timestamp"].isoformat(),
+            "post": post["content"],
         }
-    if post["image_post"]:
-        content["caption"] = post["caption"]
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
-        timestamp=db.convert_ts_dt(post["timestamp"]),
+        timestamp=post["timestamp"],
     )
     return chatmessage
 
@@ -139,18 +137,33 @@ def generate_event(model: Model, character_id: int, event_type: str) -> None:
     character = db.select_character_by_id(character_id)
     sys_message = _get_system_message("event", character)
     chatlog = _create_complete_event_log(character_id, model=model)
-    timestamp = db.convert_dt_ts(datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc).isoformat()
     match event_type:
         case "thought":
-            content = f"The time is currently {timestamp}. Generate a thought"
+            content = f"The time is currently {now}. Generate a thought"
         case "event":
-            content = f"The time is currently {timestamp}. Generate an event"
+            content = f"The time is currently {now}. Generate an event"
 
     chatlog.append(ChatMessage(role="user", content=content))
     response = _generate_text(model, sys_message, chatlog)
+    content = _parse_response_event(response["content"], event_type)
     event = db.Event(
         char_id=character["id"],
         type=event_type,
-        content=response["content"],
+        content=content,
     )
     db.events.insert_event(event)
+
+
+def _parse_response_event(response_json: str, event_type: str) -> str:
+    """
+    Parses the JSON string from the model response and returns the 'event' component.
+    Checking the type is the called type.
+    """
+    try:
+        response_data = json.loads(response_json)
+        if response_data.get("type", "") != event_type:
+            raise ValueError("Event type does not match expected type")
+        return response_data.get("event", "")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON: {e}") from e

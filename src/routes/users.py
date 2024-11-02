@@ -5,7 +5,8 @@ from flask import Response, jsonify, make_response, request
 import auth
 import database as db
 
-from .main import bp
+from .main import _create_query_params, bp
+from .threads import _create_thread_params
 
 
 @bp.route("/v1/users", methods=["POST"])
@@ -45,27 +46,14 @@ def get_threads_by_user(username: str) -> Response:
     """Gets all threads for a user."""
     # build query
     try:
-        user_id = db.select_user(username)
+        user = db.select_user(username)
     except ValueError:
         return make_response("user not found", 400)
-    assert user_id["id"]
+    assert user["id"]
     query_params = request.args.to_dict()
-    thread_query = db.Thread(
-        id=query_params.get("id"),
-        user_id=user_id["id"],
-        char_id=query_params.get("char_id"),
-        phase=query_params.get("phase"),
-    )
-    if "char_path" in query_params:
-        chars = db.select_characters(db.Character(path_name=query_params["char_path"]))
-        if not chars:
-            return make_response(jsonify([]), 200)
-        thread_query["char_id"] = chars[0]["id"]
-    options = db.QueryOptions(
-        limit=query_params.get("limit"),
-        orderby=query_params.get("orderby"),
-        order=query_params.get("order"),
-    )
+    thread_query = _create_thread_params(query_params)
+    thread_query["user_id"] = user["id"]
+    options = _create_query_params(query_params)
     threads = db.select_threads(thread_query, options)
     response = []
     for thread in threads:
@@ -81,15 +69,3 @@ def get_threads_by_user(username: str) -> Response:
             }
         )
     return make_response(jsonify(response), 200)
-
-
-@bp.route("/v1/users/<string:username>/threads/latest", methods=["GET"])
-def get_latest_thread_by_user(username: str) -> Response:
-    """Gets latest thread for a user and character."""
-    try:
-        user_id = db.select_user(username)
-    except ValueError:
-        return make_response("user not found", 400)
-    assert user_id["id"]
-    thread = db.select_latest_thread_by_user(user_id["id"])
-    return make_response(jsonify(thread), 200)

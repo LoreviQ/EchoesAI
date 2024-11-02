@@ -1,111 +1,62 @@
 """Database operations for the events table."""
 
-from typing import List
+from typing import Any, List
 
-from .main import (
-    _placeholder_gen,
-    connect_to_db,
-    general_commit_returning_none,
-    general_insert_returning_id,
-)
-from .types import Event
+from sqlalchemy import insert, select
+from sqlalchemy.engine import Row
+
+from .db_types import Event, events_table
+from .main import ENGINE
 
 
-def insert_event(event: Event) -> int:
-    """
-    Insert an event into the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        INSERT INTO events (char_id, type, content) 
-        VALUES ({next(ph)}, {next(ph)}, {next(ph)}) 
-        RETURNING id
-    """
-    return general_insert_returning_id(
-        query,
-        (
-            event["char_id"],
-            event["type"],
-            event["content"],
-        ),
+def _row_to_event(row: Row[Any]) -> Event:
+    """Convert a row to a event."""
+    return Event(
+        id=row.id,
+        timestamp=row.timestamp,
+        char_id=row.char_id,
+        type=row.type,
+        content=row.content,
     )
+
+
+def insert_event(values: Event) -> int:
+    """Insert a event into the database."""
+    stmt = insert(events_table).values(values)
+    with ENGINE.begin() as conn:
+        result = conn.execute(stmt)
+        return result.inserted_primary_key[0]
 
 
 def select_events(event_query: Event = Event()) -> List[Event]:
-    """
-    Select events from the database based on a query.
-    """
-    ph = _placeholder_gen()
-    query = """
-        SELECT id, timestamp, char_id, type, content 
-        FROM events 
-    """
+    """Select events from the database, optionally with a query."""
     conditions = []
-    parameters = []
     for key, value in event_query.items():
-        if value is not None:
-            conditions.append(f"{key} = {next(ph)}")
-            parameters.append(value)
-
-    if conditions:
-        query += " WHERE "
-        query += " AND ".join(conditions)
-
-    _, cursor, close = connect_to_db()
-    cursor.execute(query, parameters)
-    results = cursor.fetchall()
-    close()
-    events: List[Event] = []
-    for result in results:
-        events.append(
-            Event(
-                id=result[0],
-                timestamp=result[1],
-                char_id=result[2],
-                type=result[3],
-                content=result[4],
-            )
-        )
-    return events
+        conditions.append(getattr(events_table.c, key) == value)
+    stmt = select(events_table).where(*conditions)
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        return [_row_to_event(row) for row in result]
 
 
-def select_most_recent_event(character: int) -> Event:
-    """
-    Select the most recent event from the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id, timestamp, type, content 
-        FROM events 
-        WHERE char_id = {next(ph)} 
-        ORDER BY timestamp DESC LIMIT 1
-    """
-
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (character,),
+def select_most_recent_event(char_id: int) -> Event:
+    """Select the most recent event for a character."""
+    stmt = (
+        select(events_table)
+        .where(events_table.c.char_id == char_id)
+        .order_by(events_table.c.timestamp.desc())
+        .limit(1)
     )
-    result = cursor.fetchone()
-    close()
-    if result:
-        return Event(
-            id=result[0],
-            timestamp=result[1],
-            char_id=character,
-            type=result[2],
-            content=result[3],
-        )
-    raise ValueError("Event not found")
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        event = result.fetchone()
+        if event is None:
+            raise ValueError(f"no event found for character: {char_id}")
+        return _row_to_event(event)
 
 
 def delete_event(event_id: int) -> None:
-    """
-    Delete an event from the database.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        DELETE FROM events 
-        WHERE id = {next(ph)}
-    """
-    general_commit_returning_none(query, (event_id,))
+    """Delete an event from the database."""
+    stmt = events_table.delete().where(events_table.c.id == event_id)
+    with ENGINE.begin() as conn:
+        conn.execute(stmt)

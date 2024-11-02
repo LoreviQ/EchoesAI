@@ -1,68 +1,56 @@
-"""
-This file contains the tests for the database/users.py file.
-"""
+"""Tests for the users module in the database package."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-from typing import Generator
-
-import pytest
-
-import auth
 import database as db
-from tests.test_database.test_main import db_init
+
+from .test_main import test_db
 
 
-@pytest.fixture
-def user_1() -> Generator[db.User, None, None]:
-    """
-    Yields a user to be used in testing.
-    """
-    password = "password"
-    user = db.User(username="test_user", password=password, email="test@test.com")
-    user["id"] = auth.insert_user(user)
-    user["password"] = password
-    yield user
+def test_insert_user(test_db: None) -> None:
+    """Test the insert_user function."""
+    user = db.User(
+        username="test",
+        password="test",
+        email="test@test.com",
+    )
+    result = db.insert_user(user)
+    assert result == 1
 
 
-@pytest.fixture
-def user_2() -> Generator[db.User, None, None]:
-    """
-    Yields a user distinct from user_1 to be used in testing.
-    """
-    password = "password_2"
-    user = db.User(username="test_user_2", password=password, email="test_2@test.com")
-    user["id"] = auth.insert_user(user)
-    user["password"] = password
-    yield user
-
-
-def test_insert_user(db_init: str) -> None:
-    """
-    Test the insert_user function.
-    """
-    user = db.User(username="test_user", password="password", email="test@test.com")
-    user_id = db.insert_user(user)
-    assert user_id == 1
-
-
-def test_select_user(db_init: str) -> None:
-    """
-    Test the select_user function.
-    """
-    user = db.User(username="test_user", password="password", email="test@test.com")
+def test_select_user(test_db: None) -> None:
+    """Test the select_user function."""
+    user = db.User(
+        username="test",
+        password="test",
+        email="test@test.com",
+    )
     db.insert_user(user)
-    selected_user = db.select_user("test_user")
-    assert selected_user["username"] == "test_user"
+    result = db.select_user("test")
+    assert result["username"] == "test"
 
 
-def test_update_user(db_init: str) -> None:
-    """
-    Test the update_user function.
-    """
-    user = db.User(username="test_user", password="password", email="test@test.com")
-    db.insert_user(user)
-    user["password"] = "new_password"
+def test_select_user_by_id(test_db: None) -> None:
+    """Test the select_user_by_id function."""
+    user = db.User(
+        username="test",
+        password="test",
+        email="test@test.com",
+    )
+    uid = db.insert_user(user)
+    result = db.select_user_by_id(uid)
+    assert result["username"] == "test"
+
+
+def test_update_user(test_db: None) -> None:
+    """Test the update_user function."""
+    user = db.User(
+        username="test",
+        password="test",
+        email="test@test.com",
+    )
+    user["id"] = db.insert_user(user)
+    user["username"] = "test2"
     db.update_user(user)
-    updated_user = db.select_user("test_user")
-    assert updated_user["password"] == "new_password"
+    result = db.select_user_by_id(user["id"])
+    assert result["username"] == "test2"

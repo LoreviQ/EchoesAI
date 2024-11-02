@@ -13,17 +13,9 @@ from flask.testing import FlaskClient
 
 import database as db
 from app import App
-from tests.test_app import app, client
-from tests.test_database.test_main import db_init
+from tests.test_database.test_main import test_db
 
-
-@pytest.fixture
-def expected_image() -> Generator[Tuple[str, bytes], None, None]:
-    """Yields an image and its path."""
-    img_path = os.path.join("images", "test", "profile.jpg")
-    full_path = os.path.join("static", img_path)
-    with open(full_path, "rb") as img:
-        yield img_path, img.read()
+from .fixtures import app, client
 
 
 def test_ready(client: FlaskClient) -> None:
@@ -32,49 +24,6 @@ def test_ready(client: FlaskClient) -> None:
     """
     response = client.get("/v1/readiness")
     assert response.status_code == 200
-
-
-def test_get_image(client: FlaskClient, expected_image: Tuple[str, bytes]) -> None:
-    """
-    Test the get image route.
-    """
-    response = client.get(f"/v1/{expected_image[0]}")
-    assert response.status_code == 200
-    assert response.data == expected_image[1]
-
-
-def test_get_image_with_invalid_path(client: FlaskClient) -> None:
-    """
-    Test the get image route with an invalid path.
-    """
-    response = client.get("/v1/images/../pwd.txt")
-    assert response.status_code == 404
-
-
-def test_convert_dt_ts() -> None:
-    """
-    Test the convert_dt_ts function.
-    """
-
-    dt = datetime(2021, 1, 1, 0, 0, 0)
-    assert db.convert_dt_ts(dt) == "2021-01-01 00:00:00"
-
-    with pytest.raises(ValueError):
-        db.convert_dt_ts(None)
-
-
-def test_convert_ts_dt() -> None:
-    """
-    Test the convert_ts_dt function.
-    """
-
-    ts = "2024-10-26 22:47:11.580972+00:00"
-    assert db.convert_ts_dt(ts) == datetime(
-        2024, 10, 26, 22, 47, 11, tzinfo=timezone.utc
-    )
-
-    with pytest.raises(ValueError):
-        db.convert_ts_dt(None)
 
 
 def test_detached_false(app: App, client: FlaskClient) -> None:
@@ -95,3 +44,27 @@ def test_detached_true() -> None:
         response = client.get("/v1/detached")
         assert response.status_code == 200
         assert response.data == b"True"
+
+
+def test_get_signed_url(client: FlaskClient) -> None:
+    """
+    Test the get signed url route.
+    """
+    response = client.post(
+        "/v1/get-signed-url", json={"file_name": "test", "file_type": "jpg"}
+    )
+    assert response.status_code == 200
+    assert response.data
+
+
+def test_get_signed_url_invalid_file_type(client: FlaskClient) -> None:
+    """
+    Test the get signed url route with an invalid file type.
+    """
+    response = client.post(
+        "/v1/get-signed-url", json={"file_name": "test", "file_type": "invalid"}
+    )
+    assert response.status_code == 400
+    assert (
+        response.data == b"Invalid file type. Must be one of 'jpg', 'jpeg', or 'png'."
+    )

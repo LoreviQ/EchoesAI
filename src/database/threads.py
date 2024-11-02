@@ -1,200 +1,75 @@
 """Database operations for the threads table."""
 
-from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 
-from .characters import select_character_by_id
-from .main import _placeholder_gen, connect_to_db, convert_dt_ts
-from .messages import insert_message
-from .types import Message, QueryOptions, Thread
+from sqlalchemy import insert, select
+from sqlalchemy.engine import Row
+
+from .db_types import QueryOptions, Thread, threads_table
+from .main import ENGINE
 
 
-def insert_thread(user_id: int, char_id: int) -> int:
-    """
-    Insert a new thread into the database returning the thread id.
-    If the character has an initial message, insert it as the first message.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        INSERT INTO threads (user_id, char_id) 
-        VALUES ({next(ph)}, {next(ph)}) 
-        RETURNING id
-    """
-    conn, cursor, close = connect_to_db()
-    cursor.execute(query, (user_id, char_id))
-    thread_id = int(cursor.fetchone()[0])
-    conn.commit()
-    close()
-    thread = select_thread(thread_id)
-    character = select_character_by_id(char_id)
-    now = convert_dt_ts(datetime.now(timezone.utc))
-    if character["initial_message"]:
-        message = Message(
-            thread_id=thread["id"],
-            content=character["initial_message"],
-            role="assistant",
-            timestamp=now,
-        )
-        insert_message(message)
-    return thread_id
+def _row_to_thread(row: Row[Any]) -> Thread:
+    """Convert a row to a threads."""
+    return Thread(
+        id=row.id,
+        started=row.started,
+        user_id=row.user_id,
+        char_id=row.char_id,
+    )
+
+
+def insert_thread(values: Thread) -> int:
+    """Insert a thread into the database."""
+    stmt = insert(threads_table).values(values)
+    with ENGINE.begin() as conn:
+        result = conn.execute(stmt)
+        return result.inserted_primary_key[0]
 
 
 def select_thread(thread_id: int) -> Thread:
-    """
-    Select the user and chatbot for a thread.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id, started, user_id, char_id, phase 
-        FROM threads 
-        WHERE id = {next(ph)}
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (thread_id,),
-    )
-    result = cursor.fetchone()
-    close()
-    if result:
-        return Thread(
-            id=result[0],
-            started=result[1],
-            user_id=result[2],
-            char_id=result[3],
-            phase=result[4],
-        )
-    raise ValueError("Thread not found")
+    """Select a thread from the database."""
+    stmt = select(threads_table).where(threads_table.c.id == thread_id)
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        thread = result.fetchone()
+        if thread is None:
+            raise ValueError(f"no thread found with id: {thread_id}")
+        return _row_to_thread(thread)
 
 
-def select_threads(thread_query: Thread, options: QueryOptions) -> List[Thread]:
-    """
-    General query for threads.
-    """
-    ph = _placeholder_gen()
-    query = """
-        SELECT id, started, user_id, char_id, phase 
-        FROM threads 
-    """
+def select_threads(
+    thread_query: Thread = Thread(), options: QueryOptions = QueryOptions()
+) -> List[Thread]:
+    """Select threads from the database."""
     conditions = []
-    parameters = []
     for key, value in thread_query.items():
-        if value is not None:
-            conditions.append(f"{key} = {next(ph)}")
-            parameters.append(value)
-
-    if conditions:
-        query += " WHERE "
-        query += " AND ".join(conditions)
-
-    if options.get("orderby"):
-        query += f" ORDER BY {options['orderby']}"
-        if options.get("order"):
-            query += f" {options['order']}"
+        conditions.append(getattr(threads_table.c, key) == value)
+    stmt = select(threads_table).where(*conditions)
     if options.get("limit"):
-        query += f" LIMIT {options['limit']}"
-
-    _, cursor, close = connect_to_db()
-    cursor.execute(query, parameters)
-    results = cursor.fetchall()
-    close()
-    events: List[Thread] = []
-    for result in results:
-        events.append(
-            Thread(
-                id=result[0],
-                started=result[1],
-                user_id=result[2],
-                char_id=result[3],
-                phase=result[4],
-            )
-        )
-    return events
+        stmt = stmt.limit(options["limit"])
+    if options.get("orderby"):
+        if options.get("order") == "desc":
+            stmt = stmt.order_by(getattr(threads_table.c, options["orderby"]).desc())
+        else:
+            stmt = stmt.order_by(getattr(threads_table.c, options["orderby"]).asc())
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        return [_row_to_thread(row) for row in result]
 
 
-def select_latest_thread(user: int, character: int) -> int:
-    """
-    Select the latest thread for a user and character.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT MAX(id) FROM threads 
-        WHERE user_id = {next(ph)} 
-            AND char_id = {next(ph)}
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (user, character),
+def select_latest_thread(user_id: int, char_id: int) -> Thread:
+    """Select the latest thread from the database."""
+    stmt = (
+        select(threads_table)
+        .where(threads_table.c.user_id == user_id)
+        .where(threads_table.c.char_id == char_id)
+        .order_by(threads_table.c.started.desc())
+        .limit(1)
     )
-    result = cursor.fetchone()
-    close()
-    if result[0]:
-        return result[0]
-    return 0
-
-
-def select_threads_by_user(user: int) -> List[Thread]:
-    """
-    Select all threads for a user.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT id, started, user_id, char_id, phase 
-        FROM threads 
-        WHERE user_id = {next(ph)}
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (user,),
-    )
-    result = cursor.fetchall()
-    close()
-    threads = []
-    for thread in result:
-        threads.append(
-            Thread(
-                id=thread[0],
-                started=thread[1],
-                user_id=thread[2],
-                char_id=thread[3],
-                phase=thread[4],
-            )
-        )
-    return threads
-
-
-def select_latest_thread_by_user(user: int) -> Thread:
-    """
-    Select the latest thread for a user.
-    """
-    ph = _placeholder_gen()
-    query = f"""
-        SELECT t.id, t.started, t.user_id, t.char_id, t.phase
-        FROM threads t
-        JOIN (
-            SELECT thread_id, MAX(timestamp) AS latest_message
-            FROM messages
-            GROUP BY thread_id
-        ) m ON t.id = m.thread_id
-        WHERE t.user_id = {next(ph)}
-        ORDER BY m.latest_message DESC
-        LIMIT 1;
-    """
-    _, cursor, close = connect_to_db()
-    cursor.execute(
-        query,
-        (user,),
-    )
-    result = cursor.fetchone()
-    close()
-    if result:
-        return Thread(
-            id=result[0],
-            started=result[1],
-            user_id=result[2],
-            char_id=result[3],
-            phase=result[4],
-        )
-    raise ValueError("Thread not found")
+    with ENGINE.connect() as conn:
+        result = conn.execute(stmt)
+        thread = result.fetchone()
+        if thread is None:
+            raise ValueError(f"no thread found for user: {user_id} and char: {char_id}")
+        return _row_to_thread(thread)

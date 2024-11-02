@@ -4,16 +4,14 @@
 
 import importlib
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 import database as db
 from chatbot import Model
-from tests.test_chatbot.test_model import model
-from tests.test_database.test_characters import char_1
-from tests.test_database.test_main import db_init
-from tests.test_database.test_threads import thread_1
-from tests.test_database.test_users import user_1
+
+from .fixtures import model
 
 main_module = importlib.import_module("chatbot.main")
 _get_system_message = getattr(main_module, "_get_system_message")
@@ -47,55 +45,59 @@ def test_generate_text_no_input(model: Model) -> None:
     assert response["content"] == "Mock response"
 
 
-def test_get_system_message_chat(model: Model, thread_1: db.Thread) -> None:
+@patch("database.select_character_by_id")
+@patch("database.select_user_by_id")
+def test_get_system_message_chat(
+    mock_select_user_by_id: MagicMock,
+    mock_select_character_by_id: MagicMock,
+    model: Model,
+) -> None:
     """
     Test the _get_system_message function.
     """
-    system_message = _get_system_message("chat", thread_1)
+    user = db.User(id=1, username="test", email="test@test.com")
+    mock_select_user_by_id.return_value = user
+    character = db.Character(id=1, name="test")
+    mock_select_character_by_id.return_value = character
+    thread = db.Thread(
+        id=1,
+        user_id=user["id"],
+        char_id=character["id"],
+    )
+    system_message = _get_system_message("chat", thread)
     assert system_message["role"] == "system"
     assert "You are an expert actor who" in system_message["content"]
-    system_message = _get_system_message("time", thread_1)
+    system_message = _get_system_message("time", thread)
     assert system_message["role"] == "system"
     assert "current response frequency of" in system_message["content"]
+    assert mock_select_user_by_id.called_once_with(thread["user_id"])
+    assert mock_select_character_by_id.called_once_with(thread["char_id"])
 
 
-def test_get_system_message_time(model: Model, thread_1: db.Thread) -> None:
+@patch("database.select_character_by_id")
+@patch("database.select_user_by_id")
+def test_get_system_message_time(
+    mock_select_user_by_id: MagicMock,
+    mock_select_character_by_id: MagicMock,
+    model: Model,
+) -> None:
     """
     Test the _get_system_message function.
     """
-    system_message = _get_system_message("chat", thread_1)
+    user = db.User(id=1, username="test", email="test@test.com")
+    mock_select_user_by_id.return_value = user
+    character = db.Character(id=1, name="test")
+    mock_select_character_by_id.return_value = character
+    thread = db.Thread(
+        id=1,
+        user_id=user["id"],
+        char_id=character["id"],
+    )
+    system_message = _get_system_message("chat", thread)
     assert system_message["role"] == "system"
     assert "You are an expert actor who" in system_message["content"]
-
-
-def test_get_system_message_invalid_thread(model: Model) -> None:
-    """
-    Test the _get_system_message function.
-    """
-    fake_thread = db.Thread(
-        id=0,
-        user_id=0,
-        char_id=0,
-        started="2021-01-01 00:00:00",
-        phase=0,
-    )
-    with pytest.raises(AssertionError):
-        _get_system_message("chat", fake_thread)
-
-
-def test_get_system_message_invalid_character(model: Model) -> None:
-    """
-    Test the _get_system_message function.
-    """
-    fake_thread = db.Thread(
-        id=0,
-        user_id=0,
-        char_id=5,
-        started="2021-01-01 00:00:00",
-        phase=0,
-    )
-    with pytest.raises(ValueError):
-        _get_system_message("chat", fake_thread)
+    assert mock_select_user_by_id.called_once_with(thread["user_id"])
+    assert mock_select_character_by_id.called_once_with(thread["char_id"])
 
 
 def test_parse_time() -> None:

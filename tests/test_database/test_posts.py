@@ -1,154 +1,113 @@
-"""
-This file contains the tests for the database/posts.py file.
-"""
+"""Tests for the posts module in the database package."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
-from datetime import datetime, timezone
-from typing import Generator
 
-import pytest
+from typing import List
 
 import database as db
-from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_main import db_init
+
+from .fixtures import character, characters
+from .test_main import test_db
 
 
-@pytest.fixture
-def post_1(char_1: db.Character) -> Generator[db.Post, None, None]:
-    """
-    Creates a post to be used in testing.
-    """
+def test_insert_post(character: db.Character) -> None:
+    """Test the insert_post function."""
     post = db.Post(
-        char_id=char_1["id"],
-        description="test description",
+        char_id=character["id"],
+        content="test caption",
         image_post=True,
         prompt="test prompt",
-        caption="test caption",
-        timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
+        image_description="test description",
     )
-    post["id"] = db.posts.insert_social_media_post(post)
-    yield post
+    result = db.insert_post(post)
+    assert result == 1
 
 
-@pytest.fixture
-def post_2(char_1: db.Character) -> Generator[db.Post, None, None]:
-    """
-    Creates a post distinct from post_1 to be used in testing.
-    """
+def test_select_post(character: db.Character) -> None:
+    """Test the select_post function."""
     post = db.Post(
-        char_id=char_1["id"],
-        description="test description 2",
-        image_post=False,
-        prompt="",
-        caption="",
-    )
-    post["id"] = db.posts.insert_social_media_post(post)
-    yield post
-
-
-def test_insert_social_media_post(db_init: str, char_1: db.Character) -> None:
-    """
-    Test the insert_social_media_post function.
-    """
-    post = db.Post(
-        char_id=char_1["id"],
-        description="test description",
+        char_id=character["id"],
+        content="test caption",
         image_post=True,
         prompt="test prompt",
-        caption="test caption",
+        image_description="test description",
     )
-    post_id = db.posts.insert_social_media_post(post)
-    assert post_id == 1
+    post_id = db.insert_post(post)
+    result = db.select_post(post_id)
+    assert result["content"] == "test caption"
+    assert result["image_post"] is True
+    assert result["prompt"] == "test prompt"
 
 
-def test_select_posts(db_init: str, char_1: db.Character, char_2: db.Character) -> None:
-    """
-    Test the select_posts function.
-    """
-    assert char_1["id"]
-    post1 = db.Post(
-        char_id=char_1["id"],
-        description="test description",
+def test_update_post_with_image_path(character: db.Character) -> None:
+    """Test the update_post_with_image_path function."""
+    post = db.Post(
+        char_id=character["id"],
+        content="test caption",
         image_post=True,
         prompt="test prompt",
-        caption="test caption",
+        image_description="test description",
+    )
+    post_id = db.insert_post(post)
+    db.update_post_with_image_path(post_id, "test_image_path")
+    result = db.select_post(post_id)
+    assert result["image_path"] == "test_image_path"
+
+
+def test_select_posts_without_query(characters: List[db.Character]) -> None:
+    """Test the select_posts function without a query."""
+    post = db.Post(
+        char_id=characters[0]["id"],
+        content="test caption",
+        image_post=True,
+        prompt="test prompt",
+        image_description="test description",
     )
     post2 = db.Post(
-        char_id=char_1["id"],
-        description="test description 2",
+        char_id=characters[1]["id"],
+        content="test caption 2",
         image_post=True,
         prompt="test prompt 2",
-        caption="test caption 2",
+        image_description="test description 2",
     )
-    post3 = db.Post(
-        char_id=char_2["id"],
-        description="test description 3",
-        image_post=True,
-        prompt="test prompt 3",
-        caption="test caption 3",
-    )
-    post1_id = db.posts.insert_social_media_post(post1)
-    post2_id = db.posts.insert_social_media_post(post2)
-    post3_id = db.posts.insert_social_media_post(post3)
-    posts = db.posts.select_posts()
-    assert len(posts) == 3
-    assert posts[0]["id"] == post1_id
-    assert posts[1]["id"] == post2_id
-    assert posts[2]["id"] == post3_id
+    post1_id = db.insert_post(post)
+    post2_id = db.insert_post(post2)
+    result = db.select_posts()
+    assert len(result) == 2
+    assert result[0]["id"] == post1_id
+    assert result[1]["id"] == post2_id
 
 
-def test_select_posts_with_query(
-    db_init: str, char_1: db.Character, char_2: db.Character
-) -> None:
-    """
-    Test the select_posts function.
-    """
-    assert char_1["id"]
-    post1 = db.Post(
-        char_id=char_1["id"],
-        description="test description",
+def test_select_posts_with_query(characters: List[db.Character]) -> None:
+    """Test the select_posts function with a query."""
+    post = db.Post(
+        char_id=characters[0]["id"],
+        content="test caption",
         image_post=True,
         prompt="test prompt",
-        caption="test caption",
+        image_description="test description",
     )
     post2 = db.Post(
-        char_id=char_1["id"],
-        description="test description 2",
+        char_id=characters[1]["id"],
+        content="test caption 2",
         image_post=True,
         prompt="test prompt 2",
-        caption="test caption 2",
+        image_description="test description 2",
     )
     post3 = db.Post(
-        char_id=char_2["id"],
-        description="test description 3",
+        char_id=characters[0]["id"],
+        content="test caption 3",
         image_post=True,
         prompt="test prompt 3",
-        caption="test caption 3",
+        image_description="test description 3",
     )
-    post1_id = db.posts.insert_social_media_post(post1)
-    post2_id = db.posts.insert_social_media_post(post2)
-    db.posts.insert_social_media_post(post3)
-    post_query = db.Post(char_id=char_1["id"])
-    posts = db.posts.select_posts(post_query)
-    assert len(posts) == 2
-    assert posts[0]["id"] == post1_id
-    assert posts[1]["id"] == post2_id
+    post1_id = db.insert_post(post)
+    db.insert_post(post2)
+    post3_id = db.insert_post(post3)
 
-
-def test_add_image_path_to_post(db_init: str, char_1: db.Character) -> None:
-    """
-    Test the add_image_path_to_post function.
-    """
-    assert char_1["id"]
-    post = db.Post(
-        char_id=char_1["id"],
-        description="test description",
-        image_post=True,
-        prompt="test prompt",
-        caption="test caption",
-    )
-    post_id = db.posts.insert_social_media_post(post)
-    db.posts.update_post_with_image_path(post_id, "test_image_path")
-    post = db.posts.select_posts(db.Post(id=post_id))[0]
-    assert post["image_path"] == "test_image_path"
+    post_query = db.Post(char_id=characters[0]["id"])
+    result = db.select_posts(post_query)
+    assert len(result) == 2
+    assert result[0]["id"] == post1_id
+    assert result[1]["id"] == post3_id

@@ -8,33 +8,12 @@ from .main import bp
 
 
 @bp.route("/v1/characters", methods=["POST"])
-def new_character() -> Response:
+def post_character() -> Response:
     """Creates a new character."""
     data = request.get_json()
     if not all(key in data for key in ("name", "path_name")):
         return make_response("Missing required fields", 400)
-    character = db.Character(
-        name=data["name"],
-        path_name=data["path_name"],
-        description=data.get("description", ""),
-        age=data.get("age", 0),
-        height=data.get("height", 0),
-        personality=data.get("personality", ""),
-        appearance=data.get("appearance", ""),
-        loves=data.get("loves", ""),
-        hates=data.get("hates", ""),
-        details=data.get("details", ""),
-        scenario=data.get("scenario", ""),
-        important=data.get("important", ""),
-        initial_message=data.get("initial_message", ""),
-        favorite_colour=data.get("favorite_colour", ""),
-        phases=data.get("phases", False),
-        img_gen=data.get("img_gen", False),
-        model=data.get("model", ""),
-        global_positive=data.get("global_positive", ""),
-        global_negative=data.get("global_negative", ""),
-        profile_path=data.get("profile_path", ""),
-    )
+    character = _create_character_query_params(data)
     db.insert_character(character)
     return make_response(str(data["path_name"]), 200)
 
@@ -53,7 +32,10 @@ def get_character(char_path: str) -> Response:
 def get_characters() -> Response:
     """Get characters, optionally with a query."""
     query_params = request.args.to_dict()
-    character_query = db.Character(**query_params)
+    try:
+        character_query = _create_character_query_params(query_params)
+    except ValueError:
+        return make_response(jsonify([]), 200)
     characters = db.select_characters(character_query)
     return make_response(jsonify(characters), 200)
 
@@ -78,3 +60,64 @@ def get_events_by_character(char_path: str) -> Response:
         return make_response("character not found", 404)
     events = db.select_events(db.Event(char_id=character["id"]))
     return make_response(jsonify(events), 200)
+
+
+@bp.route("/v1/characters/<string:char_path>", methods=["PATCH"])
+def update_character(char_path: str) -> Response:
+    """Updates a character."""
+    try:
+        character = db.select_character(char_path)
+    except ValueError:
+        return make_response("character not found", 404)
+    character_patch = _create_character_query_params(request.get_json())
+    character_patch["id"] = character["id"]
+    db.update_character(character_patch)
+    return make_response("", 200)
+
+
+def _create_character_query_params(query_params: dict[str, str]) -> db.Character:
+    character_query = db.Character()
+    # basic params
+    if "id" in query_params and query_params["id"]:
+        character_query["id"] = int(query_params["id"])
+    if "name" in query_params and query_params["name"]:
+        character_query["name"] = query_params["name"]
+    if "path_name" in query_params and query_params["path_name"]:
+        character_query["path_name"] = query_params["path_name"]
+    if "description" in query_params and query_params["description"]:
+        character_query["description"] = query_params["description"]
+    if "age" in query_params and query_params["age"]:
+        character_query["age"] = int(query_params["age"])
+    if "height" in query_params and query_params["height"]:
+        character_query["height"] = query_params["height"]
+    if "personality" in query_params and query_params["personality"]:
+        character_query["personality"] = query_params["personality"]
+    if "appearance" in query_params and query_params["appearance"]:
+        character_query["appearance"] = query_params["appearance"]
+    if "loves" in query_params and query_params["loves"]:
+        character_query["loves"] = query_params["loves"]
+    if "hates" in query_params and query_params["hates"]:
+        character_query["hates"] = query_params["hates"]
+    if "details" in query_params and query_params["details"]:
+        character_query["details"] = query_params["details"]
+    if "scenario" in query_params and query_params["scenario"]:
+        character_query["scenario"] = query_params["scenario"]
+    if "important" in query_params and query_params["important"]:
+        character_query["important"] = query_params["important"]
+    if "initial_message" in query_params and query_params["initial_message"]:
+        character_query["initial_message"] = query_params["initial_message"]
+    if "favorite_colour" in query_params and query_params["favorite_colour"]:
+        character_query["favorite_colour"] = query_params["favorite_colour"]
+    if "phases" in query_params and query_params["phases"]:
+        character_query["phases"] = bool(query_params["phases"])
+    if "img_gen" in query_params and query_params["img_gen"]:
+        character_query["img_gen"] = bool(query_params["img_gen"])
+    if "model" in query_params and query_params["model"]:
+        character_query["model"] = query_params["model"]
+    if "global_positive" in query_params and query_params["global_positive"]:
+        character_query["global_positive"] = query_params["global_positive"]
+    if "global_negative" in query_params and query_params["global_negative"]:
+        character_query["global_negative"] = query_params["global_negative"]
+    if "profile_path" in query_params and query_params["profile_path"]:
+        character_query["profile_path"] = query_params["profile_path"]
+    return character_query

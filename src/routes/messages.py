@@ -16,7 +16,7 @@ def get_messages_by_thread(thread_id: int) -> Response:
         db.select_thread(thread_id)
     except ValueError:
         return make_response("thread not found", 404)
-    messages = db.select_messages_by_thread(thread_id)
+    messages = db.select_messages(db.Message(thread_id=thread_id))
     return make_response(jsonify(messages), 200)
 
 
@@ -64,11 +64,11 @@ def get_response_now(thread_id: int) -> Response:
     except ValueError:
         return make_response("thread not found", 404)
     # first attempt to apply scheduled message
-    message_id = db.select_scheduled_message_id(thread_id)
+    message_id = db.select_scheduled_message(thread_id)["id"]
     if message_id:
         message_patch = db.Message(
             id=message_id,
-            timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
+            timestamp=datetime.now(timezone.utc),
         )
         db.update_message(message_patch)
         return make_response("", 200)

@@ -1,191 +1,122 @@
-"""
-This file contains the tests for the database/events.py file.
-"""
+"""Tests for the events module in the database package."""
 
 # pylint: disable=redefined-outer-name unused-argument unused-import
 
 import time
-from datetime import datetime, timezone
-from typing import Generator
-
-import pytest
+from typing import List
 
 import database as db
-from tests.test_database.test_characters import char_1, char_2
-from tests.test_database.test_main import db_init
+
+from .fixtures import character, characters
+from .test_main import test_db
 
 
-@pytest.fixture
-def event_1(char_1: db.Character) -> Generator[db.Event, None, None]:
-    """
-    Creates a event to be used in testing.
-    """
+def test_insert_event(character: db.Character) -> None:
+    """Test the insert_event function."""
     event = db.Event(
-        char_id=char_1["id"],
+        char_id=character["id"],
         type="event",
         content="test event",
-        timestamp=db.convert_dt_ts(datetime.now(timezone.utc)),
     )
-    event["id"] = db.events.insert_event(event)
-    yield event
+    result = db.insert_event(event)
+    assert result == 1
 
 
-@pytest.fixture
-def event_2(char_1: db.Character) -> Generator[db.Event, None, None]:
-    """
-    Creates a event distinct from event_1 to be used in testing.
-    """
+def test_select_events_without_query(characters: List[db.Character]) -> None:
+    """Test the select_events function without a query."""
     event = db.Event(
-        char_id=char_1["id"],
-        type="thought",
-        content="test thought",
-    )
-    event["id"] = db.events.insert_event(event)
-    yield event
-
-
-def test_insert_event(db_init: str, char_1: db.Character, char_2: db.Character) -> None:
-    """
-    Test the insert_event function.
-    """
-    event1 = db.Event(
-        char_id=char_1["id"],
+        char_id=characters[0]["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        char_id=char_2["id"],
+        char_id=characters[1]["id"],
         type="thought",
         content="test thought",
     )
-    event1_id = db.events.insert_event(event1)
-    event2_id = db.events.insert_event(event2)
-    assert event1_id == 1
-    assert event2_id == 2
+    db.insert_event(event)
+    db.insert_event(event2)
+    result = db.select_events()
+    assert len(result) == 2
+    assert result[0]["type"] == "event"
+    assert result[1]["type"] == "thought"
 
 
-def test_select_events(
-    db_init: str, char_1: db.Character, char_2: db.Character
-) -> None:
-    """
-    Test the select_events.
-    """
-    assert char_1["id"]
-    assert char_2["id"]
-    event1 = db.Event(
-        char_id=char_1["id"],
+def test_select_events_with_query(characters: List[db.Character]) -> None:
+    """Test the select_events with a query specifying a character."""
+    event = db.Event(
+        char_id=characters[0]["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        char_id=char_2["id"],
+        char_id=characters[1]["id"],
         type="thought",
         content="test thought",
     )
     event3 = db.Event(
-        char_id=char_1["id"],
+        char_id=characters[0]["id"],
         type="thought",
         content="test thought 2",
     )
-    db.events.insert_event(event1)
-    db.events.insert_event(event2)
-    db.events.insert_event(event3)
-    events = db.events.select_events()
-    assert len(events) == 3
-    assert events[0]["type"] == "event"
-    assert events[1]["type"] == "thought"
-    assert events[2]["type"] == "thought"
+    db.insert_event(event)
+    db.insert_event(event2)
+    db.insert_event(event3)
+    result = db.select_events(db.Event(char_id=characters[0]["id"]))
+    assert len(result) == 2
+    assert result[0]["type"] == "event"
+    assert result[1]["type"] == "thought"
 
 
-def test_select_events_with_query(
-    db_init: str, char_1: db.Character, char_2: db.Character
-) -> None:
-    """
-    Test the select_events with a query specifying a character.
-    """
-    assert char_1["id"]
-    assert char_2["id"]
-    event1 = db.Event(
-        char_id=char_1["id"],
+def test_select_events_with_query_no_matching(characters: List[db.Character]) -> None:
+    """Test the select_characters function with a query that doesn't match any characters."""
+    event = db.Event(
+        char_id=characters[0]["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        char_id=char_2["id"],
+        char_id=characters[1]["id"],
         type="thought",
         content="test thought",
     )
-    event3 = db.Event(
-        char_id=char_1["id"],
-        type="thought",
-        content="test thought 2",
-    )
-    db.events.insert_event(event1)
-    db.events.insert_event(event2)
-    db.events.insert_event(event3)
-    events = db.events.select_events(db.Event(char_id=char_1["id"]))
-    assert len(events) == 2
-    assert events[0]["type"] == "event"
-    assert events[1]["type"] == "thought"
-    events = db.events.select_events(db.Event(char_id=char_2["id"]))
-    assert len(events) == 1
-    assert events[0]["type"] == "thought"
+    db.insert_event(event)
+    db.insert_event(event2)
+    result = db.select_events(db.Event(char_id=characters[2]["id"]))
+    assert not result
 
 
-def test_select_most_recent_event(
-    db_init: str, char_1: db.Character, char_2: db.Character
-) -> None:
-    """
-    Test the select_most_recent_event function.
-    """
-    assert char_1["id"]
-    assert char_2["id"]
-    event1 = db.Event(
-        char_id=char_1["id"],
+def test_select_most_recent_event(character: db.Character) -> None:
+    """Test the select_most_recent_event function."""
+    event = db.Event(
+        char_id=character["id"],
         type="event",
         content="test event",
     )
     event2 = db.Event(
-        char_id=char_2["id"],
+        char_id=character["id"],
         type="thought",
         content="test thought",
     )
-    event3 = db.Event(
-        char_id=char_1["id"],
-        type="thought",
-        content="test thought 2",
-    )
-    db.events.insert_event(event1)
+    db.insert_event(event)
     time.sleep(1)
-    event2_id = db.events.insert_event(event2)
-    time.sleep(1)
-    event3_id = db.events.insert_event(event3)
-    event = db.events.select_most_recent_event(char_1["id"])
-    assert event["id"] == event3_id
-    assert event["type"] == "thought"
-    event = db.events.select_most_recent_event(char_2["id"])
-    assert event["id"] == event2_id
-    assert event["type"] == "thought"
+    db.insert_event(event2)
+    result = db.select_most_recent_event(character["id"])
+    assert result["type"] == "thought"
+    assert result["content"] == "test thought"
+    assert result["char_id"] == character["id"]
+    assert result["id"] == 2
+    assert result["timestamp"]
 
 
-def test_delete_event(db_init: str, char_1: db.Character) -> None:
-    """
-    Test the delete_event function.
-    """
-    assert char_1["id"]
-    event1 = db.Event(
-        char_id=char_1["id"],
+def test_delete_event(character: db.Character) -> None:
+    """Test the delete_event function."""
+    event = db.Event(
+        char_id=character["id"],
         type="event",
         content="test event",
     )
-    event2 = db.Event(
-        char_id=char_1["id"],
-        type="thought",
-        content="test thought",
-    )
-    event1_id = db.events.insert_event(event1)
-    event2_id = db.events.insert_event(event2)
-    db.events.delete_event(event1_id)
-    events = db.events.select_events(db.Event(char_id=char_1["id"]))
-    assert len(events) == 1
-    assert events[0]["id"] == event2_id
+    event_id = db.insert_event(event)
+    db.delete_event(event_id)
+    result = db.select_events()
+    assert not result
