@@ -32,7 +32,7 @@ def _create_complete_event_log(
     if events:
         _add_events_to_log(char_id, chatlog)
     if posts:
-        _add_posts_to_log(char_id, chatlog)
+        _add_posts_to_log(char_id, chatlog, True)
     chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
     sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
     if not model:
@@ -102,8 +102,14 @@ def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
     return chatmessage
 
 
-def _add_posts_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
-    posts = db.posts.select_posts(db.Post(char_id=char_id))
+def _add_posts_to_log(
+    char_id: int, chat_log: List[StampedChatMessage], other_characters: bool = False
+) -> None:
+    select_filter = db.Post()
+    # if other_characters is false, only show posts from the current character
+    if not other_characters:
+        select_filter["char_id"] = char_id
+    posts = db.posts.select_posts(select_filter)
     for post in posts:
         chat_log.append(_turn_post_into_chatmessage(post))
 

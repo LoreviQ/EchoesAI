@@ -7,6 +7,7 @@ Give your response as a json in the format:
     "time_post_was_made": A timestamp of when the post was published,
     "image_description": A description of the photo posted,
     "caption": The caption accompanying the photo
+    "posted_by": {{char}}
 }
 
 The image description must include the following:

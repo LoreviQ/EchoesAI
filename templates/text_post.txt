@@ -6,6 +6,7 @@ Give your response as a json in the format:
     "type": "text_post",
     "time_post_was_made": A timestamp of when the post was published,
     "post": The content of the post
+    "posted_by": {{char}}
 }
 
 The post can be based on recent events or something completely original!
