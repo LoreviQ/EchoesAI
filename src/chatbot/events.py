@@ -109,18 +109,21 @@ def _add_posts_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
 
 
 def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
+    posted_by = db.select_character_by_id(post["char_id"])
     if post["image_post"]:
         content = {
             "type": "image_post",
             "time_post_was_made": post["timestamp"].isoformat(),
             "image_description": post["image_description"],
             "caption": post["content"],
+            "posted_by": posted_by["name"],
         }
     else:
         content = {
             "type": "text_post",
             "time_post_was_made": post["timestamp"].isoformat(),
             "post": post["content"],
+            "posted_by": posted_by["name"],
         }
     chatmessage = StampedChatMessage(
         role="assistant",
