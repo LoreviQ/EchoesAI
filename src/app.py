@@ -12,6 +12,7 @@ from flask import Flask, g
 from flask_cors import CORS
 
 import routes
+from database import create_db
 
 
 class App:
@@ -81,6 +82,7 @@ def main() -> None:
     """
     Entry point for the application.
     """
+    create_db()
     parser = argparse.ArgumentParser(description="Run the application.")
     parser.add_argument("--test", action="store_true", help="Use a mocked model")
     args = parser.parse_args()
