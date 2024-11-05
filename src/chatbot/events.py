@@ -32,16 +32,8 @@ def _create_complete_event_log(
     if events:
         _add_events_to_log(char_id, chatlog)
     if posts:
-        _add_posts_to_log(char_id, chatlog, True)
-    chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
-    sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
-    if not model:
-        # if no model is provided, don't truncate and return early
-        return sorted_chatlog
-    truncated_log = sorted_chatlog[:]
-    while model.token_count(truncated_log) > MAX_TOKENS:
-        truncated_log.pop(0)
-    return truncated_log
+        _add_posts_to_log(chatlog)
+    return _sort_and_truncate(chatlog, model)
 
 
 def _add_messages_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
@@ -56,10 +48,10 @@ def _add_messages_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> No
             ]
         ):
             continue
-        chat_log.append(_turn_message_into_chatmessage(message))
+        chat_log.append(_message_to_chatmessage(message))
 
 
-def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
+def _message_to_chatmessage(message: db.Message) -> StampedChatMessage:
     thread = db.select_thread(message["thread_id"])
     char = db.select_character_by_id(thread["char_id"])
     user = db.select_user_by_id(thread["user_id"])
@@ -83,12 +75,14 @@ def _turn_message_into_chatmessage(message: db.Message) -> StampedChatMessage:
 
 
 def _add_events_to_log(char_id: int, chat_log: List[StampedChatMessage]) -> None:
-    events = db.events.select_events(db.Event(char_id=char_id))
+    event_filter = db.Event(char_id=char_id)
+    options = db.QueryOptions(limit=20, orderby="timestamp", order="desc")
+    events = db.events.select_events(event_filter, options)
     for event in events:
-        chat_log.append(_turn_event_into_chatmessage(event))
+        chat_log.append(_event_to_chatmessage(event))
 
 
-def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
+def _event_to_chatmessage(event: db.Event) -> StampedChatMessage:
     content = {
         "type": event["type"],
         "time_event_occurred": event["timestamp"].isoformat(),
@@ -103,40 +97,67 @@ def _turn_event_into_chatmessage(event: db.Event) -> StampedChatMessage:
 
 
 def _add_posts_to_log(
-    char_id: int, chat_log: List[StampedChatMessage], other_characters: bool = False
+    chat_log: List[StampedChatMessage],
+    char_id: int | None = None,
 ) -> None:
     select_filter = db.Post()
+    options = db.QueryOptions(limit=20, orderby="timestamp", order="desc")
     # if other_characters is false, only show posts from the current character
-    if not other_characters:
+    if char_id:
         select_filter["char_id"] = char_id
-    posts = db.posts.select_posts(select_filter)
+    posts = db.posts.select_posts(select_filter, options)
     for post in posts:
-        chat_log.append(_turn_post_into_chatmessage(post))
+        chat_log.append(_post_to_chatmessage(post))
 
 
-def _turn_post_into_chatmessage(post: db.Post) -> StampedChatMessage:
+def _post_to_chatmessage(post: db.Post) -> StampedChatMessage:
+    """
+    Convert a post to a chat message,
+    ensuring each post has a unique ID since the chatbot will need to reference it.
+    """
     posted_by = db.select_character_by_id(post["char_id"])
+    comments = db.comments.select_comments_from_post(post["id"])
+    coments_content = []
+    for comment in comments:
+        coments_content.append(
+            {
+                "comment": comment["content"],
+                "commented_by": db.select_character_by_id(comment["char_id"])["name"],
+            }
+        )
+    content = {
+        "id": post["id"],
+        "time_post_was_made": post["timestamp"].isoformat(),
+        "posted_by": posted_by["name"],
+        "comments": coments_content,
+    }
     if post["image_post"]:
-        content = {
-            "type": "image_post",
-            "time_post_was_made": post["timestamp"].isoformat(),
-            "image_description": post["image_description"],
-            "caption": post["content"],
-            "posted_by": posted_by["name"],
-        }
+        content["type"] = "image_post"
+        content["image_description"] = post["image_description"]
+        content["caption"] = post["content"]
     else:
-        content = {
-            "type": "text_post",
-            "time_post_was_made": post["timestamp"].isoformat(),
-            "post": post["content"],
-            "posted_by": posted_by["name"],
-        }
+        content["type"] = "text_post"
+        content["post"] = post["content"]
     chatmessage = StampedChatMessage(
         role="assistant",
         content=json.dumps(content),
         timestamp=post["timestamp"],
     )
     return chatmessage
+
+
+def _sort_and_truncate(
+    chatlog: List[StampedChatMessage], model: Model | None = None
+) -> List[ChatMessage]:
+    chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
+    sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
+    if not model:
+        # if no model is provided, don't truncate and return early
+        return sorted_chatlog
+    truncated_log = sorted_chatlog[:]
+    while model.token_count(truncated_log) > MAX_TOKENS:
+        truncated_log.pop(0)
+    return truncated_log
 
 
 def generate_event(model: Model, character_id: int, event_type: str) -> None:

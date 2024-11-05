@@ -5,7 +5,7 @@ from typing import Any, List
 from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
-from .db_types import Event, events_table
+from .db_types import Event, QueryOptions, events_table
 from .main import ENGINE
 
 
@@ -28,12 +28,21 @@ def insert_event(values: Event) -> int:
         return result.inserted_primary_key[0]
 
 
-def select_events(event_query: Event = Event()) -> List[Event]:
+def select_events(
+    event_query: Event = Event(), options: QueryOptions = QueryOptions()
+) -> List[Event]:
     """Select events from the database, optionally with a query."""
     conditions = []
     for key, value in event_query.items():
         conditions.append(getattr(events_table.c, key) == value)
     stmt = select(events_table).where(*conditions)
+    if options.get("limit"):
+        stmt = stmt.limit(options["limit"])
+    if options.get("orderby"):
+        if options.get("order") == "desc":
+            stmt = stmt.order_by(getattr(events_table.c, options["orderby"]).desc())
+        else:
+            stmt = stmt.order_by(getattr(events_table.c, options["orderby"]).asc())
     with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_event(row) for row in result]
