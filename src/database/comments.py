@@ -5,13 +5,13 @@ from typing import Any, List
 from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
-from .db_types import Comments, comments_table
+from .db_types import Comment, comments_table
 from .main import ENGINE
 
 
-def _row_to_comment(row: Row[Any]) -> Comments:
+def _row_to_comment(row: Row[Any]) -> Comment:
     """Convert a row to a comment."""
-    return Comments(
+    return Comment(
         id=row.id,
         timestamp=row.timestamp,
         post_id=row.post_id,
@@ -20,7 +20,7 @@ def _row_to_comment(row: Row[Any]) -> Comments:
     )
 
 
-def insert_comment(values: Comments) -> int:
+def insert_comment(values: Comment) -> int:
     """Insert a comment into the database."""
     stmt = insert(comments_table).values(values)
     with ENGINE.begin() as conn:
@@ -28,7 +28,7 @@ def insert_comment(values: Comments) -> int:
         return result.inserted_primary_key[0]
 
 
-def select_comments(comment_query: Comments = Comments()) -> List[Comments]:
+def select_comments(comment_query: Comment = Comment()) -> List[Comment]:
     """Select comments from the database, optionally with a query."""
     conditions = []
     for key, value in comment_query.items():

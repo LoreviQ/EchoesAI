@@ -11,6 +11,7 @@ from .characters import (
 from .comments import insert_comment, select_comments
 from .db_types import (
     Character,
+    Comment,
     Event,
     Message,
     Post,

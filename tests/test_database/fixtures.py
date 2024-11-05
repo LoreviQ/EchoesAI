@@ -103,3 +103,47 @@ def threads(
     db.insert_thread(thread2)
     db.insert_thread(thread3)
     yield db.select_threads()
+
+
+@pytest.fixture
+def post(character: db.Character) -> Generator[db.Post, None, None]:
+    """Creates a single post to be used in testing."""
+    post = db.Post(
+        char_id=character["id"],
+        content="test caption",
+        image_post=True,
+        image_description="test description",
+        prompt="test prompt",
+    )
+    post_id = db.posts.insert_post(post)
+    yield db.select_post(post_id)
+
+
+@pytest.fixture
+def posts(character: db.Character) -> Generator[List[db.Post], None, None]:
+    """Creates a number of posts to be used in testing."""
+    post = db.Post(
+        char_id=character["id"],
+        content="test caption",
+        image_post=True,
+        image_description="test description",
+        prompt="test prompt",
+    )
+    post2 = db.Post(
+        char_id=character["id"],
+        content="test caption 2",
+        image_post=True,
+        image_description="test description 2",
+        prompt="test prompt 2",
+    )
+    post3 = db.Post(
+        char_id=character["id"],
+        content="test caption 3",
+        image_post=True,
+        image_description="test description 3",
+        prompt="test prompt 3",
+    )
+    db.posts.insert_post(post)
+    db.posts.insert_post(post2)
+    db.posts.insert_post(post3)
+    yield db.select_posts()

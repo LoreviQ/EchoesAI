@@ -120,7 +120,7 @@ posts_table = Table(
 )
 
 
-class Comments(TypedDict, total=False):
+class Comment(TypedDict, total=False):
     """Comments type."""
 
     id: NotRequired[int]
