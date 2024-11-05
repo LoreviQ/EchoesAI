@@ -5,7 +5,7 @@ from typing import Any, List
 from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
-from .db_types import Post, posts_table
+from .db_types import Post, QueryOptions, posts_table
 from .main import ENGINE
 
 
@@ -53,12 +53,21 @@ def update_post_with_image_path(post_id: int, image_path: str) -> None:
         conn.execute(stmt)
 
 
-def select_posts(post_query: Post = Post()) -> List[Post]:
+def select_posts(
+    post_query: Post = Post(), options: QueryOptions = QueryOptions()
+) -> List[Post]:
     """Select posts from the database, optionally with a query."""
     conditions = []
     for key, value in post_query.items():
         conditions.append(getattr(posts_table.c, key) == value)
     stmt = select(posts_table).where(*conditions)
+    if options.get("limit"):
+        stmt = stmt.limit(options["limit"])
+    if options.get("orderby"):
+        if options.get("order") == "desc":
+            stmt = stmt.order_by(getattr(posts_table.c, options["orderby"]).desc())
+        else:
+            stmt = stmt.order_by(getattr(posts_table.c, options["orderby"]).asc())
     with ENGINE.connect() as conn:
         result = conn.execute(stmt)
         return [_row_to_post(row) for row in result]
