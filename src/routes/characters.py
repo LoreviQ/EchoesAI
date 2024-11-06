@@ -65,6 +65,7 @@ def get_posts_by_character(char_path: str) -> Response:
                 "posted_by": posted_by,
             }
             post_with_comments["comments"].append(comment_to_appened)
+        posts_with_comments.append(post_with_comments)
     return make_response(jsonify(posts_with_comments), 200)
 
 
