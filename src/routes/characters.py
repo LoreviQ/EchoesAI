@@ -47,8 +47,25 @@ def get_posts_by_character(char_path: str) -> Response:
         character = db.select_character(char_path)
     except ValueError:
         return make_response("character not found", 404)
-    posts = db.select_posts(db.Post(char_id=character["id"]))
-    return make_response(jsonify(posts), 200)
+    post_filter = db.Post(char_id=character["id"])
+    # TODO: Make this be based on query options
+    options = db.QueryOptions(limit=50, orderby="timestamp", order="desc")
+    posts = db.select_posts(post_filter, options)
+    posts_with_comments = []
+    for post in posts:
+        post_with_comments = post.copy()
+        post_with_comments["comments"] = []
+        comments = db.select_comments(db.Comment(post_id=post["id"]))
+        for comment in comments:
+            posted_by = db.select_character_by_id(comment["char_id"])
+            comment_to_appened = {
+                "id": comment["id"],
+                "timestamp": comment["timestamp"],
+                "content": comment["content"],
+                "posted_by": posted_by,
+            }
+            post_with_comments["comments"].append(comment_to_appened)
+    return make_response(jsonify(posts_with_comments), 200)
 
 
 @bp.route("/v1/characters/<string:char_path>/events", methods=["GET"])
