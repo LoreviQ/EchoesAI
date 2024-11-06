@@ -9,7 +9,7 @@ from typing import List, cast
 
 import database as db
 
-from .events import _turn_message_into_chatmessage
+from .events import _message_to_chatmessage
 from .main import _generate_text, _get_system_message, _parse_time
 from .model import Model
 from .types import MAX_TOKENS, ChatMessage, StampedChatMessage
@@ -30,7 +30,7 @@ def _create_message_log(
             ]
         ):
             continue
-        chatlog.append(_turn_message_into_chatmessage(message))
+        chatlog.append(_message_to_chatmessage(message))
     chatlog = sorted(chatlog, key=lambda x: x["timestamp"])
     sorted_chatlog = [cast(ChatMessage, x) for x in chatlog]
     if not model:

@@ -12,6 +12,7 @@ from flask import Flask, g
 from flask_cors import CORS
 
 import routes
+from database import create_db
 
 
 class App:
@@ -20,7 +21,7 @@ class App:
     """
 
     def __init__(self, mocked: bool = False, detached: bool = False) -> None:
-        self.port = int(os.getenv("PORT", "5000"))
+        self.port = int(os.getenv("PORT", "8080"))
         self.app = Flask(__name__)
         self.detached = detached
         CORS(self.app)
@@ -81,6 +82,7 @@ def main() -> None:
     """
     Entry point for the application.
     """
+    create_db()
     parser = argparse.ArgumentParser(description="Run the application.")
     parser.add_argument("--test", action="store_true", help="Use a mocked model")
     args = parser.parse_args()

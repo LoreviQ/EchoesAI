@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 import database as db
 
+from .comments import generate_comment
 from .events import generate_event
 from .model import Model
 from .posts import generate_social_media_post
@@ -37,6 +38,9 @@ def _scheduled_generation(model: Model) -> None:
         if random.random() < 1 / 30:
             # Events happen twice an hour on average
             generate_event(model, char_id, "event")
-        if random.random() < 1 / 60:
-            # Posts happen once an hour on average
+        if random.random() < 1 / 180:
+            # Posts happen once every three hours on average
             generate_social_media_post(model, char_id)
+        if random.random() < 1 / 60:
+            # Comments happen once an hour on average
+            generate_comment(model, char_id)

@@ -120,6 +120,27 @@ posts_table = Table(
 )
 
 
+class Comment(TypedDict, total=False):
+    """Comments type."""
+
+    id: NotRequired[int]
+    timestamp: NotRequired[datetime]
+    post_id: NotRequired[int]
+    char_id: NotRequired[int]
+    content: NotRequired[str]
+
+
+comments_table = Table(
+    "comments",
+    metadata_obj,
+    Column("id", Integer, primary_key=True),
+    Column("timestamp", DateTime, default=func.now()),  # pylint: disable=not-callable
+    Column("post_id", ForeignKey("posts.id"), nullable=False),
+    Column("char_id", ForeignKey("characters.id"), nullable=False),
+    Column("content", String, nullable=False),
+)
+
+
 class User(TypedDict, total=False):
     """User type."""
 

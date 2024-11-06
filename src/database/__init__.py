@@ -8,8 +8,10 @@ from .characters import (
     select_characters,
     update_character,
 )
+from .comments import insert_comment, select_comments
 from .db_types import (
     Character,
+    Comment,
     Event,
     Message,
     Post,
