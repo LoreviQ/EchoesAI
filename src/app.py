@@ -21,7 +21,7 @@ class App:
     """
 
     def __init__(self, mocked: bool = False, detached: bool = False) -> None:
-        self.port = int(os.getenv("PORT", "5000"))
+        self.port = int(os.getenv("PORT", "8080"))
         self.app = Flask(__name__)
         self.detached = detached
         CORS(self.app)
