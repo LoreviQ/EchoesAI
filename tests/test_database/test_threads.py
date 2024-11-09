@@ -59,7 +59,7 @@ def test_select_threads_with_query(
     user: db.User, characters: List[db.Character]
 ) -> None:
     """Test the select_threads function with a query."""
-    thread = db.Thread(
+    thread1 = db.Thread(
         user_id=user["id"],
         char_id=characters[0]["id"],
     )
@@ -75,19 +75,26 @@ def test_select_threads_with_query(
         user_id=user["id"],
         char_id=characters[2]["id"],
     )
-    db.insert_thread(thread)
-    db.insert_thread(thread2)
+    thread1["id"] = db.insert_thread(thread1)
     time.sleep(1)
-    db.insert_thread(thread3)
-    db.insert_thread(thread4)
-    query = db.Thread(char_id=characters[1]["id"])
+    thread2["id"] = db.insert_thread(thread2)
+    time.sleep(1)
+    thread3["id"] = db.insert_thread(thread3)
+    time.sleep(1)
+    thread4["id"] = db.insert_thread(thread4)
+    query = db.Thread()
     options = db.QueryOptions(limit=2, orderby="started", order="desc")
     result = db.select_threads(query, options)
     assert len(result) == 2
-    assert result[0]["user_id"] == user["id"]
-    assert result[0]["char_id"] == characters[1]["id"]
-    assert result[1]["user_id"] == user["id"]
-    assert result[1]["char_id"] == characters[1]["id"]
+    assert result[0]["id"] == thread4["id"]
+    assert result[1]["id"] == thread3["id"]
+    assert result[0]["started"] > result[1]["started"]
+
+    options = db.QueryOptions(limit=2, offset=2, orderby="started", order="desc")
+    result = db.select_threads(query, options)
+    assert len(result) == 2
+    assert result[0]["id"] == thread2["id"]
+    assert result[1]["id"] == thread1["id"]
     assert result[0]["started"] > result[1]["started"]
 
 

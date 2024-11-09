@@ -42,6 +42,8 @@ def _create_query_params(query_params: dict[str, str]) -> db.QueryOptions:
     options = db.QueryOptions()
     if "limit" in query_params:
         options["limit"] = int(query_params["limit"])
+    if "offset" in query_params:
+        options["offset"] = int(query_params["offset"])
     if "orderby" in query_params:
         options["orderby"] = query_params["orderby"]
     if "order" in query_params:

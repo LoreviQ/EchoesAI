@@ -204,5 +204,6 @@ class QueryOptions(TypedDict, total=False):
     """Type for query options"""
 
     limit: NotRequired[int]
+    offset: NotRequired[int]
     orderby: NotRequired[str]
     order: NotRequired[str]

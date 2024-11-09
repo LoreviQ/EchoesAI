@@ -38,6 +38,8 @@ def select_events(
     stmt = select(events_table).where(*conditions)
     if options.get("limit"):
         stmt = stmt.limit(options["limit"])
+    if options.get("offset"):
+        stmt = stmt.offset(options["offset"])
     if options.get("orderby"):
         if options.get("order") == "desc":
             stmt = stmt.order_by(getattr(events_table.c, options["orderby"]).desc())
