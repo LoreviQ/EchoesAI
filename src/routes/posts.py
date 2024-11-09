@@ -54,28 +54,32 @@ def _convert_posts_to_post_with_comments(
     """Converts a list of posts to a list of posts with comments."""
     posts_w_comments: PostWithComments = []
     for post in posts:
-        character = db.select_character_by_id(post["char_id"])
+        comment_character = db.select_character_by_id(post["char_id"])
         post_with_comments = {
             "id": post["id"],
             "timestamp": post["timestamp"],
-            "posted_by": _convert_character_to_posted_by(character),
+            "posted_by": _convert_character_to_posted_by(comment_character),
             "content": post["content"],
             "image_post": post["image_post"],
             "image_path": post["image_path"],
             "image_description": post["image_description"],
             "prompt": post["prompt"],
         }
-        post_with_comments["comments"] = []
         comments = db.select_comments(db.Comment(post_id=post["id"]))
-        for comment in comments:
-            character = db.select_character_by_id(comment["char_id"])
-            comment_to_appened = {
-                "id": comment["id"],
-                "timestamp": comment["timestamp"],
-                "content": comment["content"],
-                "posted_by": _convert_character_to_posted_by(character),
-            }
-            post_with_comments["comments"].append(comment_to_appened)
+        count = len(comments)
+        post_with_comments["comments_count"] = count
+        post_with_comments["comments"] = []
+        if count > 0:
+            comment_character = db.select_character_by_id(comments[0]["char_id"])
+            # only provide the first comment - others are obtained on request
+            post_with_comments["comments"] = [
+                {
+                    "id": comments[0]["id"],
+                    "timestamp": comments[0]["timestamp"],
+                    "content": comments[0]["content"],
+                    "posted_by": _convert_character_to_posted_by(comment_character),
+                }
+            ]
         posts_w_comments.append(post_with_comments)
     return posts_w_comments
 

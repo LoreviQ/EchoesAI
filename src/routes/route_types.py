@@ -33,4 +33,5 @@ class PostWithComments(TypedDict):
     image_post: bool
     image_description: str
     prompt: str
+    comments_count: int
     comments: List[Comment]
