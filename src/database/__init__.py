@@ -13,6 +13,7 @@ from .db_types import (
     Character,
     Comment,
     Event,
+    Like,
     Message,
     Post,
     QueryOptions,
@@ -21,6 +22,7 @@ from .db_types import (
     metadata_obj,
 )
 from .events import delete_event, insert_event, select_events, select_most_recent_event
+from .likes import count_likes, delete_like, has_user_liked, insert_like, select_likes
 from .main import create_db
 from .messages import (
     delete_message,

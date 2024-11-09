@@ -147,3 +147,29 @@ def posts(character: db.Character) -> Generator[List[db.Post], None, None]:
     db.posts.insert_post(post2)
     db.posts.insert_post(post3)
     yield db.select_posts()
+
+
+@pytest.fixture
+def comments(
+    characters: List[db.Character], posts: List[db.Post]
+) -> Generator[List[db.Comment], None, None]:
+    """Creates a number of comments to be used in testing."""
+    comment = db.Comment(
+        post_id=posts[0]["id"],
+        char_id=characters[0]["id"],
+        content="test comment",
+    )
+    comment2 = db.Comment(
+        post_id=posts[0]["id"],
+        char_id=characters[1]["id"],
+        content="test comment 2",
+    )
+    comment3 = db.Comment(
+        post_id=posts[1]["id"],
+        char_id=characters[0]["id"],
+        content="test comment 3",
+    )
+    db.comments.insert_comment(comment)
+    db.comments.insert_comment(comment2)
+    db.comments.insert_comment(comment3)
+    yield db.comments.select_comments()

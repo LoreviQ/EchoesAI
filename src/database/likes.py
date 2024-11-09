@@ -1,6 +1,8 @@
+"""Database operations for the likes table."""
+
 from typing import Any, List
 
-from sqlalchemy import insert, select
+from sqlalchemy import func, insert, select
 
 from .db_types import Like, likes_table
 from .main import ENGINE
@@ -40,9 +42,9 @@ def select_likes(like_query: Like = Like()) -> List[Like]:
 def count_likes(content_type: str, content_id: int) -> int:
     """Count the number of likes for a given content type and id."""
     stmt = (
-        likes_table.count()
+        select(func.count())  # pylint: disable=not-callable
         .where(likes_table.c.content_liked == content_type)
-        .where(likes_table.c.content_id == content_id)
+        .where(getattr(likes_table.c, content_type + "_id") == content_id)
     )
     with ENGINE.connect() as conn:
         result = conn.execute(stmt)
@@ -55,11 +57,13 @@ def has_user_liked(user_id: int, content_type: str, content_id: int) -> bool:
         likes_table.select()
         .where(likes_table.c.user_id == user_id)
         .where(likes_table.c.content_liked == content_type)
-        .where(likes_table.c.content_id == content_id)
+        .where(getattr(likes_table.c, content_type + "_id") == content_id)
     )
     with ENGINE.connect() as conn:
         result = conn.execute(stmt)
-        return result.scalar() > 0
+        if result.scalar():
+            return True
+        return False
 
 
 def delete_like(like_id: int) -> None:
