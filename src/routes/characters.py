@@ -4,7 +4,8 @@ from flask import Response, jsonify, make_response, request
 
 import database as db
 
-from .main import bp
+from .main import _create_query_params, bp
+from .posts import _convert_posts_to_post_with_comments
 
 
 @bp.route("/v1/characters", methods=["POST"])
@@ -47,26 +48,15 @@ def get_posts_by_character(char_path: str) -> Response:
         character = db.select_character(char_path)
     except ValueError:
         return make_response("character not found", 404)
-    post_filter = db.Post(char_id=character["id"])
-    # TODO: Make this be based on query options
-    options = db.QueryOptions(limit=50, orderby="timestamp", order="desc")
-    posts = db.select_posts(post_filter, options)
-    posts_with_comments = []
-    for post in posts:
-        post_with_comments = post.copy()
-        post_with_comments["comments"] = []
-        comments = db.select_comments(db.Comment(post_id=post["id"]))
-        for comment in comments:
-            posted_by = db.select_character_by_id(comment["char_id"])
-            comment_to_appened = {
-                "id": comment["id"],
-                "timestamp": comment["timestamp"],
-                "content": comment["content"],
-                "posted_by": posted_by,
-            }
-            post_with_comments["comments"].append(comment_to_appened)
-        posts_with_comments.append(post_with_comments)
-    return make_response(jsonify(posts_with_comments), 200)
+    post_query = db.Post(char_id=character["id"])
+    query_params = request.args.to_dict()
+    try:
+        options = _create_query_params(query_params)
+    except ValueError:
+        return make_response(jsonify([]), 200)
+    posts = db.select_posts(post_query, options)
+    response = _convert_posts_to_post_with_comments(posts)
+    return make_response(jsonify(response), 200)
 
 
 @bp.route("/v1/characters/<string:char_path>/events", methods=["GET"])
