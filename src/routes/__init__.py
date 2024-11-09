@@ -1,7 +1,7 @@
 from flask import Flask
 
 # Import all route files to ensure their routes are registered with the Blueprint
-from . import characters, events, messages, posts, threads, users
+from . import characters, comments, events, messages, posts, threads, users
 from .main import bp
 
 
