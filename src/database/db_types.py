@@ -5,6 +5,7 @@ from typing import TypedDict
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -197,6 +198,34 @@ messages_table = Table(
     Column("thread_id", ForeignKey("threads.id"), nullable=False),
     Column("content", String, nullable=False),
     Column("role", String, nullable=False),
+)
+
+
+class Likes(TypedDict, total=False):
+    """Type for likes"""
+
+    id: NotRequired[int]
+    timestamp: NotRequired[datetime]
+    user_id: NotRequired[int]
+    content_liked: NotRequired[str]  # currently supports posts and comments
+    post_id: NotRequired[int]
+    comment_id: NotRequired[int]
+
+
+likes_table = Table(
+    "likes",
+    metadata_obj,
+    Column("id", Integer, primary_key=True),
+    Column("timestamp", DateTime, default=func.now()),  # pylint: disable=not-callable
+    Column("user_id", ForeignKey("users.id"), nullable=False),
+    Column("content_liked", String, nullable=False),
+    Column("post_id", ForeignKey("posts.id"), nullable=True),
+    Column("comment_id", ForeignKey("comments.id"), nullable=True),
+    CheckConstraint(
+        "(post_id IS NOT NULL AND comment_id IS NULL) OR "
+        "(post_id IS NULL AND comment_id IS NOT NULL)",
+        name="check_one_type_not_null",
+    ),
 )
 
 
