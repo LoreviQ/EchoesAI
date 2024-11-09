@@ -201,7 +201,7 @@ messages_table = Table(
 )
 
 
-class Likes(TypedDict, total=False):
+class Like(TypedDict, total=False):
     """Type for likes"""
 
     id: NotRequired[int]
