@@ -5,7 +5,7 @@ from typing import Any, List
 from sqlalchemy import insert, select
 from sqlalchemy.engine import Row
 
-from .db_types import Comment, Post, comments_table
+from .db_types import Comment, comments_table
 from .main import ENGINE
 
 

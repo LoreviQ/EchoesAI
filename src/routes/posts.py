@@ -61,6 +61,7 @@ def _convert_posts_to_post_with_comments(
             "posted_by": _convert_character_to_posted_by(character),
             "content": post["content"],
             "image_post": post["image_post"],
+            "image_path": post["image_path"],
             "image_description": post["image_description"],
             "prompt": post["prompt"],
         }
