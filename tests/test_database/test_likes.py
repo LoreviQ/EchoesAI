@@ -16,7 +16,7 @@ def test_insert_like(post: db.Post) -> None:
     like = db.Like(
         user_id=1,
         content_liked="post",
-        post_id=post["id"],
+        content_id=post["id"],
     )
     result = db.insert_like(like)
     assert result == 1
@@ -27,17 +27,17 @@ def test_select_likes(comments: List[db.Comment], posts: List[db.Post]) -> None:
     like = db.Like(
         user_id=1,
         content_liked="post",
-        post_id=posts[0]["id"],
+        content_id=posts[0]["id"],
     )
     like2 = db.Like(
         user_id=2,
         content_liked="post",
-        post_id=posts[1]["id"],
+        content_id=posts[1]["id"],
     )
     like3 = db.Like(
         user_id=1,
         content_liked="comment",
-        comment_id=comments[0]["id"],
+        content_id=comments[0]["id"],
     )
     db.insert_like(like)
     db.insert_like(like2)
@@ -46,13 +46,13 @@ def test_select_likes(comments: List[db.Comment], posts: List[db.Post]) -> None:
     assert len(result) == 3
     assert result[0]["user_id"] == 1
     assert result[0]["content_liked"] == "post"
-    assert result[0]["post_id"] == posts[0]["id"]
+    assert result[0]["content_id"] == posts[0]["id"]
     assert result[1]["user_id"] == 2
     assert result[1]["content_liked"] == "post"
-    assert result[1]["post_id"] == posts[1]["id"]
+    assert result[1]["content_id"] == posts[1]["id"]
     assert result[2]["user_id"] == 1
     assert result[2]["content_liked"] == "comment"
-    assert result[2]["comment_id"] == comments[0]["id"]
+    assert result[2]["content_id"] == comments[0]["id"]
 
 
 def test_count_likes(comments: List[db.Comment], posts: List[db.Post]) -> None:
@@ -60,17 +60,17 @@ def test_count_likes(comments: List[db.Comment], posts: List[db.Post]) -> None:
     like = db.Like(
         user_id=1,
         content_liked="post",
-        post_id=posts[0]["id"],
+        content_id=posts[0]["id"],
     )
     like2 = db.Like(
         user_id=2,
         content_liked="post",
-        post_id=posts[0]["id"],
+        content_id=posts[0]["id"],
     )
     like3 = db.Like(
         user_id=1,
         content_liked="comment",
-        comment_id=comments[0]["id"],
+        content_id=comments[0]["id"],
     )
     db.insert_like(like)
     db.insert_like(like2)
@@ -86,7 +86,7 @@ def test_has_user_liked(post: db.Post) -> None:
     like = db.Like(
         user_id=1,
         content_liked="post",
-        post_id=post["id"],
+        content_id=post["id"],
     )
     db.insert_like(like)
     result = db.has_user_liked(1, "post", post["id"])
@@ -100,7 +100,7 @@ def test_delete_like(post: db.Post) -> None:
     like = db.Like(
         user_id=1,
         content_liked="post",
-        post_id=post["id"],
+        content_id=post["id"],
     )
     like_id = db.insert_like(like)
     db.delete_like(like_id)

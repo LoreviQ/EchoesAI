@@ -10,18 +10,36 @@ from .main import ENGINE
 
 def _row_to_like(row: dict[str, Any]) -> Like:
     """Convert a row to a like."""
+    content_id: int
+    if row.post_id:
+        content_id = row.post_id
+    elif row.comment_id:
+        content_id = row.comment_id
     return Like(
         id=row.id,
         timestamp=row.timestamp,
         user_id=row.user_id,
         content_liked=row.content_liked,
-        post_id=row.post_id,
-        comment_id=row.comment_id,
+        content_id=content_id,
     )
 
 
-def insert_like(values: Like) -> int:
+def _like_to_values(like: Like) -> dict[str, Any]:
+    """Convert a like to a dictionary of values."""
+    values = like.copy()
+    content_liked = like.get("content_liked")
+    if content_liked:
+        if content_liked == "post":
+            values["post_id"] = like["content_id"]
+        elif content_liked == "comment":
+            values["comment_id"] = like["content_id"]
+        del values["content_id"]
+    return values
+
+
+def insert_like(like: Like) -> int:
     """Insert a like into the database."""
+    values = _like_to_values(like)
     stmt = insert(likes_table).values(values)
     with ENGINE.begin() as conn:
         result = conn.execute(stmt)
@@ -31,7 +49,8 @@ def insert_like(values: Like) -> int:
 def select_likes(like_query: Like = Like()) -> List[Like]:
     """Select likes from the database."""
     conditions = []
-    for key, value in like_query.items():
+    values_query = _like_to_values(like_query)
+    for key, value in values_query.items():
         conditions.append(getattr(likes_table.c, key) == value)
     stmt = select(likes_table).where(*conditions)
     with ENGINE.connect() as conn:

@@ -208,8 +208,7 @@ class Like(TypedDict, total=False):
     timestamp: NotRequired[datetime]
     user_id: NotRequired[int]
     content_liked: NotRequired[str]  # currently supports posts and comments
-    post_id: NotRequired[int]
-    comment_id: NotRequired[int]
+    content_id: NotRequired[int]  # maps to post_id or comment_id in database functions
 
 
 likes_table = Table(
